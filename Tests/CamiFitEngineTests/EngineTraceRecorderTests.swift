@@ -64,6 +64,49 @@ final class EngineTraceRecorderTests: XCTestCase {
         print("engine-trace-invalid timestamp=\(traceFrame.timestampMS) \(knee) rep=\(traceFrame.rep) summary=\(traceFrame.formSummary)")
     }
 
+    func testFormattedTraceIsDeterministicForRepeatedProductPathTraces() throws {
+        var firstRecorder = try Self.recorder()
+        var secondRecorder = try Self.recorder()
+        let frames = Self.validRepFrames(startMS: 0)
+
+        let first = EngineTraceFormatter.format(firstRecorder.record(frames: frames))
+        let second = EngineTraceFormatter.format(secondRecorder.record(frames: frames))
+
+        XCTAssertEqual(first, second)
+
+        print("engine-trace-format-deterministic\n\(Self.firstRows(first, count: 5))")
+    }
+
+    func testFormattedTraceContainsCoreColumnsAndCountedRepFrame() throws {
+        var recorder = try Self.recorder()
+
+        let output = EngineTraceFormatter.format(recorder.record(frames: Self.validRepFrames(startMS: 0)))
+
+        XCTAssertTrue(output.contains("timestamp_ms | phase | reps | counted | produced | form | cue | score | invalid"))
+        XCTAssertTrue(output.contains("1600 | ready | 1 | true"))
+        XCTAssertTrue(output.contains("knee=valid("))
+        XCTAssertTrue(output.contains("torso_tilt=valid("))
+        XCTAssertTrue(output.contains("knee_symmetry=valid("))
+        XCTAssertTrue(output.contains("depth:pass"))
+        XCTAssertTrue(output.contains("score=1.000"))
+        XCTAssertTrue(output.contains("invalid=nil"))
+
+        print("engine-trace-format-counted\n\(Self.rowsContaining(output, "1600 |"))")
+    }
+
+    func testFormattedInvalidTraceIncludesInvalidProducedValueAndRepReason() throws {
+        var recorder = try Self.recorder()
+
+        let output = EngineTraceFormatter.format(recorder.record(frames: [Self.lowVisibilityFrame(timestampMS: 0)]))
+
+        XCTAssertTrue(output.contains("knee=invalid("))
+        XCTAssertTrue(output.contains("phase signal knee invalid"))
+        XCTAssertTrue(output.contains("score=nil"))
+        XCTAssertTrue(output.contains("form=none"))
+
+        print("engine-trace-format-invalid\n\(output)")
+    }
+
     private static func recorder() throws -> EngineTraceRecorder {
         try EngineTraceRecorder(program: ProgramLoader.load(from: presetURL))
     }
@@ -144,5 +187,16 @@ final class EngineTraceRecorderTests: XCTestCase {
 
     private static func format(_ snapshots: [FormRuleSnapshot]) -> String {
         snapshots.map(\.description).joined(separator: " | ")
+    }
+
+    private static func firstRows(_ output: String, count: Int) -> String {
+        output.split(separator: "\n").prefix(count).joined(separator: "\n")
+    }
+
+    private static func rowsContaining(_ output: String, _ needle: String) -> String {
+        output
+            .split(separator: "\n")
+            .filter { $0.contains(needle) }
+            .joined(separator: "\n")
     }
 }

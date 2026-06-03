@@ -99,3 +99,72 @@ public struct EngineTraceRecorder {
         return keys.intersection(producedKeys).sorted()
     }
 }
+
+public enum EngineTraceFormatter {
+    public static func format(_ trace: [EngineTraceFrame]) -> String {
+        (["timestamp_ms | phase | reps | counted | produced | form | cue | score | invalid"] +
+            trace.map(format(frame:))).joined(separator: "\n")
+    }
+
+    private static func format(frame: EngineTraceFrame) -> String {
+        [
+            String(frame.timestampMS),
+            frame.rep.phase.rawValue,
+            String(frame.rep.repCount),
+            String(frame.rep.countedThisFrame),
+            producedDescription(frame.producedValues),
+            formDescription(frame.formSnapshots),
+            cueDescription(frame.formSummary),
+            scoreDescription(frame.formSummary),
+            invalidDescription(frame.rep.invalidReason)
+        ].joined(separator: " | ")
+    }
+
+    private static func producedDescription(_ producedValues: [EngineTraceProducedValue]) -> String {
+        guard !producedValues.isEmpty else {
+            return "produced=none"
+        }
+
+        return producedValues.map(\.description).joined(separator: ",")
+    }
+
+    private static func formDescription(_ snapshots: [FormRuleSnapshot]) -> String {
+        let active = snapshots.filter(\.isActive)
+        guard !active.isEmpty else {
+            return "form=none"
+        }
+
+        return active.map { snapshot in
+            "\(snapshot.ruleID):\(expectationDescription(snapshot.expectationPassed))"
+        }.joined(separator: ",")
+    }
+
+    private static func expectationDescription(_ expectationPassed: Bool?) -> String {
+        switch expectationPassed {
+        case .some(true):
+            return "pass"
+        case .some(false):
+            return "fail"
+        case .none:
+            return "invalid"
+        }
+    }
+
+    private static func cueDescription(_ summary: FormRuleScoreSummary) -> String {
+        guard let selectedCueRuleID = summary.selectedCueRuleID,
+              let selectedCue = summary.selectedCue else {
+            return "cue=nil"
+        }
+
+        return "cue=\(selectedCueRuleID):\(selectedCue)"
+    }
+
+    private static func scoreDescription(_ summary: FormRuleScoreSummary) -> String {
+        let score = summary.score.map { String(format: "%.3f", $0) } ?? "nil"
+        return "score=\(score)"
+    }
+
+    private static func invalidDescription(_ invalidReason: String?) -> String {
+        "invalid=\(invalidReason ?? "nil")"
+    }
+}
