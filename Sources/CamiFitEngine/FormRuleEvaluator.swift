@@ -7,6 +7,7 @@ public struct FormRuleSnapshot: Equatable, CustomStringConvertible {
     public let cue: String?
     public let severity: RuleSeverity
     public let violationDurationMS: Int?
+    public let cueCooldownRemainingMS: Int?
     public let invalidReason: String?
 
     public var description: String {
@@ -19,6 +20,10 @@ public struct FormRuleSnapshot: Equatable, CustomStringConvertible {
 
         if let violationDurationMS {
             parts.append("violation_ms=\(violationDurationMS)")
+        }
+
+        if let cueCooldownRemainingMS {
+            parts.append("cue_cooldown_ms=\(cueCooldownRemainingMS)")
         }
 
         if let cue {
@@ -50,6 +55,7 @@ public struct FormRuleEvaluator {
     private let compiledRules: [CompiledFormRule]
     private let minSignalConfidence: Double
     private var violationStartedAtMSByRuleID: [String: Int64] = [:]
+    private var lastCueEmittedAtMSByRuleID: [String: Int64] = [:]
 
     public init(program: ExerciseProgram) throws {
         var compiledRules: [CompiledFormRule] = []
@@ -124,6 +130,7 @@ public struct FormRuleEvaluator {
                 cue: nil,
                 severity: rule.severity,
                 violationDurationMS: nil,
+                cueCooldownRemainingMS: nil,
                 invalidReason: nil
             )
         }
@@ -143,6 +150,7 @@ public struct FormRuleEvaluator {
                 cue: nil,
                 severity: rule.severity,
                 violationDurationMS: nil,
+                cueCooldownRemainingMS: nil,
                 invalidReason: nil
             )
         case .unsatisfied:
@@ -153,6 +161,7 @@ public struct FormRuleEvaluator {
                 cue: rule.cue,
                 severity: rule.severity,
                 violationDurationMS: nil,
+                cueCooldownRemainingMS: nil,
                 invalidReason: nil
             )
         case let .invalid(reason):
@@ -163,6 +172,7 @@ public struct FormRuleEvaluator {
                 cue: nil,
                 severity: rule.severity,
                 violationDurationMS: nil,
+                cueCooldownRemainingMS: nil,
                 invalidReason: reason
             )
         }
@@ -187,6 +197,7 @@ public struct FormRuleEvaluator {
                 cue: nil,
                 severity: rule.severity,
                 violationDurationMS: nil,
+                cueCooldownRemainingMS: nil,
                 invalidReason: nil
             )
         }
@@ -207,21 +218,30 @@ public struct FormRuleEvaluator {
                 cue: nil,
                 severity: rule.severity,
                 violationDurationMS: nil,
+                cueCooldownRemainingMS: nil,
                 invalidReason: nil
             )
         case .unsatisfied:
             let startedAtMS = violationStartedAtMSByRuleID[rule.id] ?? timestampMS
             violationStartedAtMSByRuleID[rule.id] = startedAtMS
             let durationMS = Int(max(0, timestampMS - startedAtMS))
-            let cue = durationMS >= rule.minViolationMS ? rule.cue : nil
+            let cooldownRemainingBeforeCue = cueCooldownRemaining(for: rule, at: timestampMS)
+            let shouldCue = durationMS >= rule.minViolationMS && cooldownRemainingBeforeCue == 0
+            if shouldCue {
+                lastCueEmittedAtMSByRuleID[rule.id] = timestampMS
+            }
+            let cueCooldownRemainingMS = shouldCue
+                ? rule.cooldownMS
+                : (cooldownRemainingBeforeCue > 0 ? cooldownRemainingBeforeCue : nil)
 
             return FormRuleSnapshot(
                 ruleID: rule.id,
                 isActive: true,
                 expectationPassed: false,
-                cue: cue,
+                cue: shouldCue ? rule.cue : nil,
                 severity: rule.severity,
                 violationDurationMS: durationMS,
+                cueCooldownRemainingMS: cueCooldownRemainingMS,
                 invalidReason: nil
             )
         case let .invalid(reason):
@@ -233,6 +253,7 @@ public struct FormRuleEvaluator {
                 cue: nil,
                 severity: rule.severity,
                 violationDurationMS: nil,
+                cueCooldownRemainingMS: nil,
                 invalidReason: reason
             )
         }
@@ -291,6 +312,15 @@ public struct FormRuleEvaluator {
     private static let equalityTolerance = 1e-9
 
     private static let emptyFrame = PoseFrame(timestampMS: 0, imageWidth: 0, imageHeight: 0, landmarks: [:])
+
+    private func cueCooldownRemaining(for rule: FormRule, at timestampMS: Int64) -> Int {
+        guard let lastCueAtMS = lastCueEmittedAtMSByRuleID[rule.id] else {
+            return 0
+        }
+
+        let cooldownUntilMS = lastCueAtMS + Int64(rule.cooldownMS)
+        return Int(max(0, cooldownUntilMS - timestampMS))
+    }
 }
 
 private struct CompiledFormRule {

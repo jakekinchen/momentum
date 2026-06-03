@@ -63,6 +63,146 @@ final class FormRuleEvaluatorTests: XCTestCase {
         print("form-rule-torso-timing first=\(first) early=\(early) ready=\(ready)")
     }
 
+    func testTorsoRuleSuppressesRepeatCueUntilCooldownElapses() throws {
+        var evaluator = try Self.evaluator()
+
+        _ = evaluator.update(
+            timestampMS: 0,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        let firstCue = try XCTUnwrap(evaluator.update(
+            timestampMS: 250,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let suppressed = try XCTUnwrap(evaluator.update(
+            timestampMS: 500,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let secondCue = try XCTUnwrap(evaluator.update(
+            timestampMS: 1_750,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+
+        XCTAssertEqual(firstCue.cue, "Chest up")
+        XCTAssertEqual(firstCue.cueCooldownRemainingMS, 1_500)
+        XCTAssertEqual(suppressed.expectationPassed, false)
+        XCTAssertNil(suppressed.cue)
+        XCTAssertEqual(suppressed.violationDurationMS, 500)
+        XCTAssertEqual(suppressed.cueCooldownRemainingMS, 1_250)
+        XCTAssertEqual(secondCue.cue, "Chest up")
+        XCTAssertEqual(secondCue.violationDurationMS, 1_750)
+        XCTAssertEqual(secondCue.cueCooldownRemainingMS, 1_500)
+
+        print("form-rule-cooldown first=\(firstCue) suppressed=\(suppressed) second=\(secondCue)")
+    }
+
+    func testPassingInactiveAndInvalidFramesDoNotBreakLaterEligibleCue() throws {
+        var passingReset = try Self.evaluator()
+        _ = passingReset.update(
+            timestampMS: 0,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        _ = passingReset.update(
+            timestampMS: 250,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        let passing = try XCTUnwrap(passingReset.update(
+            timestampMS: 500,
+            producedValues: ["torso_tilt": .valid(30, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let passingRestart = try XCTUnwrap(passingReset.update(
+            timestampMS: 1_800,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let passingCue = try XCTUnwrap(passingReset.update(
+            timestampMS: 2_050,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+
+        var inactiveReset = try Self.evaluator()
+        _ = inactiveReset.update(
+            timestampMS: 0,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        _ = inactiveReset.update(
+            timestampMS: 250,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        let inactive = try XCTUnwrap(inactiveReset.update(
+            timestampMS: 500,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .ready
+        ).first { $0.ruleID == "torso" })
+        let inactiveRestart = try XCTUnwrap(inactiveReset.update(
+            timestampMS: 1_800,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let inactiveCue = try XCTUnwrap(inactiveReset.update(
+            timestampMS: 2_050,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+
+        var invalidReset = try Self.evaluator()
+        _ = invalidReset.update(
+            timestampMS: 0,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        _ = invalidReset.update(
+            timestampMS: 250,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        let invalid = try XCTUnwrap(invalidReset.update(
+            timestampMS: 500,
+            producedValues: ["torso_tilt": .invalid(reason: "low confidence torso")],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let invalidRestart = try XCTUnwrap(invalidReset.update(
+            timestampMS: 1_800,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let invalidCue = try XCTUnwrap(invalidReset.update(
+            timestampMS: 2_050,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+
+        XCTAssertEqual(passing.expectationPassed, true)
+        XCTAssertNil(passing.cue)
+        XCTAssertEqual(passingRestart.violationDurationMS, 0)
+        XCTAssertNil(passingRestart.cue)
+        XCTAssertEqual(passingCue.cue, "Chest up")
+
+        XCTAssertFalse(inactive.isActive)
+        XCTAssertNil(inactive.cue)
+        XCTAssertEqual(inactiveRestart.violationDurationMS, 0)
+        XCTAssertNil(inactiveRestart.cue)
+        XCTAssertEqual(inactiveCue.cue, "Chest up")
+
+        XCTAssertNil(invalid.expectationPassed)
+        XCTAssertNil(invalid.cue)
+        XCTAssertEqual(invalidRestart.violationDurationMS, 0)
+        XCTAssertNil(invalidRestart.cue)
+        XCTAssertEqual(invalidCue.cue, "Chest up")
+
+        print("form-rule-cooldown-reset passing=\(passingCue) inactive=\(inactiveCue) invalid=\(invalidCue)")
+    }
+
     func testPassingInactiveAndInvalidFramesResetViolationTimer() throws {
         var passingReset = try Self.evaluator()
         let first = try XCTUnwrap(passingReset.update(
