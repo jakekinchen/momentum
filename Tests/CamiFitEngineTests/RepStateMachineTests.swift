@@ -14,11 +14,40 @@ final class RepStateMachineTests: XCTestCase {
         XCTAssertEqual(timeline.last?.repCount, 1)
         XCTAssertEqual(timeline.filter(\.countedThisFrame).count, 1)
         XCTAssertEqual(timeline.last?.phase, .ready)
+        XCTAssertGreaterThanOrEqual(timeline.compactMap(\.romDegrees).max() ?? 0, 50)
         XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .descending }))
         XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .bottom }))
         XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .ascending }))
 
         print("rep-state-timed-one-rep \(Self.format(timeline))")
+    }
+
+    func testTimedSequenceWithInsufficientROMDoesNotCountRep() throws {
+        var harness = try ProductPathHarness(repOverride: { rep in
+            RepConfig(
+                phaseSignal: rep.phaseSignal,
+                downWhen: rep.downWhen,
+                downMinMS: rep.downMinMS,
+                bottomMinMS: rep.bottomMinMS,
+                upWhen: rep.upWhen,
+                upMinMS: rep.upMinMS,
+                minROMDegrees: 100,
+                cooldownMS: rep.cooldownMS
+            )
+        })
+
+        let frames = [
+            Self.standingFrame(timestampMS: 0)
+        ] + Self.deepFrames(startMS: 100, count: 10) + Self.standingFrames(startMS: 1_100, count: 8)
+
+        let timeline = frames.map { harness.advance(frame: $0) }
+
+        XCTAssertEqual(timeline.last?.repCount, 0)
+        XCTAssertFalse(timeline.contains(where: \.countedThisFrame))
+        XCTAssertGreaterThan(timeline.compactMap(\.romDegrees).max() ?? 0, 50)
+        XCTAssertLessThan(timeline.compactMap(\.romDegrees).max() ?? 0, 100)
+
+        print("rep-state-below-rom \(Self.format(timeline))")
     }
 
     func testTooFastThresholdCrossingDoesNotCountRep() throws {
@@ -78,7 +107,7 @@ final class RepStateMachineTests: XCTestCase {
         XCTAssertEqual(invalidSnapshot.phase, .ready)
         XCTAssertEqual(invalidSnapshot.repCount, 0)
         XCTAssertFalse(invalidSnapshot.countedThisFrame)
-        XCTAssertTrue(invalidSnapshot.invalidReason?.contains("knee") == true)
+        XCTAssertTrue(invalidSnapshot.invalidReason?.contains("phase signal knee invalid") == true)
 
         print("rep-state-invalid \(invalidSnapshot)")
     }
@@ -108,19 +137,28 @@ final class RepStateMachineTests: XCTestCase {
         var processor: FrameSignalProcessor
         let predicateEvaluator: RepPredicateEvaluator
         var stateMachine: RepStateMachine
+        let phaseSignalName: String
 
-        init() throws {
+        init(repOverride: ((RepConfig) -> RepConfig)? = nil) throws {
             let program = try ProgramLoader.load(from: RepStateMachineTests.presetURL)
+            let rep = try XCTUnwrap(program.rep)
+            let stateMachineRep = repOverride?(rep) ?? rep
             processor = try FrameSignalProcessor(program: program)
             predicateEvaluator = try RepPredicateEvaluator(program: program)
-            stateMachine = try RepStateMachine(program: program)
+            stateMachine = RepStateMachine(rep: stateMachineRep)
+            phaseSignalName = stateMachineRep.phaseSignal
         }
 
         mutating func advance(frame: PoseFrame) -> RepStateSnapshot {
             let produced = processor.process(frame: frame)
             let down = predicateEvaluator.evaluateDown(producedValues: produced, frame: frame)
             let up = predicateEvaluator.evaluateUp(producedValues: produced, frame: frame)
-            return stateMachine.update(timestampMS: frame.timestampMS, downPredicate: down, upPredicate: up)
+            return stateMachine.update(
+                timestampMS: frame.timestampMS,
+                phaseSignal: produced[phaseSignalName],
+                downPredicate: down,
+                upPredicate: up
+            )
         }
     }
 
@@ -202,7 +240,8 @@ final class RepStateMachineTests: XCTestCase {
 
     private static func format(_ timeline: [RepStateSnapshot]) -> String {
         timeline.enumerated().map { index, snapshot in
-            "\(index):\(snapshot.phase.rawValue):reps=\(snapshot.repCount):counted=\(snapshot.countedThisFrame)"
+            let rom = snapshot.romDegrees.map { String(format: "%.1f", $0) } ?? "nil"
+            return "\(index):\(snapshot.phase.rawValue):reps=\(snapshot.repCount):counted=\(snapshot.countedThisFrame):rom=\(rom)"
         }.joined(separator: " ")
     }
 }

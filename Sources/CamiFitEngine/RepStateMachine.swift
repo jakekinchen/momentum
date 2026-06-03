@@ -13,6 +13,7 @@ public struct RepStateSnapshot: Equatable, CustomStringConvertible {
     public let repCount: Int
     public let countedThisFrame: Bool
     public let invalidReason: String?
+    public let romDegrees: Double?
 
     public var description: String {
         var parts = [
@@ -20,6 +21,10 @@ public struct RepStateSnapshot: Equatable, CustomStringConvertible {
             "reps=\(repCount)",
             "counted=\(countedThisFrame)"
         ]
+
+        if let romDegrees {
+            parts.append(String(format: "rom=%.1f", romDegrees))
+        }
 
         if let invalidReason {
             parts.append("invalid=\(invalidReason)")
@@ -34,6 +39,8 @@ public struct RepStateMachine {
     private var phase: RepPhase = .seekingReady
     private var repCount = 0
     private var phaseStartedAtMS: Int64?
+    private var romMinimum: Double?
+    private var romMaximum: Double?
 
     public init(program: ExerciseProgram) throws {
         guard let rep = program.rep else {
@@ -49,9 +56,18 @@ public struct RepStateMachine {
 
     public mutating func update(
         timestampMS: Int64,
+        phaseSignal: SignalValue?,
         downPredicate: PredicateResult,
         upPredicate: PredicateResult
     ) -> RepStateSnapshot {
+        guard let phaseSignalValue = validPhaseSignalValue(phaseSignal) else {
+            resetActiveDwellTimer()
+            return snapshot(
+                countedThisFrame: false,
+                invalidReason: invalidPhaseSignalReason(phaseSignal)
+            )
+        }
+
         if let invalidReason = invalidReason(downPredicate: downPredicate, upPredicate: upPredicate) {
             resetActiveDwellTimer()
             return snapshot(countedThisFrame: false, invalidReason: invalidReason)
@@ -68,21 +84,26 @@ public struct RepStateMachine {
             }
         case .ready:
             if isDown {
+                startROMTracking(with: phaseSignalValue)
                 transition(to: .descending, timestampMS: timestampMS)
             }
         case .descending:
+            updateROM(with: phaseSignalValue)
             if isDown {
                 let startedAt = ensurePhaseStarted(at: timestampMS)
                 if elapsed(from: startedAt, to: timestampMS) >= rep.downMinMS {
                     transition(to: .bottom, timestampMS: timestampMS)
                 }
             } else {
+                resetROMTracking()
                 transition(to: .ready, timestampMS: nil)
             }
         case .bottom:
+            updateROM(with: phaseSignalValue)
             if isUp {
                 guard let startedAt = phaseStartedAtMS,
                       elapsed(from: startedAt, to: timestampMS) >= rep.bottomMinMS else {
+                    resetROMTracking()
                     transition(to: .ready, timestampMS: nil)
                     return snapshot(countedThisFrame: false, invalidReason: nil)
                 }
@@ -92,12 +113,18 @@ public struct RepStateMachine {
                 _ = ensurePhaseStarted(at: timestampMS)
             }
         case .ascending:
+            updateROM(with: phaseSignalValue)
             if isUp {
                 let startedAt = ensurePhaseStarted(at: timestampMS)
                 if elapsed(from: startedAt, to: timestampMS) >= rep.upMinMS {
-                    repCount += 1
-                    countedThisFrame = true
+                    let completedROM = currentROMDegrees
+                    if (completedROM ?? 0) >= rep.minROMDegrees {
+                        repCount += 1
+                        countedThisFrame = true
+                    }
+                    resetROMTracking()
                     transition(to: .ready, timestampMS: nil)
+                    return snapshot(countedThisFrame: countedThisFrame, invalidReason: nil, romDegrees: completedROM)
                 }
             } else if isDown {
                 transition(to: .bottom, timestampMS: timestampMS)
@@ -107,6 +134,25 @@ public struct RepStateMachine {
         }
 
         return snapshot(countedThisFrame: countedThisFrame, invalidReason: nil)
+    }
+
+    private func validPhaseSignalValue(_ phaseSignal: SignalValue?) -> Double? {
+        guard case let .valid(value, _) = phaseSignal, value.isFinite else {
+            return nil
+        }
+
+        return value
+    }
+
+    private func invalidPhaseSignalReason(_ phaseSignal: SignalValue?) -> String {
+        switch phaseSignal {
+        case nil:
+            return "missing phase signal \(rep.phaseSignal)"
+        case let .invalid(reason):
+            return "phase signal \(rep.phaseSignal) invalid: \(reason)"
+        case let .valid(value, _):
+            return "phase signal \(rep.phaseSignal) invalid: non-finite value \(value)"
+        }
     }
 
     private func invalidReason(downPredicate: PredicateResult, upPredicate: PredicateResult) -> String? {
@@ -147,12 +193,40 @@ public struct RepStateMachine {
         }
     }
 
-    private func snapshot(countedThisFrame: Bool, invalidReason: String?) -> RepStateSnapshot {
+    private mutating func startROMTracking(with value: Double) {
+        romMinimum = value
+        romMaximum = value
+    }
+
+    private mutating func updateROM(with value: Double) {
+        guard romMinimum != nil, romMaximum != nil else {
+            return
+        }
+
+        romMinimum = min(romMinimum ?? value, value)
+        romMaximum = max(romMaximum ?? value, value)
+    }
+
+    private mutating func resetROMTracking() {
+        romMinimum = nil
+        romMaximum = nil
+    }
+
+    private var currentROMDegrees: Double? {
+        guard let romMinimum, let romMaximum else {
+            return nil
+        }
+
+        return romMaximum - romMinimum
+    }
+
+    private func snapshot(countedThisFrame: Bool, invalidReason: String?, romDegrees: Double? = nil) -> RepStateSnapshot {
         RepStateSnapshot(
             phase: phase,
             repCount: repCount,
             countedThisFrame: countedThisFrame,
-            invalidReason: invalidReason
+            invalidReason: invalidReason,
+            romDegrees: romDegrees ?? currentROMDegrees
         )
     }
 }
