@@ -41,8 +41,49 @@ final class PoseFrameFixtureTests: XCTestCase {
         print("pose-fixture-bottom timestamp=\(bottom.timestampMS) form=\(bottom.formSnapshots.map(\.description).joined(separator: " | ")) summary=\(bottom.formSummary)")
     }
 
+    func testLowVisibilityFixtureRecordsInvalidEvidenceWithoutFalseCounts() throws {
+        let fixture = try Self.lowVisibilityFixture()
+        var recorder = try Self.recorder()
+
+        let trace = recorder.record(frames: fixture.frames)
+        let formatted = EngineTraceFormatter.format(trace)
+        let invalidFrames = trace.filter { $0.rep.invalidReason != nil }
+        let lowVisibilityInterval: ClosedRange<Int64> = 100 ... 300
+        let countedInInvalidInterval = trace.filter {
+            lowVisibilityInterval.contains($0.timestampMS) && $0.rep.countedThisFrame
+        }
+        let invalidKneeFrames = trace.filter { frame in
+            frame.producedValues.contains { produced in
+                if produced.key != "knee" {
+                    return false
+                }
+
+                guard case .invalid = produced.value else {
+                    return false
+                }
+
+                return true
+            }
+        }
+
+        XCTAssertEqual(fixture.frames.count, 5)
+        XCTAssertEqual(invalidFrames.map(\.timestampMS), [100, 200, 300])
+        XCTAssertEqual(invalidKneeFrames.map(\.timestampMS), [100, 200, 300])
+        XCTAssertTrue(countedInInvalidInterval.isEmpty)
+        XCTAssertEqual(trace.last?.rep.repCount, 0)
+        XCTAssertTrue(formatted.contains("knee=invalid("))
+        XCTAssertTrue(formatted.contains("phase signal knee invalid"))
+
+        print("pose-fixture-low-visibility frames=\(fixture.frames.count) invalid=\(invalidFrames.map(\.timestampMS)) counted_in_invalid=\(countedInInvalidInterval.count) final_reps=\(trace.last?.rep.repCount ?? -1)")
+        print("pose-fixture-low-visibility-invalid\n\(Self.rowsContaining(formatted, "phase signal knee invalid"))")
+    }
+
     private static func fixture() throws -> PoseFrameFixture {
         try PoseFrameFixtureLoader.load(from: fixtureURL)
+    }
+
+    private static func lowVisibilityFixture() throws -> PoseFrameFixture {
+        try PoseFrameFixtureLoader.load(from: lowVisibilityFixtureURL)
     }
 
     private static func recorder() throws -> EngineTraceRecorder {
@@ -58,6 +99,10 @@ final class PoseFrameFixtureTests: XCTestCase {
 
     private static var fixtureURL: URL {
         packageRoot.appendingPathComponent("Tests/CamiFitEngineTests/Fixtures/synthetic_squat_clean_trace.json")
+    }
+
+    private static var lowVisibilityFixtureURL: URL {
+        packageRoot.appendingPathComponent("Tests/CamiFitEngineTests/Fixtures/synthetic_squat_low_visibility_trace.json")
     }
 
     private static var presetURL: URL {
