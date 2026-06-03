@@ -1,0 +1,23 @@
+# Swift / SwiftPM
+.build/
+.swiftpm/
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Autonomous workflow runtime state (local only)
+.codex-role-sessions/
+.autonomous-workflow.lock
+
+# Models / large artifacts (must be downloaded, never committed)
+*.task
+*.tflite
+models/

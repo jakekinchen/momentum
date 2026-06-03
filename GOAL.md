@@ -1,0 +1,30 @@
+# GOAL
+
+## Active Mission
+
+Build **CamiFit**, an open-ended, on-device bodyweight-exercise coach for macOS. The foundation (Layer 1) is a deterministic, timestamped **exercise engine** that runs an **Exercise-Program** (JSON + a sandboxed rule DSL): pose landmarks → joint-angle signals → temporal filters → validity gating → rep/hold/set state machines → form rules → live cues + a post-set summary. The same JSON contract is later produced by an agent (Layer 2) and persisted/tracked over time (Layer 3).
+
+The full, reviewed design is `docs/design/2026-06-03-camifit-exercise-engine-design.md`. Layer 2 (agent authoring via Codex app-server + ChatGPT login) and Layer 3 (session history/progress) are deferred. RF-DETR is intentionally **not** used — bodyweight reps/form/sets derive entirely from pose.
+
+## Current Milestone
+
+M1 - Exercise engine + program contract (squat vertical)
+
+## Current Slice
+
+docs/briefs/001-contract-and-validation.md
+
+## Stop Conditions
+
+- Stop or ESCALATE before any network model download (e.g. the MediaPipe model bundle) or `pip install` not explicitly authorized by the active brief. Slice 1 is pure Swift + JSON and must stay offline.
+- Stop coaching-accuracy or performance claims until a golden landmark fixture proves exact rep counts AND no false reps during no-person / low-visibility intervals.
+- Stop scope expansion into Layer 2 (agent / Codex / OpenAI) or Layer 3 (persistence) while M1 is active.
+- The engine must reject invalid programs at load (unknown function, signal/filter DAG cycle, missing signal). A slice that weakens load-time validation is out of scope.
+
+## Human Constraints
+
+- The **Exercise-Program contract** is the single source of truth shared by hand-authored presets and (later) agent-authored programs. Do not fork its shape.
+- The **DSL stays total and sandboxed**: no arbitrary code execution, no statements/loops/IO. Temporal behavior lives in `filters` and FSM config, never inside expressions.
+- The **interpreter lives in Swift** (one evaluator); the Python pose worker is a pure, stateless, timestamped pose source behind a `PoseProvider` boundary.
+- Require approval before paid cloud work, large downloads, destructive actions, or public release.
+- Repo evidence beats chat memory: every slice leaves a brief, a session log (commands/outputs/files/validation/reachability), and a reviewer decision.
