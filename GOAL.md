@@ -12,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/012-form-rule-min-violation-timing.md
+docs/briefs/013-form-rule-cue-cooldown.md
 
 ## Stop Conditions
 
