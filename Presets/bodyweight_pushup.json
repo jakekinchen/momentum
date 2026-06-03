@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "bodyweight_pushup",
+  "name": "Bodyweight Push-up",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "primary.shoulder",
+      "primary.elbow",
+      "primary.wrist",
+      "primary.hip",
+      "primary.ankle"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "auto_lock",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Hold the top of a push-up in frame",
+        "capture_seconds": 1.0,
+        "signals": [
+          "elbow",
+          "body_tilt"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "primary.shoulder",
+    "elbow": "primary.elbow",
+    "wrist": "primary.wrist",
+    "hip": "primary.hip",
+    "ankle": "primary.ankle"
+  },
+  "signals": {
+    "elbow_left": "angle(left.shoulder, left.elbow, left.wrist)",
+    "elbow_right": "angle(right.shoulder, right.elbow, right.wrist)",
+    "elbow_raw": "angle(primary.shoulder, primary.elbow, primary.wrist)",
+    "body_raw": "angle_to_vertical(primary.shoulder, primary.ankle)",
+    "elbow_symmetry": "abs(elbow_left - elbow_right)"
+  },
+  "filters": {
+    "elbow": {
+      "source": "elbow_raw",
+      "type": "ema",
+      "alpha": 0.35
+    },
+    "body_tilt": {
+      "source": "body_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "phase_signal": "elbow",
+    "down_when": "elbow < 95",
+    "down_min_ms": 120,
+    "bottom_min_ms": 80,
+    "up_when": "elbow > 150",
+    "up_min_ms": 120,
+    "min_rom_deg": 45,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "depth",
+      "when": "phase == 'bottom'",
+      "expect": "elbow <= 95",
+      "min_violation_ms": 0,
+      "cue": "Lower your chest",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "body_line",
+      "when": "phase in ['descending','bottom']",
+      "expect": "body_tilt >= 70",
+      "min_violation_ms": 250,
+      "cue": "Keep a straight plank",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "symmetry",
+      "when": "phase == 'bottom'",
+      "expect": "elbow_symmetry <= 20",
+      "min_violation_ms": 0,
+      "cue": "Press evenly",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000
+    }
+  ],
+  "set": {
+    "target_reps": 10
+  }
+}
