@@ -12,9 +12,10 @@ final class FormRuleEvaluatorTests: XCTestCase {
     }
 
     func testDepthRuleEmitsCueAtBottomWhenKneeIsTooHigh() throws {
-        let evaluator = try Self.evaluator()
+        var evaluator = try Self.evaluator()
 
-        let snapshots = evaluator.evaluate(
+        let snapshots = evaluator.update(
+            timestampMS: 0,
             producedValues: ["knee": .valid(100, confidence: 1)],
             phase: .bottom
         )
@@ -24,9 +25,116 @@ final class FormRuleEvaluatorTests: XCTestCase {
         XCTAssertEqual(depth.expectationPassed, false)
         XCTAssertEqual(depth.cue, "Go deeper")
         XCTAssertEqual(depth.severity, .warn)
+        XCTAssertEqual(depth.violationDurationMS, 0)
         XCTAssertNil(depth.invalidReason)
 
         print("form-rule-depth-fail \(depth)")
+    }
+
+    func testTorsoRuleCuesOnlyAfterMinViolationDuration() throws {
+        var evaluator = try Self.evaluator()
+
+        let first = try XCTUnwrap(evaluator.update(
+            timestampMS: 0,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let early = try XCTUnwrap(evaluator.update(
+            timestampMS: 100,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let ready = try XCTUnwrap(evaluator.update(
+            timestampMS: 250,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+
+        XCTAssertEqual(first.expectationPassed, false)
+        XCTAssertEqual(first.violationDurationMS, 0)
+        XCTAssertNil(first.cue)
+        XCTAssertEqual(early.expectationPassed, false)
+        XCTAssertEqual(early.violationDurationMS, 100)
+        XCTAssertNil(early.cue)
+        XCTAssertEqual(ready.expectationPassed, false)
+        XCTAssertEqual(ready.violationDurationMS, 250)
+        XCTAssertEqual(ready.cue, "Chest up")
+
+        print("form-rule-torso-timing first=\(first) early=\(early) ready=\(ready)")
+    }
+
+    func testPassingInactiveAndInvalidFramesResetViolationTimer() throws {
+        var passingReset = try Self.evaluator()
+        let first = try XCTUnwrap(passingReset.update(
+            timestampMS: 0,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let passing = try XCTUnwrap(passingReset.update(
+            timestampMS: 300,
+            producedValues: ["torso_tilt": .valid(30, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let afterPassing = try XCTUnwrap(passingReset.update(
+            timestampMS: 500,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+
+        var inactiveReset = try Self.evaluator()
+        _ = inactiveReset.update(
+            timestampMS: 0,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        let inactive = try XCTUnwrap(inactiveReset.update(
+            timestampMS: 300,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .ready
+        ).first { $0.ruleID == "torso" })
+        let afterInactive = try XCTUnwrap(inactiveReset.update(
+            timestampMS: 500,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+
+        var invalidReset = try Self.evaluator()
+        _ = invalidReset.update(
+            timestampMS: 0,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        )
+        let invalid = try XCTUnwrap(invalidReset.update(
+            timestampMS: 300,
+            producedValues: ["torso_tilt": .invalid(reason: "low confidence torso")],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+        let afterInvalid = try XCTUnwrap(invalidReset.update(
+            timestampMS: 500,
+            producedValues: ["torso_tilt": .valid(50, confidence: 1)],
+            phase: .descending
+        ).first { $0.ruleID == "torso" })
+
+        XCTAssertEqual(first.violationDurationMS, 0)
+        XCTAssertEqual(passing.expectationPassed, true)
+        XCTAssertNil(passing.violationDurationMS)
+        XCTAssertEqual(afterPassing.expectationPassed, false)
+        XCTAssertEqual(afterPassing.violationDurationMS, 0)
+        XCTAssertNil(afterPassing.cue)
+
+        XCTAssertFalse(inactive.isActive)
+        XCTAssertNil(inactive.violationDurationMS)
+        XCTAssertEqual(afterInactive.expectationPassed, false)
+        XCTAssertEqual(afterInactive.violationDurationMS, 0)
+        XCTAssertNil(afterInactive.cue)
+
+        XCTAssertNil(invalid.expectationPassed)
+        XCTAssertNil(invalid.violationDurationMS)
+        XCTAssertEqual(afterInvalid.expectationPassed, false)
+        XCTAssertEqual(afterInvalid.violationDurationMS, 0)
+        XCTAssertNil(afterInvalid.cue)
+
+        print("form-rule-reset passing=\(afterPassing) inactive=\(afterInactive) invalid=\(afterInvalid)")
     }
 
     func testDepthRulePassesAtBottomWhenKneeMeetsExpectation() throws {
@@ -121,7 +229,7 @@ final class FormRuleEvaluatorTests: XCTestCase {
         var processor: FrameSignalProcessor
         let predicateEvaluator: RepPredicateEvaluator
         var stateMachine: RepStateMachine
-        let formEvaluator: FormRuleEvaluator
+        var formEvaluator: FormRuleEvaluator
         let phaseSignalName: String
 
         init() throws {
@@ -144,7 +252,12 @@ final class FormRuleEvaluatorTests: XCTestCase {
             )
             return ProductPathEntry(
                 rep: repSnapshot,
-                formSnapshots: formEvaluator.evaluate(producedValues: produced, phase: repSnapshot.phase, frame: frame)
+                formSnapshots: formEvaluator.update(
+                    timestampMS: frame.timestampMS,
+                    producedValues: produced,
+                    phase: repSnapshot.phase,
+                    frame: frame
+                )
             )
         }
     }

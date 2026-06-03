@@ -6,6 +6,7 @@ public struct FormRuleSnapshot: Equatable, CustomStringConvertible {
     public let expectationPassed: Bool?
     public let cue: String?
     public let severity: RuleSeverity
+    public let violationDurationMS: Int?
     public let invalidReason: String?
 
     public var description: String {
@@ -15,6 +16,10 @@ public struct FormRuleSnapshot: Equatable, CustomStringConvertible {
             "passed=\(expectationPassed.map(String.init) ?? "nil")",
             "severity=\(severity.rawValue)"
         ]
+
+        if let violationDurationMS {
+            parts.append("violation_ms=\(violationDurationMS)")
+        }
 
         if let cue {
             parts.append("cue=\(cue)")
@@ -44,6 +49,7 @@ public struct FormRuleEvaluator {
 
     private let compiledRules: [CompiledFormRule]
     private let minSignalConfidence: Double
+    private var violationStartedAtMSByRuleID: [String: Int64] = [:]
 
     public init(program: ExerciseProgram) throws {
         var compiledRules: [CompiledFormRule] = []
@@ -86,11 +92,22 @@ public struct FormRuleEvaluator {
         frame: PoseFrame? = nil
     ) -> [FormRuleSnapshot] {
         compiledRules.map { compiledRule in
-            evaluate(compiledRule, producedValues: producedValues, phase: phase, frame: frame)
+            evaluateStateless(compiledRule, producedValues: producedValues, phase: phase, frame: frame)
         }
     }
 
-    private func evaluate(
+    public mutating func update(
+        timestampMS: Int64,
+        producedValues: [String: SignalValue],
+        phase: RepPhase,
+        frame: PoseFrame? = nil
+    ) -> [FormRuleSnapshot] {
+        compiledRules.map { compiledRule in
+            update(compiledRule, timestampMS: timestampMS, producedValues: producedValues, phase: phase, frame: frame)
+        }
+    }
+
+    private func evaluateStateless(
         _ compiledRule: CompiledFormRule,
         producedValues: [String: SignalValue],
         phase: RepPhase,
@@ -106,6 +123,7 @@ public struct FormRuleEvaluator {
                 expectationPassed: nil,
                 cue: nil,
                 severity: rule.severity,
+                violationDurationMS: nil,
                 invalidReason: nil
             )
         }
@@ -124,6 +142,7 @@ public struct FormRuleEvaluator {
                 expectationPassed: true,
                 cue: nil,
                 severity: rule.severity,
+                violationDurationMS: nil,
                 invalidReason: nil
             )
         case .unsatisfied:
@@ -133,6 +152,7 @@ public struct FormRuleEvaluator {
                 expectationPassed: false,
                 cue: rule.cue,
                 severity: rule.severity,
+                violationDurationMS: nil,
                 invalidReason: nil
             )
         case let .invalid(reason):
@@ -142,6 +162,77 @@ public struct FormRuleEvaluator {
                 expectationPassed: nil,
                 cue: nil,
                 severity: rule.severity,
+                violationDurationMS: nil,
+                invalidReason: reason
+            )
+        }
+    }
+
+    private mutating func update(
+        _ compiledRule: CompiledFormRule,
+        timestampMS: Int64,
+        producedValues: [String: SignalValue],
+        phase: RepPhase,
+        frame: PoseFrame?
+    ) -> FormRuleSnapshot {
+        let rule = compiledRule.rule
+        let isActive = compiledRule.condition.matches(phase)
+
+        guard isActive else {
+            violationStartedAtMSByRuleID.removeValue(forKey: rule.id)
+            return FormRuleSnapshot(
+                ruleID: rule.id,
+                isActive: false,
+                expectationPassed: nil,
+                cue: nil,
+                severity: rule.severity,
+                violationDurationMS: nil,
+                invalidReason: nil
+            )
+        }
+
+        let result = evaluate(
+            compiledRule.expectation,
+            producedValues: producedValues,
+            frame: frame ?? Self.emptyFrame
+        )
+
+        switch result {
+        case .satisfied:
+            violationStartedAtMSByRuleID.removeValue(forKey: rule.id)
+            return FormRuleSnapshot(
+                ruleID: rule.id,
+                isActive: true,
+                expectationPassed: true,
+                cue: nil,
+                severity: rule.severity,
+                violationDurationMS: nil,
+                invalidReason: nil
+            )
+        case .unsatisfied:
+            let startedAtMS = violationStartedAtMSByRuleID[rule.id] ?? timestampMS
+            violationStartedAtMSByRuleID[rule.id] = startedAtMS
+            let durationMS = Int(max(0, timestampMS - startedAtMS))
+            let cue = durationMS >= rule.minViolationMS ? rule.cue : nil
+
+            return FormRuleSnapshot(
+                ruleID: rule.id,
+                isActive: true,
+                expectationPassed: false,
+                cue: cue,
+                severity: rule.severity,
+                violationDurationMS: durationMS,
+                invalidReason: nil
+            )
+        case let .invalid(reason):
+            violationStartedAtMSByRuleID.removeValue(forKey: rule.id)
+            return FormRuleSnapshot(
+                ruleID: rule.id,
+                isActive: true,
+                expectationPassed: nil,
+                cue: nil,
+                severity: rule.severity,
+                violationDurationMS: nil,
                 invalidReason: reason
             )
         }
