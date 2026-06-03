@@ -12,7 +12,7 @@ M2 - Bodyweight presets (push-up, lunge, plank). M1 (squat vertical) complete â€
 
 ## Current Slice
 
-docs/briefs/022-pushup-preset.md
+docs/briefs/023-lunge-preset.md
 
 ## Stop Conditions
 
