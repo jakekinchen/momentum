@@ -1,5 +1,7 @@
 # GOAL
 
+<stop-orchestrator/>
+
 ## Active Mission
 
 Build **CamiFit**, an open-ended, on-device bodyweight-exercise coach for macOS. The foundation (Layer 1) is a deterministic, timestamped **exercise engine** that runs an **Exercise-Program** (JSON + a sandboxed rule DSL): pose landmarks → joint-angle signals → temporal filters → validity gating → rep/hold/set state machines → form rules → live cues + a post-set summary. The same JSON contract is later produced by an agent (Layer 2) and persisted/tracked over time (Layer 3).
