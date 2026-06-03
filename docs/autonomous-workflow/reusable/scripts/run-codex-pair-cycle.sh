@@ -262,8 +262,7 @@ codex_new_session_args() {
   else
     printf '%s\n' "-s"
     printf '%s\n' "$SANDBOX"
-    printf '%s\n' "-a"
-    printf '%s\n' "$APPROVAL"
+    # codex >=0.135 `exec` is non-interactive; no -a/--approval flag (sandbox alone governs).
   fi
 }
 
