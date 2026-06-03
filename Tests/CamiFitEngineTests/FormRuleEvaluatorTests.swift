@@ -343,6 +343,91 @@ final class FormRuleEvaluatorTests: XCTestCase {
         print("form-rule-invalid missing=\(missing) invalid=\(invalid)")
     }
 
+    func testScoreSummaryGivesFullCreditForPassingActiveRules() throws {
+        let summarizer = try Self.summarizer()
+        let summary = summarizer.summarize([
+            Self.snapshot(ruleID: "depth", isActive: true, expectationPassed: true, severity: .warn),
+            Self.snapshot(ruleID: "torso", isActive: true, expectationPassed: true, severity: .warn),
+            Self.snapshot(ruleID: "symmetry", isActive: true, expectationPassed: true, severity: .info)
+        ])
+
+        XCTAssertEqual(summary.score, 1.0)
+        XCTAssertEqual(summary.earnedWeight, 22)
+        XCTAssertEqual(summary.possibleWeight, 22)
+        XCTAssertEqual(summary.activeRuleCount, 3)
+        XCTAssertEqual(summary.scoredRuleCount, 3)
+        XCTAssertEqual(summary.invalidActiveRuleCount, 0)
+        XCTAssertNil(summary.selectedCue)
+
+        print("form-rule-score-full \(summary)")
+    }
+
+    func testScoreSummaryPenalizesFailedActiveRulesByWeight() throws {
+        let summarizer = try Self.summarizer()
+        let summary = summarizer.summarize([
+            Self.snapshot(ruleID: "depth", isActive: true, expectationPassed: true, severity: .warn),
+            Self.snapshot(ruleID: "torso", isActive: true, expectationPassed: false, cue: "Chest up", severity: .warn),
+            Self.snapshot(ruleID: "symmetry", isActive: true, expectationPassed: true, severity: .info)
+        ])
+
+        XCTAssertEqual(try XCTUnwrap(summary.score), 14.0 / 22.0, accuracy: 0.000_001)
+        XCTAssertEqual(summary.earnedWeight, 14)
+        XCTAssertEqual(summary.possibleWeight, 22)
+        XCTAssertEqual(summary.selectedCueRuleID, "torso")
+        XCTAssertEqual(summary.selectedCue, "Chest up")
+
+        print("form-rule-score-weighted-fail \(summary)")
+    }
+
+    func testScoreSummaryExcludesInactiveAndInvalidRulesFromDenominator() throws {
+        let summarizer = try Self.summarizer()
+        let summary = summarizer.summarize([
+            Self.snapshot(ruleID: "depth", isActive: true, expectationPassed: true, severity: .warn),
+            Self.snapshot(ruleID: "torso", isActive: false, expectationPassed: nil, severity: .warn),
+            Self.snapshot(
+                ruleID: "symmetry",
+                isActive: true,
+                expectationPassed: nil,
+                severity: .info,
+                invalidReason: "low confidence knee_symmetry"
+            )
+        ])
+
+        XCTAssertEqual(summary.score, 1.0)
+        XCTAssertEqual(summary.earnedWeight, 10)
+        XCTAssertEqual(summary.possibleWeight, 10)
+        XCTAssertEqual(summary.activeRuleCount, 2)
+        XCTAssertEqual(summary.scoredRuleCount, 1)
+        XCTAssertEqual(summary.invalidActiveRuleCount, 1)
+
+        print("form-rule-score-invalid-policy \(summary)")
+    }
+
+    func testScoreSummarySelectsCueBySeverityWeightThenProgramOrder() throws {
+        let summarizer = try Self.summarizer()
+        let severitySummary = summarizer.summarize([
+            Self.snapshot(ruleID: "depth", isActive: true, expectationPassed: false, cue: "Go deeper", severity: .warn),
+            Self.snapshot(ruleID: "symmetry", isActive: true, expectationPassed: false, cue: "Even both sides", severity: .fail)
+        ])
+        let weightSummary = summarizer.summarize([
+            Self.snapshot(ruleID: "torso", isActive: true, expectationPassed: false, cue: "Chest up", severity: .warn),
+            Self.snapshot(ruleID: "depth", isActive: true, expectationPassed: false, cue: "Go deeper", severity: .warn)
+        ])
+        let orderSummary = try FormRuleScoreSummarizer(program: Self.programWithEqualWeightRules()).summarize([
+            Self.snapshot(ruleID: "second", isActive: true, expectationPassed: false, cue: "Second cue", severity: .warn),
+            Self.snapshot(ruleID: "first", isActive: true, expectationPassed: false, cue: "First cue", severity: .warn)
+        ])
+
+        XCTAssertEqual(severitySummary.selectedCueRuleID, "symmetry")
+        XCTAssertEqual(severitySummary.selectedCue, "Even both sides")
+        XCTAssertEqual(weightSummary.selectedCueRuleID, "depth")
+        XCTAssertEqual(weightSummary.selectedCue, "Go deeper")
+        XCTAssertEqual(orderSummary.selectedCueRuleID, "first")
+        XCTAssertEqual(orderSummary.selectedCue, "First cue")
+
+        print("form-rule-score-cue-priority severity=\(severitySummary) weight=\(weightSummary) order=\(orderSummary)")
+    }
+
     func testProductPathEvaluatesLoadedFormRulesFromSyntheticFrames() throws {
         var harness = try ProductPathHarness()
 
@@ -356,13 +441,18 @@ final class FormRuleEvaluatorTests: XCTestCase {
         XCTAssertTrue(depth.isActive)
         XCTAssertEqual(depth.expectationPassed, true)
         XCTAssertNil(depth.cue)
+        XCTAssertEqual(firstBottom.formSummary.score, 1.0)
+        XCTAssertEqual(firstBottom.formSummary.earnedWeight, 22)
+        XCTAssertEqual(firstBottom.formSummary.possibleWeight, 22)
+        XCTAssertNil(firstBottom.formSummary.selectedCue)
 
-        print("form-rule-product-path phase=\(firstBottom.rep.phase.rawValue) \(Self.format(firstBottom.formSnapshots))")
+        print("form-rule-product-path phase=\(firstBottom.rep.phase.rawValue) \(Self.format(firstBottom.formSnapshots)) summary=\(firstBottom.formSummary)")
     }
 
     private struct ProductPathEntry {
         let rep: RepStateSnapshot
         let formSnapshots: [FormRuleSnapshot]
+        let formSummary: FormRuleScoreSummary
     }
 
     private struct ProductPathHarness {
@@ -370,6 +460,7 @@ final class FormRuleEvaluatorTests: XCTestCase {
         let predicateEvaluator: RepPredicateEvaluator
         var stateMachine: RepStateMachine
         var formEvaluator: FormRuleEvaluator
+        let formSummarizer: FormRuleScoreSummarizer
         let phaseSignalName: String
 
         init() throws {
@@ -379,6 +470,7 @@ final class FormRuleEvaluatorTests: XCTestCase {
             predicateEvaluator = try RepPredicateEvaluator(program: program)
             stateMachine = RepStateMachine(rep: rep)
             formEvaluator = try FormRuleEvaluator(program: program)
+            formSummarizer = FormRuleScoreSummarizer(program: program)
             phaseSignalName = rep.phaseSignal
         }
 
@@ -390,20 +482,88 @@ final class FormRuleEvaluatorTests: XCTestCase {
                 downPredicate: predicateEvaluator.evaluateDown(producedValues: produced, frame: frame),
                 upPredicate: predicateEvaluator.evaluateUp(producedValues: produced, frame: frame)
             )
+            let formSnapshots = formEvaluator.update(
+                timestampMS: frame.timestampMS,
+                producedValues: produced,
+                phase: repSnapshot.phase,
+                frame: frame
+            )
             return ProductPathEntry(
                 rep: repSnapshot,
-                formSnapshots: formEvaluator.update(
-                    timestampMS: frame.timestampMS,
-                    producedValues: produced,
-                    phase: repSnapshot.phase,
-                    frame: frame
-                )
+                formSnapshots: formSnapshots,
+                formSummary: formSummarizer.summarize(formSnapshots)
             )
         }
     }
 
     private static func evaluator() throws -> FormRuleEvaluator {
         try FormRuleEvaluator(program: ProgramLoader.load(from: presetURL))
+    }
+
+    private static func summarizer() throws -> FormRuleScoreSummarizer {
+        try FormRuleScoreSummarizer(program: ProgramLoader.load(from: presetURL))
+    }
+
+    private static func programWithEqualWeightRules() throws -> ExerciseProgram {
+        let program = try ProgramLoader.load(from: presetURL)
+        return ExerciseProgram(
+            schemaVersion: program.schemaVersion,
+            id: program.id,
+            name: program.name,
+            coordinateSpace: program.coordinateSpace,
+            setup: program.setup,
+            landmarkAliases: program.landmarkAliases,
+            signals: program.signals,
+            filters: program.filters,
+            validity: program.validity,
+            rep: program.rep,
+            hold: program.hold,
+            formRules: [
+                FormRule(
+                    id: "first",
+                    when: "phase == 'bottom'",
+                    expect: "knee <= 95",
+                    minViolationMS: 0,
+                    cue: "First cue",
+                    severity: .warn,
+                    scoreWeight: 5,
+                    cooldownMS: 1500
+                ),
+                FormRule(
+                    id: "second",
+                    when: "phase == 'bottom'",
+                    expect: "knee <= 95",
+                    minViolationMS: 0,
+                    cue: "Second cue",
+                    severity: .warn,
+                    scoreWeight: 5,
+                    cooldownMS: 1500
+                )
+            ],
+            set: program.set
+        )
+    }
+
+    private static func snapshot(
+        ruleID: String,
+        isActive: Bool,
+        expectationPassed: Bool?,
+        cue: String? = nil,
+        severity: RuleSeverity,
+        violationDurationMS: Int? = nil,
+        cueCooldownRemainingMS: Int? = nil,
+        invalidReason: String? = nil
+    ) -> FormRuleSnapshot {
+        FormRuleSnapshot(
+            ruleID: ruleID,
+            isActive: isActive,
+            expectationPassed: expectationPassed,
+            cue: cue,
+            severity: severity,
+            violationDurationMS: violationDurationMS,
+            cueCooldownRemainingMS: cueCooldownRemainingMS,
+            invalidReason: invalidReason
+        )
     }
 
     private static var packageRoot: URL {

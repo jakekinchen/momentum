@@ -38,6 +38,114 @@ public struct FormRuleSnapshot: Equatable, CustomStringConvertible {
     }
 }
 
+public struct FormRuleScoreSummary: Equatable, CustomStringConvertible {
+    public let score: Double?
+    public let earnedWeight: Double
+    public let possibleWeight: Double
+    public let activeRuleCount: Int
+    public let scoredRuleCount: Int
+    public let invalidActiveRuleCount: Int
+    public let selectedCue: String?
+    public let selectedCueRuleID: String?
+
+    public var description: String {
+        let scoreDescription = score.map { String(format: "%.3f", $0) } ?? "nil"
+        var parts = [
+            "score=\(scoreDescription)",
+            "earned_weight=\(String(format: "%.3f", earnedWeight))",
+            "possible_weight=\(String(format: "%.3f", possibleWeight))",
+            "active_rules=\(activeRuleCount)",
+            "scored_rules=\(scoredRuleCount)",
+            "invalid_active_rules=\(invalidActiveRuleCount)"
+        ]
+
+        if let selectedCueRuleID, let selectedCue {
+            parts.append("cue_rule=\(selectedCueRuleID)")
+            parts.append("cue=\(selectedCue)")
+        }
+
+        return parts.joined(separator: " ")
+    }
+}
+
+public struct FormRuleScoreSummarizer {
+    private let ruleMetadataByID: [String: FormRuleSummaryMetadata]
+
+    public init(program: ExerciseProgram) {
+        var metadata: [String: FormRuleSummaryMetadata] = [:]
+        for (index, rule) in program.formRules.enumerated() {
+            metadata[rule.id] = FormRuleSummaryMetadata(
+                weight: rule.scoreWeight,
+                severity: rule.severity,
+                order: index
+            )
+        }
+        ruleMetadataByID = metadata
+    }
+
+    public func summarize(_ snapshots: [FormRuleSnapshot]) -> FormRuleScoreSummary {
+        var earnedWeight = 0.0
+        var possibleWeight = 0.0
+        var activeRuleCount = 0
+        var scoredRuleCount = 0
+        var invalidActiveRuleCount = 0
+        var selectedCueCandidate: FormRuleCueCandidate?
+
+        for snapshot in snapshots {
+            let metadata = ruleMetadataByID[snapshot.ruleID] ?? FormRuleSummaryMetadata(
+                weight: 0,
+                severity: snapshot.severity,
+                order: Int.max
+            )
+
+            if snapshot.isActive {
+                activeRuleCount += 1
+
+                switch snapshot.expectationPassed {
+                case .some(true):
+                    possibleWeight += metadata.weight
+                    earnedWeight += metadata.weight
+                    scoredRuleCount += 1
+                case .some(false):
+                    possibleWeight += metadata.weight
+                    scoredRuleCount += 1
+                case .none:
+                    invalidActiveRuleCount += 1
+                }
+            }
+
+            guard let cue = snapshot.cue else {
+                continue
+            }
+
+            let candidate = FormRuleCueCandidate(
+                ruleID: snapshot.ruleID,
+                cue: cue,
+                severity: snapshot.severity,
+                weight: metadata.weight,
+                order: metadata.order
+            )
+
+            if selectedCueCandidate.map({ candidate.hasPriority(over: $0) }) ?? true {
+                selectedCueCandidate = candidate
+            }
+        }
+
+        let score = possibleWeight > 0 ? earnedWeight / possibleWeight : nil
+
+        return FormRuleScoreSummary(
+            score: score,
+            earnedWeight: earnedWeight,
+            possibleWeight: possibleWeight,
+            activeRuleCount: activeRuleCount,
+            scoredRuleCount: scoredRuleCount,
+            invalidActiveRuleCount: invalidActiveRuleCount,
+            selectedCue: selectedCueCandidate?.cue,
+            selectedCueRuleID: selectedCueCandidate?.ruleID
+        )
+    }
+}
+
 public enum FormRuleEvaluatorError: Error, Equatable, CustomStringConvertible {
     case parseError(ruleID: String, field: String, reason: String)
 
@@ -45,6 +153,45 @@ public enum FormRuleEvaluatorError: Error, Equatable, CustomStringConvertible {
         switch self {
         case let .parseError(ruleID, field, reason):
             return "parse_error(rule: \(ruleID), field: \(field), reason: \(reason))"
+        }
+    }
+}
+
+private struct FormRuleSummaryMetadata {
+    let weight: Double
+    let severity: RuleSeverity
+    let order: Int
+}
+
+private struct FormRuleCueCandidate {
+    let ruleID: String
+    let cue: String
+    let severity: RuleSeverity
+    let weight: Double
+    let order: Int
+
+    func hasPriority(over other: FormRuleCueCandidate) -> Bool {
+        if severity.priority != other.severity.priority {
+            return severity.priority > other.severity.priority
+        }
+
+        if weight != other.weight {
+            return weight > other.weight
+        }
+
+        return order < other.order
+    }
+}
+
+private extension RuleSeverity {
+    var priority: Int {
+        switch self {
+        case .info:
+            return 0
+        case .warn:
+            return 1
+        case .fail:
+            return 2
         }
     }
 }
