@@ -12,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/016-engine-trace-formatting.md
+docs/briefs/017-poseframe-fixture-harness.md
 
 ## Stop Conditions
 
