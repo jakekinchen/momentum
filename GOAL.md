@@ -12,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/005-rep-predicate-evaluator.md
+docs/briefs/006-rep-state-machine-basic.md
 
 ## Stop Conditions
 
