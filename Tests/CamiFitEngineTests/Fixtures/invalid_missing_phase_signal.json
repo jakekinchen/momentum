@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "invalid_missing_phase_signal",
+  "name": "Invalid Missing Phase Signal",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "primary.hip",
+      "primary.knee",
+      "primary.ankle",
+      "primary.shoulder"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "auto_lock",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Stand tall in frame",
+        "capture_seconds": 1.0,
+        "signals": [
+          "knee",
+          "torso_tilt"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "primary.shoulder",
+    "hip": "primary.hip",
+    "knee": "primary.knee",
+    "ankle": "primary.ankle"
+  },
+  "signals": {
+    "knee_raw": "angle(primary.hip, primary.knee, primary.ankle)",
+    "torso_raw": "angle_to_vertical(primary.shoulder, primary.hip)"
+  },
+  "filters": {
+    "knee": {
+      "source": "knee_raw",
+      "type": "ema",
+      "alpha": 0.35
+    },
+    "torso_tilt": {
+      "source": "torso_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "down_when": "knee < 100",
+    "down_min_ms": 120,
+    "bottom_min_ms": 80,
+    "up_when": "knee > 160",
+    "up_min_ms": 120,
+    "min_rom_deg": 50,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "depth",
+      "when": "phase == 'bottom'",
+      "expect": "knee <= 95",
+      "min_violation_ms": 0,
+      "cue": "Go deeper",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500
+    }
+  ],
+  "set": {
+    "target_reps": 10
+  }
+}
