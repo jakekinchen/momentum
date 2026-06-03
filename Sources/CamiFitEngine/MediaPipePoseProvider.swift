@@ -85,6 +85,30 @@ public enum MediaPipePoseJSONLDecoder {
                 throw MediaPipePoseDecodeError.invalidLine(lineNumber, "image_size must contain width and height")
             }
 
+            if raw.posesDetected == 0 {
+                guard raw.primaryPoseID == nil else {
+                    throw MediaPipePoseDecodeError.invalidLine(lineNumber, "no-pose record must have null primary_pose_id")
+                }
+
+                guard raw.landmarks.isEmpty && raw.worldLandmarks.isEmpty else {
+                    throw MediaPipePoseDecodeError.invalidLine(lineNumber, "no-pose record must have empty landmarks and world_landmarks")
+                }
+
+                frames.append(
+                    PoseFrame(
+                        timestampMS: raw.timestampMS,
+                        imageWidth: raw.imageSize[0],
+                        imageHeight: raw.imageSize[1],
+                        landmarks: [:]
+                    )
+                )
+                continue
+            }
+
+            guard raw.posesDetected > 0 else {
+                throw MediaPipePoseDecodeError.invalidLine(lineNumber, "poses_detected must be non-negative")
+            }
+
             guard raw.landmarks.count == landmarkNames.count else {
                 throw MediaPipePoseDecodeError.invalidLine(
                     lineNumber,
@@ -159,13 +183,19 @@ private struct RawPoseRecord: Decodable {
     let type: String
     let timestampMS: Int64
     let imageSize: [Double]
+    let posesDetected: Int
+    let primaryPoseID: Int?
     let landmarks: [RawMediaPipeLandmark]
+    let worldLandmarks: [RawWorldLandmark]
 
     private enum CodingKeys: String, CodingKey {
         case type
         case timestampMS = "timestamp_ms"
         case imageSize = "image_size"
+        case posesDetected = "poses_detected"
+        case primaryPoseID = "primary_pose_id"
         case landmarks
+        case worldLandmarks = "world_landmarks"
     }
 }
 
@@ -175,4 +205,10 @@ private struct RawMediaPipeLandmark: Decodable {
     let z: Double
     let visibility: Double
     let presence: Double?
+}
+
+private struct RawWorldLandmark: Decodable {
+    let x: Double
+    let y: Double
+    let z: Double
 }

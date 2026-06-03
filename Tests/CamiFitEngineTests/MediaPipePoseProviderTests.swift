@@ -31,7 +31,7 @@ final class MediaPipePoseProviderTests: XCTestCase {
     func testMissingPresenceDefaultsToVisibility() throws {
         let landmarks = Self.minimalLandmarksJSON(includePresence: false)
         let jsonl = """
-        {"type":"pose","timestamp_ms":1200,"image_size":[640,480],"landmarks":\(landmarks)}
+        {"type":"pose","timestamp_ms":1200,"image_size":[640,480],"poses_detected":1,"primary_pose_id":0,"landmarks":\(landmarks),"world_landmarks":[]}
         """
 
         let frame = try XCTUnwrap(try MediaPipePoseJSONLDecoder.decode(jsonl: jsonl).first)
@@ -48,7 +48,7 @@ final class MediaPipePoseProviderTests: XCTestCase {
         }
 
         let jsonl = """
-        {"type":"pose","timestamp_ms":1300,"image_size":[640,480],"landmarks":[]}
+        {"type":"pose","timestamp_ms":1300,"image_size":[640,480],"poses_detected":1,"primary_pose_id":0,"landmarks":[],"world_landmarks":[]}
         """
 
         XCTAssertThrowsError(try MediaPipePoseJSONLDecoder.decode(jsonl: jsonl)) { error in
@@ -56,6 +56,43 @@ final class MediaPipePoseProviderTests: XCTestCase {
         }
 
         print("mediapipe-jsonl-fail-closed malformed=true wrong_count=true")
+    }
+
+    func testNoPoseJSONLFramesPreserveTimelineAndProduceInvalidTraceEvidence() throws {
+        let frames = try MediaPipePoseProvider(jsonlURL: Self.mixedNoPoseFixtureURL).frames()
+        let noPoseFrame = try XCTUnwrap(frames.first { $0.timestampMS == 2_100 })
+        var recorder = try EngineTraceRecorder(program: ProgramLoader.load(from: Self.presetURL))
+
+        let trace = recorder.record(frames: frames)
+        let formatted = EngineTraceFormatter.format(trace)
+        let noPoseTrace = try XCTUnwrap(trace.first { $0.timestampMS == 2_100 })
+        let countedInNoPoseInterval = trace.filter { $0.timestampMS == 2_100 && $0.rep.countedThisFrame }
+
+        XCTAssertEqual(frames.count, 3)
+        XCTAssertEqual(frames.map(\.timestampMS), [2_000, 2_100, 2_200])
+        XCTAssertEqual(noPoseFrame.imageWidth, 1_280)
+        XCTAssertEqual(noPoseFrame.imageHeight, 720)
+        XCTAssertTrue(noPoseFrame.landmarks.isEmpty)
+        XCTAssertTrue(countedInNoPoseInterval.isEmpty)
+        XCTAssertEqual(trace.last?.rep.repCount, 0)
+        XCTAssertNotNil(noPoseTrace.rep.invalidReason)
+        XCTAssertTrue(formatted.contains("2100 | ready | 0 | false"))
+        XCTAssertTrue(formatted.contains("missing landmark primary.hip"))
+
+        print("mediapipe-jsonl-no-pose frames=\(frames.count) timestamps=\(frames.map(\.timestampMS)) no_pose=[\(noPoseFrame.timestampMS)] size=\(noPoseFrame.imageWidth)x\(noPoseFrame.imageHeight) counted_in_no_pose=\(countedInNoPoseInterval.count) final_reps=\(trace.last?.rep.repCount ?? -1)")
+        print("mediapipe-jsonl-no-pose-trace\n\(Self.rowsContaining(formatted, "missing landmark"))")
+    }
+
+    func testInconsistentNoPoseRecordFailsClosed() {
+        let jsonl = """
+        {"type":"pose","timestamp_ms":1400,"image_size":[640,480],"poses_detected":0,"primary_pose_id":0,"landmarks":[],"world_landmarks":[]}
+        """
+
+        XCTAssertThrowsError(try MediaPipePoseJSONLDecoder.decode(jsonl: jsonl)) { error in
+            XCTAssertTrue(String(describing: error).contains("no-pose record must have null primary_pose_id"))
+        }
+
+        print("mediapipe-jsonl-no-pose-inconsistent fail_closed=true")
     }
 
     func testDecodedFramesReachEngineTraceRecorderAndFormatter() throws {
@@ -82,6 +119,10 @@ final class MediaPipePoseProviderTests: XCTestCase {
 
     private static var fixtureURL: URL {
         packageRoot.appendingPathComponent("Tests/CamiFitEngineTests/Fixtures/mediapipe_pose_worker_two_frames.jsonl")
+    }
+
+    private static var mixedNoPoseFixtureURL: URL {
+        packageRoot.appendingPathComponent("Tests/CamiFitEngineTests/Fixtures/mediapipe_pose_worker_mixed_no_pose.jsonl")
     }
 
     private static var presetURL: URL {
@@ -122,6 +163,13 @@ final class MediaPipePoseProviderTests: XCTestCase {
         default:
             return (0.5, 0.5, 0, 0.5, 0.5)
         }
+    }
+
+    private static func rowsContaining(_ output: String, _ needle: String) -> String {
+        output
+            .split(separator: "\n")
+            .filter { $0.contains(needle) }
+            .joined(separator: "\n")
     }
 }
 
