@@ -12,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/003-poseframe-signal-evaluator-core.md
+docs/briefs/004-filter-pipeline-produced-values.md
 
 ## Stop Conditions
 
