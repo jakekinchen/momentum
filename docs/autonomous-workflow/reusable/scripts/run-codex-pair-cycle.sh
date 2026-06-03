@@ -172,10 +172,15 @@ latest_reviewer_decision() {
   if [ -z "${file:-}" ]; then
     return 1
   fi
-  sed -n '/^## Decision/,/^## /p' "$file" |
-    grep -E '^[[:space:]]*`(CONTINUE|NUDGE|REDIRECT|STOP|ESCALATE)`[[:space:]]*$' |
-    head -1 |
-    tr -d '`[:space:]'
+  # Tolerant of format drift. Format A: a TOKEN inside a "## Decision" section
+  # (e.g. `CONTINUE`). Format B: an inline "Decision: TOKEN" / "**Decision:** TOKEN" line.
+  decision="$(sed -n '/^##[[:space:]]*Decision/,/^## /p' "$file" |
+    grep -oE '(CONTINUE|NUDGE|REDIRECT|STOP|ESCALATE)' | head -1)"
+  if [ -z "$decision" ]; then
+    decision="$(grep -iE 'decision' "$file" |
+      grep -oE '(CONTINUE|NUDGE|REDIRECT|STOP|ESCALATE)' | head -1)"
+  fi
+  printf '%s' "$decision"
 }
 
 role_session_file() {
