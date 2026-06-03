@@ -15,6 +15,7 @@ final class RepStateMachineTests: XCTestCase {
         XCTAssertEqual(timeline.filter(\.countedThisFrame).count, 1)
         XCTAssertEqual(timeline.last?.phase, .ready)
         XCTAssertGreaterThanOrEqual(timeline.compactMap(\.romDegrees).max() ?? 0, 50)
+        XCTAssertGreaterThan(timeline.compactMap(\.cooldownRemainingMS).max() ?? 0, 0)
         XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .descending }))
         XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .bottom }))
         XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .ascending }))
@@ -48,6 +49,43 @@ final class RepStateMachineTests: XCTestCase {
         XCTAssertLessThan(timeline.compactMap(\.romDegrees).max() ?? 0, 100)
 
         print("rep-state-below-rom \(Self.format(timeline))")
+    }
+
+    func testCooldownBlocksSecondAttemptUntilElapsed() throws {
+        var harness = try ProductPathHarness(repOverride: { rep in
+            RepConfig(
+                phaseSignal: rep.phaseSignal,
+                downWhen: rep.downWhen,
+                downMinMS: rep.downMinMS,
+                bottomMinMS: rep.bottomMinMS,
+                upWhen: rep.upWhen,
+                upMinMS: rep.upMinMS,
+                minROMDegrees: rep.minROMDegrees,
+                cooldownMS: 5_000
+            )
+        })
+
+        let first = Self.validRepFrames(startMS: 0)
+        let blockedSecond = Self.validRepFrames(startMS: 1_900)
+        let invalidDuringCooldown = Self.invalidKneeFrame(timestampMS: 4_200)
+        let allowedThird = Self.validRepFrames(startMS: 7_000)
+
+        var timeline = (first + blockedSecond).map { harness.advance(frame: $0) }
+        let invalid = harness.advance(frame: invalidDuringCooldown)
+        timeline.append(invalid)
+        timeline += allowedThird.map { harness.advance(frame: $0) }
+
+        XCTAssertEqual(timeline.filter(\.countedThisFrame).count, 2)
+        XCTAssertEqual(timeline.last?.repCount, 2)
+        XCTAssertTrue(invalid.invalidReason?.contains("phase signal knee invalid") == true)
+        XCTAssertGreaterThan(invalid.cooldownRemainingMS ?? 0, 0)
+
+        let firstCountIndex = try XCTUnwrap(timeline.firstIndex(where: \.countedThisFrame))
+        let secondCountIndex = try XCTUnwrap(timeline.lastIndex(where: \.countedThisFrame))
+        XCTAssertGreaterThan(secondCountIndex, firstCountIndex)
+        XCTAssertTrue(timeline[(firstCountIndex + 1) ..< secondCountIndex].allSatisfy { !$0.countedThisFrame })
+
+        print("rep-state-cooldown \(Self.format(timeline)) invalid=\(invalid)")
     }
 
     func testTooFastThresholdCrossingDoesNotCountRep() throws {
@@ -173,6 +211,12 @@ final class RepStateMachineTests: XCTestCase {
         packageRoot.appendingPathComponent("Presets/bodyweight_squat.json")
     }
 
+    private static func validRepFrames(startMS: Int64) -> [PoseFrame] {
+        [standingFrame(timestampMS: startMS)] +
+            deepFrames(startMS: startMS + 100, count: 10) +
+            standingFrames(startMS: startMS + 1_100, count: 8)
+    }
+
     private static func standingFrames(startMS: Int64, count: Int, intervalMS: Int64 = 100) -> [PoseFrame] {
         (0 ..< count).map { index in
             standingFrame(timestampMS: startMS + Int64(index) * intervalMS)
@@ -241,7 +285,8 @@ final class RepStateMachineTests: XCTestCase {
     private static func format(_ timeline: [RepStateSnapshot]) -> String {
         timeline.enumerated().map { index, snapshot in
             let rom = snapshot.romDegrees.map { String(format: "%.1f", $0) } ?? "nil"
-            return "\(index):\(snapshot.phase.rawValue):reps=\(snapshot.repCount):counted=\(snapshot.countedThisFrame):rom=\(rom)"
+            let cooldown = snapshot.cooldownRemainingMS.map(String.init) ?? "nil"
+            return "\(index):\(snapshot.phase.rawValue):reps=\(snapshot.repCount):counted=\(snapshot.countedThisFrame):rom=\(rom):cooldown=\(cooldown)"
         }.joined(separator: " ")
     }
 }

@@ -14,6 +14,7 @@ public struct RepStateSnapshot: Equatable, CustomStringConvertible {
     public let countedThisFrame: Bool
     public let invalidReason: String?
     public let romDegrees: Double?
+    public let cooldownRemainingMS: Int?
 
     public var description: String {
         var parts = [
@@ -24,6 +25,10 @@ public struct RepStateSnapshot: Equatable, CustomStringConvertible {
 
         if let romDegrees {
             parts.append(String(format: "rom=%.1f", romDegrees))
+        }
+
+        if let cooldownRemainingMS {
+            parts.append("cooldown=\(cooldownRemainingMS)")
         }
 
         if let invalidReason {
@@ -41,6 +46,7 @@ public struct RepStateMachine {
     private var phaseStartedAtMS: Int64?
     private var romMinimum: Double?
     private var romMaximum: Double?
+    private var cooldownUntilMS: Int64?
 
     public init(program: ExerciseProgram) throws {
         guard let rep = program.rep else {
@@ -60,17 +66,27 @@ public struct RepStateMachine {
         downPredicate: PredicateResult,
         upPredicate: PredicateResult
     ) -> RepStateSnapshot {
+        clearElapsedCooldown(at: timestampMS)
+
         guard let phaseSignalValue = validPhaseSignalValue(phaseSignal) else {
             resetActiveDwellTimer()
             return snapshot(
                 countedThisFrame: false,
-                invalidReason: invalidPhaseSignalReason(phaseSignal)
+                invalidReason: invalidPhaseSignalReason(phaseSignal),
+                timestampMS: timestampMS
             )
         }
 
         if let invalidReason = invalidReason(downPredicate: downPredicate, upPredicate: upPredicate) {
             resetActiveDwellTimer()
-            return snapshot(countedThisFrame: false, invalidReason: invalidReason)
+            return snapshot(countedThisFrame: false, invalidReason: invalidReason, timestampMS: timestampMS)
+        }
+
+        if isInCooldown(at: timestampMS) {
+            resetActiveDwellTimer()
+            resetROMTracking()
+            transition(to: .ready, timestampMS: nil)
+            return snapshot(countedThisFrame: false, invalidReason: nil, timestampMS: timestampMS)
         }
 
         let isDown = downPredicate == .satisfied
@@ -105,7 +121,7 @@ public struct RepStateMachine {
                       elapsed(from: startedAt, to: timestampMS) >= rep.bottomMinMS else {
                     resetROMTracking()
                     transition(to: .ready, timestampMS: nil)
-                    return snapshot(countedThisFrame: false, invalidReason: nil)
+                    return snapshot(countedThisFrame: false, invalidReason: nil, timestampMS: timestampMS)
                 }
 
                 transition(to: .ascending, timestampMS: timestampMS)
@@ -121,10 +137,16 @@ public struct RepStateMachine {
                     if (completedROM ?? 0) >= rep.minROMDegrees {
                         repCount += 1
                         countedThisFrame = true
+                        cooldownUntilMS = timestampMS + Int64(rep.cooldownMS)
                     }
                     resetROMTracking()
                     transition(to: .ready, timestampMS: nil)
-                    return snapshot(countedThisFrame: countedThisFrame, invalidReason: nil, romDegrees: completedROM)
+                    return snapshot(
+                        countedThisFrame: countedThisFrame,
+                        invalidReason: nil,
+                        timestampMS: timestampMS,
+                        romDegrees: completedROM
+                    )
                 }
             } else if isDown {
                 transition(to: .bottom, timestampMS: timestampMS)
@@ -133,7 +155,7 @@ public struct RepStateMachine {
             }
         }
 
-        return snapshot(countedThisFrame: countedThisFrame, invalidReason: nil)
+        return snapshot(countedThisFrame: countedThisFrame, invalidReason: nil, timestampMS: timestampMS)
     }
 
     private func validPhaseSignalValue(_ phaseSignal: SignalValue?) -> Double? {
@@ -212,6 +234,26 @@ public struct RepStateMachine {
         romMaximum = nil
     }
 
+    private mutating func clearElapsedCooldown(at timestampMS: Int64) {
+        guard let cooldownUntilMS, timestampMS >= cooldownUntilMS else {
+            return
+        }
+
+        self.cooldownUntilMS = nil
+    }
+
+    private func isInCooldown(at timestampMS: Int64) -> Bool {
+        cooldownRemaining(at: timestampMS) > 0
+    }
+
+    private func cooldownRemaining(at timestampMS: Int64) -> Int {
+        guard let cooldownUntilMS else {
+            return 0
+        }
+
+        return Int(max(0, cooldownUntilMS - timestampMS))
+    }
+
     private var currentROMDegrees: Double? {
         guard let romMinimum, let romMaximum else {
             return nil
@@ -220,13 +262,21 @@ public struct RepStateMachine {
         return romMaximum - romMinimum
     }
 
-    private func snapshot(countedThisFrame: Bool, invalidReason: String?, romDegrees: Double? = nil) -> RepStateSnapshot {
-        RepStateSnapshot(
+    private func snapshot(
+        countedThisFrame: Bool,
+        invalidReason: String?,
+        timestampMS: Int64,
+        romDegrees: Double? = nil
+    ) -> RepStateSnapshot {
+        let remainingCooldown = cooldownRemaining(at: timestampMS)
+
+        return RepStateSnapshot(
             phase: phase,
             repCount: repCount,
             countedThisFrame: countedThisFrame,
             invalidReason: invalidReason,
-            romDegrees: romDegrees ?? currentROMDegrees
+            romDegrees: romDegrees ?? currentROMDegrees,
+            cooldownRemainingMS: remainingCooldown > 0 ? remainingCooldown : nil
         )
     }
 }
