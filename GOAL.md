@@ -12,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/008-rep-rom-enforcement.md
+docs/briefs/009-rep-cooldown-enforcement.md
 
 ## Stop Conditions
 
