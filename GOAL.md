@@ -12,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/002-dsl-evaluator-and-calibration-validation.md
+docs/briefs/003-poseframe-signal-evaluator-core.md
 
 ## Stop Conditions
 
