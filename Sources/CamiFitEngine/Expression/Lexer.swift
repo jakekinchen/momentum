@@ -7,6 +7,12 @@ enum ExpressionToken: Equatable, CustomStringConvertible {
     case minus
     case star
     case slash
+    case less
+    case lessEqual
+    case greater
+    case greaterEqual
+    case equalEqual
+    case bangEqual
     case leftParen
     case rightParen
     case comma
@@ -26,6 +32,18 @@ enum ExpressionToken: Equatable, CustomStringConvertible {
             return "*"
         case .slash:
             return "/"
+        case .less:
+            return "<"
+        case .lessEqual:
+            return "<="
+        case .greater:
+            return ">"
+        case .greaterEqual:
+            return ">="
+        case .equalEqual:
+            return "=="
+        case .bangEqual:
+            return "!="
         case .leftParen:
             return "("
         case .rightParen:
@@ -95,6 +113,24 @@ struct ExpressionLexer {
             case "/":
                 advance()
                 tokens.append(.slash)
+            case "<":
+                advance()
+                tokens.append(match("=") ? .lessEqual : .less)
+            case ">":
+                advance()
+                tokens.append(match("=") ? .greaterEqual : .greater)
+            case "=":
+                advance()
+                guard match("=") else {
+                    throw ExpressionParseError.unexpectedCharacter(character, offset: index - 1)
+                }
+                tokens.append(.equalEqual)
+            case "!":
+                advance()
+                guard match("=") else {
+                    throw ExpressionParseError.unexpectedCharacter(character, offset: index - 1)
+                }
+                tokens.append(.bangEqual)
             case "(":
                 advance()
                 tokens.append(.leftParen)
@@ -155,6 +191,15 @@ struct ExpressionLexer {
 
     private mutating func advance() {
         index += 1
+    }
+
+    private mutating func match(_ expected: Character) -> Bool {
+        guard peek() == expected else {
+            return false
+        }
+
+        advance()
+        return true
     }
 }
 

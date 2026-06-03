@@ -15,6 +15,14 @@ struct ExpressionParser {
         return expression
     }
 
+    mutating func parsePredicate() throws -> PredicateExpression {
+        let left = try parseExpression()
+        let comparison = try parseComparison()
+        let right = try parseExpression()
+        try consumeEOF()
+        return PredicateExpression(left: left, comparison: comparison, right: right)
+    }
+
     private mutating func parseExpression() throws -> ExpressionNode {
         try parseAddition()
     }
@@ -76,6 +84,27 @@ struct ExpressionParser {
         }
     }
 
+    private mutating func parseComparison() throws -> ComparisonOperator {
+        let token = advance()
+
+        switch token {
+        case .less:
+            return .lessThan
+        case .lessEqual:
+            return .lessThanOrEqual
+        case .greater:
+            return .greaterThan
+        case .greaterEqual:
+            return .greaterThanOrEqual
+        case .equalEqual:
+            return .equal
+        case .bangEqual:
+            return .notEqual
+        default:
+            throw ExpressionParseError.expected("comparison operator", found: token.description)
+        }
+    }
+
     private mutating func parseFunctionCall(name: String) throws -> ExpressionNode {
         var arguments: [ExpressionNode] = []
 
@@ -134,6 +163,12 @@ private extension ExpressionToken {
              (.minus, .minus),
              (.star, .star),
              (.slash, .slash),
+             (.less, .less),
+             (.lessEqual, .lessEqual),
+             (.greater, .greater),
+             (.greaterEqual, .greaterEqual),
+             (.equalEqual, .equalEqual),
+             (.bangEqual, .bangEqual),
              (.leftParen, .leftParen),
              (.rightParen, .rightParen),
              (.comma, .comma),

@@ -32,3 +32,18 @@ enum BinaryOperator: Equatable {
     case multiply
     case divide
 }
+
+struct PredicateExpression: Equatable {
+    let left: ExpressionNode
+    let comparison: ComparisonOperator
+    let right: ExpressionNode
+}
+
+enum ComparisonOperator: Equatable {
+    case lessThan
+    case lessThanOrEqual
+    case greaterThan
+    case greaterThanOrEqual
+    case equal
+    case notEqual
+}
