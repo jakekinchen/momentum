@@ -12,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/020-mediapipe-no-pose-jsonl-policy.md
+docs/briefs/021-squat-acceptance-suite.md
 
 ## Stop Conditions
 
