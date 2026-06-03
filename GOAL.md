@@ -8,11 +8,11 @@ The full, reviewed design is `docs/design/2026-06-03-camifit-exercise-engine-des
 
 ## Current Milestone
 
-M1 - Exercise engine + program contract (squat vertical)
+M2 - Bodyweight presets (push-up, lunge, plank). M1 (squat vertical) complete — both gate halves green (manager log 002).
 
 ## Current Slice
 
-docs/briefs/021-squat-acceptance-suite.md
+docs/briefs/022-pushup-preset.md
 
 ## Stop Conditions
 
@@ -21,6 +21,7 @@ docs/briefs/021-squat-acceptance-suite.md
 - Stop scope expansion into Layer 2 (agent / Codex / OpenAI) or Layer 3 (persistence) while M1 is active.
 - The engine must reject invalid programs at load (unknown function, signal/filter DAG cycle, missing signal). A slice that weakens load-time validation is out of scope.
 - **Loop↔human boundary:** the autonomous loop validates only what `swift test --disable-sandbox` / `pytest` can prove headlessly. Anything that needs a live camera or a running SwiftUI app (the macOS app target, camera capture, on-screen overlay) must be built as wireable, unit-tested pieces and then **ESCALATE** for human run-verification — never claim a live-app behavior works without that. Decoding/logic (e.g. `MediaPipePoseProvider` JSONL→`PoseFrame`) IS testable headlessly with recorded fixtures and stays in-loop.
+- **pytest gate:** the `pose_worker/` pytest gate is **manager-verified** (the loop's sandbox lacks pytest; do NOT `pip install` in-loop). Slices that do not modify `pose_worker/` validate with `swift test --disable-sandbox` only and must not block on pytest. A slice that DOES modify `pose_worker/` should ESCALATE for a manager pytest run.
 
 ## Human Constraints
 
