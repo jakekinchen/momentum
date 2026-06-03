@@ -249,6 +249,9 @@ ensure_clean_start() {
 }
 
 codex_new_session_args() {
+  # Fast mode: lower reasoning effort (global -c, before the exec subcommand). Override via env.
+  printf '%s\n' "-c"
+  printf '%s\n' "model_reasoning_effort=\"${CODEX_REASONING_EFFORT:-low}\""
   printf '%s\n' "exec"
   printf '%s\n' "--json"
   printf '%s\n' "-C"
@@ -268,6 +271,9 @@ codex_new_session_args() {
 
 codex_resume_session_args() {
   session_id="$1"
+  # Fast mode: lower reasoning effort (global -c, before the exec subcommand). Override via env.
+  printf '%s\n' "-c"
+  printf '%s\n' "model_reasoning_effort=\"${CODEX_REASONING_EFFORT:-low}\""
   printf '%s\n' "exec"
   printf '%s\n' "resume"
   printf '%s\n' "--json"
