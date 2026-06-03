@@ -3,7 +3,9 @@ import Foundation
 public enum RepPhase: String, Equatable {
     case seekingReady = "seeking_ready"
     case ready
-    case down
+    case descending
+    case bottom
+    case ascending
 }
 
 public struct RepStateSnapshot: Equatable, CustomStringConvertible {
@@ -31,6 +33,7 @@ public struct RepStateMachine {
     private let rep: RepConfig
     private var phase: RepPhase = .seekingReady
     private var repCount = 0
+    private var phaseStartedAtMS: Int64?
 
     public init(program: ExerciseProgram) throws {
         guard let rep = program.rep else {
@@ -44,8 +47,13 @@ public struct RepStateMachine {
         self.rep = rep
     }
 
-    public mutating func update(downPredicate: PredicateResult, upPredicate: PredicateResult) -> RepStateSnapshot {
+    public mutating func update(
+        timestampMS: Int64,
+        downPredicate: PredicateResult,
+        upPredicate: PredicateResult
+    ) -> RepStateSnapshot {
         if let invalidReason = invalidReason(downPredicate: downPredicate, upPredicate: upPredicate) {
+            resetActiveDwellTimer()
             return snapshot(countedThisFrame: false, invalidReason: invalidReason)
         }
 
@@ -56,17 +64,45 @@ public struct RepStateMachine {
         switch phase {
         case .seekingReady:
             if isUp {
-                phase = .ready
+                transition(to: .ready, timestampMS: nil)
             }
         case .ready:
             if isDown {
-                phase = .down
+                transition(to: .descending, timestampMS: timestampMS)
             }
-        case .down:
+        case .descending:
+            if isDown {
+                let startedAt = ensurePhaseStarted(at: timestampMS)
+                if elapsed(from: startedAt, to: timestampMS) >= rep.downMinMS {
+                    transition(to: .bottom, timestampMS: timestampMS)
+                }
+            } else {
+                transition(to: .ready, timestampMS: nil)
+            }
+        case .bottom:
             if isUp {
-                repCount += 1
-                countedThisFrame = true
-                phase = .ready
+                guard let startedAt = phaseStartedAtMS,
+                      elapsed(from: startedAt, to: timestampMS) >= rep.bottomMinMS else {
+                    transition(to: .ready, timestampMS: nil)
+                    return snapshot(countedThisFrame: false, invalidReason: nil)
+                }
+
+                transition(to: .ascending, timestampMS: timestampMS)
+            } else if isDown {
+                _ = ensurePhaseStarted(at: timestampMS)
+            }
+        case .ascending:
+            if isUp {
+                let startedAt = ensurePhaseStarted(at: timestampMS)
+                if elapsed(from: startedAt, to: timestampMS) >= rep.upMinMS {
+                    repCount += 1
+                    countedThisFrame = true
+                    transition(to: .ready, timestampMS: nil)
+                }
+            } else if isDown {
+                transition(to: .bottom, timestampMS: timestampMS)
+            } else {
+                transition(to: .bottom, timestampMS: timestampMS)
             }
         }
 
@@ -81,6 +117,33 @@ public struct RepStateMachine {
             return "up predicate invalid: \(reason)"
         default:
             return nil
+        }
+    }
+
+    private mutating func transition(to nextPhase: RepPhase, timestampMS: Int64?) {
+        phase = nextPhase
+        phaseStartedAtMS = timestampMS
+    }
+
+    private mutating func ensurePhaseStarted(at timestampMS: Int64) -> Int64 {
+        if let phaseStartedAtMS {
+            return phaseStartedAtMS
+        }
+
+        phaseStartedAtMS = timestampMS
+        return timestampMS
+    }
+
+    private func elapsed(from start: Int64, to end: Int64) -> Int {
+        Int(max(0, end - start))
+    }
+
+    private mutating func resetActiveDwellTimer() {
+        switch phase {
+        case .descending, .bottom, .ascending:
+            phaseStartedAtMS = nil
+        case .seekingReady, .ready:
+            break
         }
     }
 

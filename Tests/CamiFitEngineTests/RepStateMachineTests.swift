@@ -2,21 +2,39 @@ import XCTest
 @testable import CamiFitEngine
 
 final class RepStateMachineTests: XCTestCase {
-    func testSquatPresetStandingDeepStandingSequenceCountsOneRep() throws {
+    func testTimedSquatPresetSequenceCountsOneRepAfterConfiguredDwells() throws {
         var harness = try ProductPathHarness()
 
         let frames = [
             Self.standingFrame(timestampMS: 0)
-        ] + Self.deepFrames(startMS: 100, count: 6) + Self.standingFrames(startMS: 700, count: 5)
+        ] + Self.deepFrames(startMS: 100, count: 10) + Self.standingFrames(startMS: 1_100, count: 8)
 
         let timeline = frames.map { harness.advance(frame: $0) }
 
         XCTAssertEqual(timeline.last?.repCount, 1)
         XCTAssertEqual(timeline.filter(\.countedThisFrame).count, 1)
         XCTAssertEqual(timeline.last?.phase, .ready)
-        XCTAssertTrue(timeline.contains { $0.phase == .down })
+        XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .descending }))
+        XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .bottom }))
+        XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .ascending }))
 
-        print("rep-state-one-rep \(Self.format(timeline))")
+        print("rep-state-timed-one-rep \(Self.format(timeline))")
+    }
+
+    func testTooFastThresholdCrossingDoesNotCountRep() throws {
+        var harness = try ProductPathHarness()
+
+        let frames = [
+            Self.standingFrame(timestampMS: 0)
+        ] + Self.deepFrames(startMS: 10, count: 10, intervalMS: 10) + Self.standingFrames(startMS: 110, count: 20, intervalMS: 10)
+
+        let timeline = frames.map { harness.advance(frame: $0) }
+
+        XCTAssertTrue(timeline.contains(where: { snapshot in snapshot.phase == .descending }))
+        XCTAssertEqual(timeline.last?.repCount, 0)
+        XCTAssertFalse(timeline.contains(where: \.countedThisFrame))
+
+        print("rep-state-too-fast \(Self.format(timeline))")
     }
 
     func testRepeatedStandingAndShallowSequencesDoNotCountFalseReps() throws {
@@ -65,6 +83,27 @@ final class RepStateMachineTests: XCTestCase {
         print("rep-state-invalid \(invalidSnapshot)")
     }
 
+    func testInvalidFrameDoesNotAdvanceDownDwellTimer() throws {
+        var harness = try ProductPathHarness()
+        let frames = [
+            Self.standingFrame(timestampMS: 0)
+        ] + Self.deepFrames(startMS: 100, count: 6)
+
+        var timeline = frames.map { harness.advance(frame: $0) }
+        let invalid = harness.advance(frame: Self.invalidKneeFrame(timestampMS: 700))
+        let firstRecovery = harness.advance(frame: Self.deepSquatFrame(timestampMS: 800))
+        timeline.append(invalid)
+        timeline.append(firstRecovery)
+
+        XCTAssertEqual(invalid.phase, .descending)
+        XCTAssertTrue(invalid.invalidReason?.contains("knee") == true)
+        XCTAssertEqual(firstRecovery.phase, .descending)
+        XCTAssertEqual(firstRecovery.repCount, 0)
+        XCTAssertFalse(firstRecovery.countedThisFrame)
+
+        print("rep-state-invalid-dwell \(Self.format(timeline)) invalid=\(invalid)")
+    }
+
     private struct ProductPathHarness {
         var processor: FrameSignalProcessor
         let predicateEvaluator: RepPredicateEvaluator
@@ -81,7 +120,7 @@ final class RepStateMachineTests: XCTestCase {
             let produced = processor.process(frame: frame)
             let down = predicateEvaluator.evaluateDown(producedValues: produced, frame: frame)
             let up = predicateEvaluator.evaluateUp(producedValues: produced, frame: frame)
-            return stateMachine.update(downPredicate: down, upPredicate: up)
+            return stateMachine.update(timestampMS: frame.timestampMS, downPredicate: down, upPredicate: up)
         }
     }
 
@@ -96,21 +135,21 @@ final class RepStateMachineTests: XCTestCase {
         packageRoot.appendingPathComponent("Presets/bodyweight_squat.json")
     }
 
-    private static func standingFrames(startMS: Int64, count: Int) -> [PoseFrame] {
+    private static func standingFrames(startMS: Int64, count: Int, intervalMS: Int64 = 100) -> [PoseFrame] {
         (0 ..< count).map { index in
-            standingFrame(timestampMS: startMS + Int64(index * 100))
+            standingFrame(timestampMS: startMS + Int64(index) * intervalMS)
         }
     }
 
-    private static func deepFrames(startMS: Int64, count: Int) -> [PoseFrame] {
+    private static func deepFrames(startMS: Int64, count: Int, intervalMS: Int64 = 100) -> [PoseFrame] {
         (0 ..< count).map { index in
-            deepSquatFrame(timestampMS: startMS + Int64(index * 100))
+            deepSquatFrame(timestampMS: startMS + Int64(index) * intervalMS)
         }
     }
 
-    private static func shallowFrames(startMS: Int64, count: Int) -> [PoseFrame] {
+    private static func shallowFrames(startMS: Int64, count: Int, intervalMS: Int64 = 100) -> [PoseFrame] {
         (0 ..< count).map { index in
-            shallowSquatFrame(timestampMS: startMS + Int64(index * 100))
+            shallowSquatFrame(timestampMS: startMS + Int64(index) * intervalMS)
         }
     }
 
