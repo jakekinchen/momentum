@@ -12,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/007-rep-state-machine-dwell-timing.md
+docs/briefs/008-rep-rom-enforcement.md
 
 ## Stop Conditions
 
