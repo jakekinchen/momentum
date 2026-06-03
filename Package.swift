@@ -19,7 +19,10 @@ let package = Package(
         ),
         .testTarget(
             name: "CamiFitEngineTests",
-            dependencies: ["CamiFitEngine"]
+            dependencies: ["CamiFitEngine"],
+            resources: [
+                .copy("Fixtures")
+            ]
         )
     ]
 )

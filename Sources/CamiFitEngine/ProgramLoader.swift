@@ -4,6 +4,7 @@ public enum ProgramLoadError: Error, Equatable, CustomStringConvertible, Localiz
     case missingRequiredField(field: String)
     case invalidEnumValue(field: String, value: String, allowed: [String])
     case missingReference(field: String, name: String)
+    case invalidCalibrationSignalReference(field: String, name: String)
     case unknownFunction(field: String, name: String, allowed: [String])
     case cyclicSignalReference(name: String)
     case invalidStructure(field: String, reason: String)
@@ -18,6 +19,8 @@ public enum ProgramLoadError: Error, Equatable, CustomStringConvertible, Localiz
             return "invalid_enum_value(field: \(field), value: \(value), allowed: \(allowed.joined(separator: ",")))"
         case let .missingReference(field, name):
             return "missing_reference(field: \(field), name: \(name))"
+        case let .invalidCalibrationSignalReference(field, name):
+            return "invalid_calibration_signal_reference(field: \(field), name: \(name))"
         case let .unknownFunction(field, name, allowed):
             return "unknown_function(field: \(field), name: \(name), allowed: \(allowed.joined(separator: ",")))"
         case let .cyclicSignalReference(name):
@@ -124,6 +127,7 @@ private enum ProgramValidator {
         }
 
         let producedValues = signalNames.union(filterNames)
+        try validateCalibrationSignals(program.setup, producedValues: producedValues)
 
         if program.rep == nil && program.hold == nil {
             throw ProgramLoadError.invalidStructure(field: "program", reason: "either rep or hold must be provided")
@@ -237,6 +241,21 @@ private enum ProgramValidator {
                 throw ProgramLoadError.missingRequiredField(field: "filters.\(name).window_ms")
             }
             try require(windowMS > 0, field: "filters.\(name).window_ms", reason: "must be positive")
+        }
+    }
+
+    private static func validateCalibrationSignals(_ setup: ProgramSetup, producedValues: Set<String>) throws {
+        for calibrationName in setup.calibration.keys.sorted() {
+            guard let capture = setup.calibration[calibrationName] else { continue }
+
+            for (index, signalName) in capture.signals.enumerated() {
+                guard producedValues.contains(signalName) else {
+                    throw ProgramLoadError.invalidCalibrationSignalReference(
+                        field: "setup.calibration.\(calibrationName).signals[\(index)]",
+                        name: signalName
+                    )
+                }
+            }
         }
     }
 

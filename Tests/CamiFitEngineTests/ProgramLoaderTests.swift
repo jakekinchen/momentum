@@ -12,6 +12,7 @@ final class ProgramLoaderTests: XCTestCase {
         XCTAssertEqual(program.rep?.phaseSignal, "knee")
         XCTAssertEqual(Set(program.signals.keys), ["knee_left", "knee_right", "knee_raw", "torso_raw", "knee_symmetry"])
         XCTAssertEqual(Set(program.filters.keys), ["knee", "torso_tilt"])
+        XCTAssertEqual(program.setup.calibration["top_pose"]?.signals, ["knee", "torso_tilt"])
         XCTAssertEqual(program.formRules.map(\.id), ["depth", "torso", "symmetry"])
         XCTAssertEqual(program.set.targetReps, 10)
 
@@ -25,6 +26,7 @@ final class ProgramLoaderTests: XCTestCase {
         XCTAssertEqual(reloaded.formRules.map(\.id), program.formRules.map(\.id))
 
         print("validated-summary \(program.validatedSummary)")
+        print("validated-calibration top_pose signals=\(program.setup.calibration["top_pose"]?.signals ?? [])")
     }
 
     func testRejectsMissingRequiredPhaseSignalFixture() throws {
@@ -87,6 +89,16 @@ final class ProgramLoaderTests: XCTestCase {
         expectLoadError(from: data) { error in
             guard case let .invalidEnumValue(field, value, allowed) = error else { return false }
             return field == "form_rules[0].severity" && value == "urgent" && allowed.contains("warn")
+        }
+    }
+
+    func testRejectsUnknownCalibrationSignalReferenceFixture() throws {
+        let data = try Data(contentsOf: packageRoot.appendingPathComponent("Tests/CamiFitEngineTests/Fixtures/invalid_calibration_signal_ref.json"))
+
+        expectLoadError(from: data) { error in
+            print("calibration-error \(error)")
+            guard case let .invalidCalibrationSignalReference(field, name) = error else { return false }
+            return field == "setup.calibration.top_pose.signals[0]" && name == "missing_calibration_signal"
         }
     }
 
