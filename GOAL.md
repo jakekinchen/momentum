@@ -1,7 +1,5 @@
 # GOAL
 
-<stop-orchestrator/>
-
 ## Active Mission
 
 Build **CamiFit**, an open-ended, on-device bodyweight-exercise coach for macOS. The foundation (Layer 1) is a deterministic, timestamped **exercise engine** that runs an **Exercise-Program** (JSON + a sandboxed rule DSL): pose landmarks → joint-angle signals → temporal filters → validity gating → rep/hold/set state machines → form rules → live cues + a post-set summary. The same JSON contract is later produced by an agent (Layer 2) and persisted/tracked over time (Layer 3).
@@ -14,7 +12,7 @@ M1 - Exercise engine + program contract (squat vertical)
 
 ## Current Slice
 
-docs/briefs/001-contract-and-validation.md
+docs/briefs/002-dsl-evaluator-and-calibration-validation.md
 
 ## Stop Conditions
 
@@ -30,3 +28,4 @@ docs/briefs/001-contract-and-validation.md
 - The **interpreter lives in Swift** (one evaluator); the Python pose worker is a pure, stateless, timestamped pose source behind a `PoseProvider` boundary.
 - Require approval before paid cloud work, large downloads, destructive actions, or public release.
 - Repo evidence beats chat memory: every slice leaves a brief, a session log (commands/outputs/files/validation/reachability), and a reviewer decision.
+- **Validation convention (SwiftPM under the Codex sandbox):** validate with `swift build --disable-sandbox` and `swift test --disable-sandbox` using the **default in-repo `.build`**. Do NOT redirect `--scratch-path`/`--cache-path` outside the repo — Codex's `workspace-write` sandbox blocks external writes, and `--disable-sandbox` avoids SwiftPM's nested sandbox-exec. This lets the executor/reviewer self-validate without bypassing the Codex sandbox. Manager confirmed 8/8 tests green this way on 2026-06-03 (slice 001).
