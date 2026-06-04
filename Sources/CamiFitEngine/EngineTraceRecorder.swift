@@ -13,41 +13,57 @@ public struct EngineTraceFrame: Equatable, CustomStringConvertible {
     public let timestampMS: Int64
     public let producedValues: [EngineTraceProducedValue]
     public let rep: RepStateSnapshot
+    public let hold: HoldSnapshot?
     public let formSnapshots: [FormRuleSnapshot]
     public let formSummary: FormRuleScoreSummary
 
     public var description: String {
-        [
+        var parts = [
             "timestamp_ms=\(timestampMS)",
             rep.description,
-            "produced=[\(producedValues.map(\.description).joined(separator: ", "))]",
-            "form=[\(formSnapshots.map(\.description).joined(separator: " | "))]",
-            "summary=\(formSummary)"
-        ].joined(separator: " ")
+            "produced=[\(producedValues.map(\.description).joined(separator: ", "))]"
+        ]
+
+        if let hold {
+            parts.append(hold.description)
+        }
+
+        parts.append("form=[\(formSnapshots.map(\.description).joined(separator: " | "))]")
+        parts.append("summary=\(formSummary)")
+        return parts.joined(separator: " ")
     }
 }
 
 public struct EngineTraceRecorder {
     private var processor: FrameSignalProcessor
-    private let predicateEvaluator: RepPredicateEvaluator
-    private var stateMachine: RepStateMachine
+    private let predicateEvaluator: RepPredicateEvaluator?
+    private var stateMachine: RepStateMachine?
+    private var holdEvaluator: HoldEvaluator?
     private var formEvaluator: FormRuleEvaluator
     private let formSummarizer: FormRuleScoreSummarizer
     private let phaseSignalName: String
     private let selectedProducedValueKeys: [String]
 
     public init(program: ExerciseProgram) throws {
-        guard let rep = program.rep else {
-            throw ProgramLoadError.invalidStructure(field: "rep", reason: "engine trace recorder requires rep config")
-        }
-
         processor = try FrameSignalProcessor(program: program)
-        predicateEvaluator = try RepPredicateEvaluator(program: program)
-        stateMachine = RepStateMachine(rep: rep)
         formEvaluator = try FormRuleEvaluator(program: program)
         formSummarizer = FormRuleScoreSummarizer(program: program)
-        phaseSignalName = rep.phaseSignal
-        selectedProducedValueKeys = Self.selectedProducedValueKeys(program: program, phaseSignalName: rep.phaseSignal)
+
+        if let rep = program.rep {
+            predicateEvaluator = try RepPredicateEvaluator(program: program)
+            stateMachine = RepStateMachine(rep: rep)
+            holdEvaluator = nil
+            phaseSignalName = rep.phaseSignal
+        } else if let hold = program.hold {
+            predicateEvaluator = nil
+            stateMachine = nil
+            holdEvaluator = try HoldEvaluator(program: program)
+            phaseSignalName = hold.signal
+        } else {
+            throw ProgramLoadError.invalidStructure(field: "program", reason: "engine trace recorder requires rep or hold config")
+        }
+
+        selectedProducedValueKeys = Self.selectedProducedValueKeys(program: program, phaseSignalName: phaseSignalName)
     }
 
     public mutating func record(frames: [PoseFrame]) -> [EngineTraceFrame] {
@@ -56,12 +72,27 @@ public struct EngineTraceRecorder {
 
     public mutating func record(frame: PoseFrame) -> EngineTraceFrame {
         let producedValues = processor.process(frame: frame)
-        let repSnapshot = stateMachine.update(
-            timestampMS: frame.timestampMS,
-            phaseSignal: producedValues[phaseSignalName],
-            downPredicate: predicateEvaluator.evaluateDown(producedValues: producedValues, frame: frame),
-            upPredicate: predicateEvaluator.evaluateUp(producedValues: producedValues, frame: frame)
-        )
+        let repSnapshot: RepStateSnapshot
+        if let predicateEvaluator, var stateMachine {
+            repSnapshot = stateMachine.update(
+                timestampMS: frame.timestampMS,
+                phaseSignal: producedValues[phaseSignalName],
+                downPredicate: predicateEvaluator.evaluateDown(producedValues: producedValues, frame: frame),
+                upPredicate: predicateEvaluator.evaluateUp(producedValues: producedValues, frame: frame)
+            )
+            self.stateMachine = stateMachine
+        } else {
+            repSnapshot = Self.noRepSnapshot
+        }
+
+        let holdSnapshot: HoldSnapshot?
+        if var holdEvaluator {
+            holdSnapshot = holdEvaluator.update(timestampMS: frame.timestampMS, producedValues: producedValues, frame: frame)
+            self.holdEvaluator = holdEvaluator
+        } else {
+            holdSnapshot = nil
+        }
+
         let formSnapshots = formEvaluator.update(
             timestampMS: frame.timestampMS,
             producedValues: producedValues,
@@ -73,6 +104,7 @@ public struct EngineTraceRecorder {
             timestampMS: frame.timestampMS,
             producedValues: traceProducedValues(from: producedValues),
             rep: repSnapshot,
+            hold: holdSnapshot,
             formSnapshots: formSnapshots,
             formSummary: formSummarizer.summarize(formSnapshots)
         )
@@ -98,26 +130,48 @@ public struct EngineTraceRecorder {
         let producedKeys = Set(program.signals.keys).union(program.filters.keys)
         return keys.intersection(producedKeys).sorted()
     }
+
+    private static let noRepSnapshot = RepStateSnapshot(
+        phase: .ready,
+        repCount: 0,
+        countedThisFrame: false,
+        invalidReason: nil,
+        romDegrees: nil,
+        cooldownRemainingMS: nil
+    )
 }
 
 public enum EngineTraceFormatter {
     public static func format(_ trace: [EngineTraceFrame]) -> String {
-        (["timestamp_ms | phase | reps | counted | produced | form | cue | score | invalid"] +
-            trace.map(format(frame:))).joined(separator: "\n")
+        let includesHold = trace.contains { $0.hold != nil }
+        let header = includesHold
+            ? "timestamp_ms | phase | reps | counted | produced | hold | form | cue | score | invalid"
+            : "timestamp_ms | phase | reps | counted | produced | form | cue | score | invalid"
+
+        return ([header] + trace.map { format(frame: $0, includesHold: includesHold) }).joined(separator: "\n")
     }
 
-    private static func format(frame: EngineTraceFrame) -> String {
-        [
+    private static func format(frame: EngineTraceFrame, includesHold: Bool) -> String {
+        var parts = [
             String(frame.timestampMS),
             frame.rep.phase.rawValue,
             String(frame.rep.repCount),
             String(frame.rep.countedThisFrame),
-            producedDescription(frame.producedValues),
+            producedDescription(frame.producedValues)
+        ]
+
+        if includesHold {
+            parts.append(holdDescription(frame.hold))
+        }
+
+        parts.append(contentsOf: [
             formDescription(frame.formSnapshots),
             cueDescription(frame.formSummary),
             scoreDescription(frame.formSummary),
             invalidDescription(frame.rep.invalidReason)
-        ].joined(separator: " | ")
+        ])
+
+        return parts.joined(separator: " | ")
     }
 
     private static func producedDescription(_ producedValues: [EngineTraceProducedValue]) -> String {
@@ -126,6 +180,22 @@ public enum EngineTraceFormatter {
         }
 
         return producedValues.map(\.description).joined(separator: ",")
+    }
+
+    private static func holdDescription(_ hold: HoldSnapshot?) -> String {
+        guard let hold else {
+            return "hold=nil"
+        }
+
+        let reason = hold.notAccumulatingReason ?? "nil"
+        return String(
+            format: "held=%.3f,in_range=%@,valid=%@,target=%@,reason=%@",
+            hold.heldSeconds,
+            String(hold.inRange),
+            String(hold.valid),
+            String(hold.targetReached),
+            reason
+        )
     }
 
     private static func formDescription(_ snapshots: [FormRuleSnapshot]) -> String {
