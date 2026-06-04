@@ -43,6 +43,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     @Published public private(set) var selectedRecordedRunID: String?
     @Published public private(set) var state = AppExerciseSessionState()
     @Published public private(set) var lastPoseProviderRunSummary: AppPoseProviderRunSummary?
+    @Published public private(set) var poseProviderRunStatus: AppPoseProviderRunStatus = .idle
     @Published public private(set) var latestHUDState: AppHUDState?
     @Published public private(set) var latestPoseOverlayState = AppPoseOverlayState.empty
     public private(set) var resolvedPresetSourceURL: URL?
@@ -142,12 +143,20 @@ public final class AppExerciseSessionViewModel: ObservableObject {
             )
             lastPoseProviderRunSummary = summary
             updateDisplayState(from: summary)
+            updateRunStatus(
+                from: summary,
+                descriptor: AppPoseProviderRunDescriptor(mode: "recorded-run", source: "recorded:\(id)")
+            )
             return summary
         }
 
         selectedRecordedRunID = run.id
         let provider = MediaPipePoseProvider(jsonlURL: run.url)
-        return runRecordedProvider(provider, selectedPresetID: run.presetID)
+        return runRecordedProvider(
+            provider,
+            selectedPresetID: run.presetID,
+            statusDescriptor: AppPoseProviderRunDescriptor(mode: "recorded-run", source: "recorded:\(run.id)")
+        )
     }
 
     @discardableResult
@@ -155,6 +164,20 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         _ provider: PoseProvider,
         selectedPresetID requestedPresetID: String? = nil
     ) -> AppPoseProviderRunSummary {
+        runRecordedProvider(
+            provider,
+            selectedPresetID: requestedPresetID,
+            statusDescriptor: AppPoseProviderRunDescriptor(mode: "provider", source: "direct-provider")
+        )
+    }
+
+    @discardableResult
+    private func runRecordedProvider(
+        _ provider: PoseProvider,
+        selectedPresetID requestedPresetID: String?,
+        statusDescriptor: AppPoseProviderRunDescriptor
+    ) -> AppPoseProviderRunSummary {
+        poseProviderRunStatus = .running(statusDescriptor)
         loadAvailablePresets()
 
         guard let presetID = requestedPresetID ?? state.selectedExerciseID ?? availablePresets.first?.id else {
@@ -170,6 +193,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
             )
             lastPoseProviderRunSummary = summary
             updateDisplayState(from: summary)
+            updateRunStatus(from: summary, descriptor: statusDescriptor)
             return summary
         }
 
@@ -177,6 +201,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         let summary = session.run(selectedPresetID: presetID)
         lastPoseProviderRunSummary = summary
         updateDisplayState(from: summary)
+        updateRunStatus(from: summary, descriptor: statusDescriptor)
         return summary
     }
 
@@ -189,12 +214,19 @@ public final class AppExerciseSessionViewModel: ObservableObject {
 
         do {
             let configured = try providerFactory.configuredProvider(for: mode)
+            let descriptor = Self.runDescriptor(for: configured)
+            poseProviderRunStatus = .running(descriptor)
             if let recordedRunID = configured.recordedRunID {
                 selectedRecordedRunID = recordedRunID
                 resolvedRecordedRunSourceURL = configured.recordedRunSourceURL
             }
-            return runRecordedProvider(configured.provider, selectedPresetID: configured.selectedPresetID)
+            return runRecordedProvider(
+                configured.provider,
+                selectedPresetID: configured.selectedPresetID,
+                statusDescriptor: descriptor
+            )
         } catch {
+            let descriptor = Self.runDescriptor(for: mode)
             let summary = AppPoseProviderRunSummary(
                 frameCount: 0,
                 selectedExerciseID: state.selectedExerciseID,
@@ -207,6 +239,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
             )
             lastPoseProviderRunSummary = summary
             updateDisplayState(from: summary)
+            updateRunStatus(from: summary, descriptor: descriptor)
             return summary
         }
     }
@@ -279,6 +312,38 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         currentDirectory.appendingPathComponent("pose_worker/pose_worker.py")
     }
 
+    private static func runDescriptor(for configured: AppConfiguredPoseProvider) -> AppPoseProviderRunDescriptor {
+        AppPoseProviderRunDescriptor(
+            mode: runModeDescription(for: configured.mode),
+            source: configured.sourceDescription
+        )
+    }
+
+    private static func runDescriptor(for mode: AppPoseProviderMode) -> AppPoseProviderRunDescriptor {
+        AppPoseProviderRunDescriptor(
+            mode: runModeDescription(for: mode),
+            source: runSourceDescription(for: mode)
+        )
+    }
+
+    private static func runModeDescription(for mode: AppPoseProviderMode) -> String {
+        switch mode {
+        case .recordedRun:
+            return "recorded-run"
+        case .mockWorker:
+            return "mock-worker"
+        }
+    }
+
+    private static func runSourceDescription(for mode: AppPoseProviderMode) -> String {
+        switch mode {
+        case let .recordedRun(id):
+            return "recorded:\(id)"
+        case let .mockWorker(configuration):
+            return "mock-worker:\(configuration.workerScriptURL.path)"
+        }
+    }
+
     private static func resolvePresetSummaries(from candidates: [URL]) -> (sourceURL: URL?, presets: [AppPresetSummary]) {
         for candidate in candidates {
             let presets = loadPresetSummaries(from: candidate)
@@ -330,5 +395,20 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         }
 
         latestPoseOverlayState = AppPoseOverlayState(frame: latestPoseFrame)
+    }
+
+    private func updateRunStatus(
+        from summary: AppPoseProviderRunSummary,
+        descriptor: AppPoseProviderRunDescriptor
+    ) {
+        if let diagnosticText = summary.diagnosticText {
+            poseProviderRunStatus = .failed(
+                AppPoseProviderRunStatusFailure(descriptor: descriptor, diagnosticText: diagnosticText)
+            )
+        } else {
+            poseProviderRunStatus = .succeeded(
+                AppPoseProviderRunStatusSummary(descriptor: descriptor, frameCount: summary.frameCount)
+            )
+        }
     }
 }

@@ -39,6 +39,10 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Text(viewModel.poseProviderRunStatus.displayText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             PoseOverlayView(state: viewModel.latestPoseOverlayState)
                 .frame(height: 180)
                 .background(.black.opacity(0.08))
