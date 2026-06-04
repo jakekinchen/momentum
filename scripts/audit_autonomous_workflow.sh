@@ -134,6 +134,14 @@ require_text_in_file \
   "AGENTS.md preserves stop sentinel guidance"
 require_text_in_file \
   "AGENTS.md" \
+  "bash scripts/plan_next_manager_log.sh" \
+  "AGENTS.md points to manager log planner"
+require_text_in_file \
+  "AGENTS.md" \
+  "docs/manager-log/NNN-*.md" \
+  "AGENTS.md requires manager support logs"
+require_text_in_file \
+  "AGENTS.md" \
   "bash scripts/validate_resume_brief.sh" \
   "AGENTS.md points to resume brief validation"
 require_text_in_file \

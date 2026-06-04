@@ -12,6 +12,11 @@ Use `docs/agent-thread-handoff.md` for the current stop/resume state. If
 `GOAL.md` contains `<stop-orchestrator/>`, do not start a new executor product
 slice until fresh human direction removes or replaces the sentinel.
 
+While the stop sentinel is present, manager-only process support may use
+`bash scripts/plan_next_manager_log.sh` to choose the next numbered
+`docs/manager-log/NNN-*.md` path and must leave a manager log for any
+support slice.
+
 When fresh human direction authorizes a resume, draft the new numbered brief
 and run `bash scripts/validate_resume_brief.sh <candidate-brief>` before
 updating `GOAL.md`.

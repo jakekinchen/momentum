@@ -275,6 +275,8 @@ def test_agents_md_points_future_threads_to_status_handoff() -> None:
     assert "bash scripts/agent_thread_status.sh" in agents
     assert "docs/agent-thread-handoff.md" in agents
     assert "<stop-orchestrator/>" in agents
+    assert "bash scripts/plan_next_manager_log.sh" in agents
+    assert "docs/manager-log/NNN-*.md" in agents
     assert "bash scripts/validate_resume_brief.sh" in agents
 
 
@@ -680,6 +682,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   AGENTS.md points to agent status" in result.stdout
     assert "ok   AGENTS.md points to handoff" in result.stdout
     assert "ok   AGENTS.md preserves stop sentinel guidance" in result.stdout
+    assert "ok   AGENTS.md points to manager log planner" in result.stdout
+    assert "ok   AGENTS.md requires manager support logs" in result.stdout
     assert "ok   AGENTS.md points to resume brief validation" in result.stdout
     assert "ok   README.md points to agent status" in result.stdout
     assert "ok   README.md points to handoff" in result.stdout
