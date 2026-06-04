@@ -86,6 +86,20 @@ latest_file() {
   fi
 }
 
+latest_numbered_file() {
+  dir="$1"
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git ls-files "${dir}/[0-9][0-9][0-9]-*.md" |
+      grep -v "^${dir}/000-template-" |
+      sort |
+      tail -1
+  elif [ -d "$dir" ]; then
+    find "$dir" -maxdepth 1 -type f -name '[0-9][0-9][0-9]-*.md' ! -name '000-template-*' -print |
+      sort |
+      tail -1
+  fi
+}
+
 active_brief_from_goal() {
   awk '
     /^## Current Slice[[:space:]]*$/ { in_section = 1; next }
@@ -496,6 +510,26 @@ require_text_in_file \
   "docs/manager-log/000-template-manager-support.md" \
   "This is process support only" \
   "manager log template preserves stopped-state guardrail"
+
+section "Latest tracked manager log"
+latest_manager_log="$(latest_numbered_file docs/manager-log || true)"
+if [ -n "${latest_manager_log:-}" ]; then
+  printf 'latest tracked manager log: %s\n' "$latest_manager_log"
+  require_text_in_file \
+    "$latest_manager_log" \
+    "## Validation Evidence" \
+    "latest tracked manager log includes validation evidence"
+  reject_regex_in_file \
+    "$latest_manager_log" \
+    "^Pending\\.$" \
+    "latest tracked manager log avoids pending validation evidence"
+  reject_regex_in_file \
+    "$latest_manager_log" \
+    "^- .* - outcome\\.$" \
+    "latest tracked manager log avoids outcome placeholders"
+else
+  printf 'latest tracked manager log: none\n'
+fi
 
 section "Manager log planner"
 require_text_in_file \

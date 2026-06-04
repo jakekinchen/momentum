@@ -1036,6 +1036,13 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log template requires validation outcomes" in result.stdout
     assert "ok   manager log template includes guardrail" in result.stdout
     assert "ok   manager log template preserves stopped-state guardrail" in result.stdout
+    assert "latest tracked manager log: docs/manager-log/" in result.stdout
+    assert "ok   latest tracked manager log includes validation evidence" in result.stdout
+    assert (
+        "ok   latest tracked manager log avoids pending validation evidence"
+        in result.stdout
+    )
+    assert "ok   latest tracked manager log avoids outcome placeholders" in result.stdout
     assert "ok   manager log planner is dry run" in result.stdout
     assert "ok   manager log planner uses manager support template" in result.stdout
     assert "ok   manager log planner prints latest manager log path" in result.stdout
@@ -1429,6 +1436,45 @@ def test_workflow_audit_requires_manager_log_template_shape(tmp_path: Path) -> N
     assert "MISS manager log template requires validation outcomes" in result.stdout
     assert "MISS manager log template includes guardrail" in result.stdout
     assert "MISS manager log template preserves stopped-state guardrail" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_rejects_latest_manager_log_placeholders(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    latest_log = tmp_path / "docs/manager-log/001-placeholder-evidence.md"
+    latest_log.write_text(
+        "# Manager Log 001 - Placeholder Evidence\n\n"
+        "## Status\n\n"
+        "Testing unresolved validation evidence.\n\n"
+        "## Manager Action\n\n"
+        "Left placeholders in place.\n\n"
+        "## Validation Evidence\n\n"
+        "Pending.\n\n"
+        "- `uv run pytest` - outcome.\n\n"
+        "## Guardrail\n\n"
+        "This is process support only.\n",
+        encoding="utf-8",
+    )
+    _run(["git", "add", "docs/manager-log/001-placeholder-evidence.md"], cwd=tmp_path)
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert (
+        "latest tracked manager log: docs/manager-log/001-placeholder-evidence.md"
+        in result.stdout
+    )
+    assert "ok   latest tracked manager log includes validation evidence" in result.stdout
+    assert (
+        "MISS latest tracked manager log avoids pending validation evidence"
+        in result.stdout
+    )
+    assert "MISS latest tracked manager log avoids outcome placeholders" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 
