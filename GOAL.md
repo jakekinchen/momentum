@@ -8,11 +8,11 @@ safety filtering, alternatives, decision receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-M0 - KG module walking skeleton
+M1 - Resolver and seed graph
 
 ## Current Slice
 
-docs/briefs/001-m0-kg-module-skeleton.md
+docs/briefs/002-m1-resolver-seed-graph.md
 
 ## Stop Conditions
 
@@ -30,4 +30,3 @@ docs/briefs/001-m0-kg-module-skeleton.md
 - Treat member safety/equipment constraints as hard blocks.
 - Treat member dislikes as soft constraints unless explicitly configured as hard
   blocks.
-
