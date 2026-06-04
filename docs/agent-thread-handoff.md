@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:05:08Z
+Last updated: 2026-06-04T18:07:31Z
 
 ## Current State
 
@@ -31,6 +31,10 @@ bash scripts/agent_thread_status.sh
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
 the workflow audit, and the Codex pair-state audit.
+
+The workflow audit should report the handoff/status scripts as required
+workflow artifacts and should confirm the loop-start stop guard while
+`<stop-orchestrator/>` is present.
 
 You can also run the underlying audits directly:
 

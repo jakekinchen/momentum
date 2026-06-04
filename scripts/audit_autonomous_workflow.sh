@@ -19,6 +19,18 @@ require_file() {
   fi
 }
 
+require_executable() {
+  require_file "$1"
+  if [ -f "$1" ]; then
+    if [ -x "$1" ]; then
+      printf 'ok   executable %s\n' "$1"
+    else
+      printf 'MISS executable %s\n' "$1"
+      warns=$((warns + 1))
+    fi
+  fi
+}
+
 latest_file() {
   dir="$1"
   if [ -d "$dir" ]; then
@@ -51,6 +63,7 @@ section "Required workflow files"
 require_file "AGENTS.md"
 require_file "GOAL.md"
 require_file "docs/kg-module-prd.md"
+require_file "docs/agent-thread-handoff.md"
 require_file "executor-reviewer-pair-programming.md"
 require_file "docs/autonomous-workflow/README.md"
 require_file "docs/autonomous-workflow/01-operating-model.md"
@@ -61,12 +74,24 @@ require_file "docs/autonomous-workflow/05-devops-and-session-ops.md"
 require_file "docs/autonomous-workflow/06-manager-guardian-protocol.md"
 require_file "docs/autonomous-workflow/07-document-and-artifact-map.md"
 require_file "docs/autonomous-workflow/08-scaffold-adoption-matrix.md"
+require_executable "scripts/agent_thread_status.sh"
+require_executable "scripts/audit_autonomous_workflow.sh"
+require_file "scripts/audit_codex_pair_state.mjs"
+require_executable "scripts/run_codex_pair_cycle.sh"
+require_executable "scripts/start_codex_goal_loop.sh"
+require_executable "scripts/stop_codex_goal_loop.sh"
 
 section "Goal"
 if [ -f GOAL.md ]; then
   sed -n '1,100p' GOAL.md
   if grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' GOAL.md; then
     printf '\nSTOP SENTINEL PRESENT\n'
+    if grep -q 'Refusing to start Codex goal loop' scripts/start_codex_goal_loop.sh 2>/dev/null; then
+      printf 'ok   start loop stop guard present\n'
+    else
+      printf 'MISS start loop stop guard\n'
+      warns=$((warns + 1))
+    fi
   fi
 else
   printf 'GOAL.md missing; create it before autonomous execution.\n'
@@ -99,6 +124,7 @@ done
 section "Project commands"
 if [ -f pyproject.toml ]; then
   printf 'pyproject.toml present\n'
+  printf 'agent status: bash scripts/agent_thread_status.sh\n'
   if command -v uv >/dev/null 2>&1; then
     printf 'suggested checks: uv sync && uv run pytest\n'
   else
