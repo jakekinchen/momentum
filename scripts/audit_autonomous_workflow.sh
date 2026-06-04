@@ -185,6 +185,14 @@ require_text_in_file \
   "docs/manager-log latest:" \
   "handoff points manager turns to latest manager log"
 require_text_in_file \
+  "docs/agent-thread-handoff.md" \
+  "passes the current collected test suite" \
+  "handoff keeps pytest expectation count-neutral"
+reject_text_in_file \
+  "docs/agent-thread-handoff.md" \
+  "collected 63 tests" \
+  "handoff avoids stale pytest count"
+require_text_in_file \
   "docs/autonomous-workflow/05-devops-and-session-ops.md" \
   "manager support log required: docs/manager-log/NNN-*.md" \
   "devops docs explain status manager support-log line"

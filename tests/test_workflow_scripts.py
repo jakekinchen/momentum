@@ -339,6 +339,8 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "bash scripts/validate_resume_brief.sh" not in direct_audits
     assert "After drafting a candidate resume brief" in handoff
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in after_drafting
+    assert "passes the current collected test suite" in handoff
+    assert "collected 63 tests" not in handoff
     assert "manager-log planner/support-log" in handoff
     assert "manager support log required: docs/manager-log/NNN-*.md" in handoff
     assert "docs/manager-log latest:" in handoff
@@ -715,6 +717,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     )
     assert "ok   handoff explains status manager support-log line" in result.stdout
     assert "ok   handoff points manager turns to latest manager log" in result.stdout
+    assert "ok   handoff keeps pytest expectation count-neutral" in result.stdout
+    assert "ok   handoff avoids stale pytest count" in result.stdout
     assert "ok   devops docs explain status manager support-log line" in result.stdout
     assert "ok   README.md uses planner resume-validation target" in result.stdout
     assert "ok   README.md avoids stale hardcoded resume-validation target" in result.stdout
