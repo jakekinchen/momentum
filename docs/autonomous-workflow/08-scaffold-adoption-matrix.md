@@ -4,7 +4,7 @@
 |---|---|---|
 | PRD | Present | `docs/kg-module-prd.md` |
 | Goal file | Present | `GOAL.md` |
-| Active brief | Current | `docs/briefs/011-jordan-plyometric-knee-safety.md` |
+| Active brief | Current | `docs/briefs/012-eod-prd-acceptance-audit.md` |
 | Stop sentinel | Absent | Fresh human direction resumed the coding pair for EOD completion/testing. |
 | Executor log directory | Present | `docs/session-logs/` |
 | Reviewer message directory | Present | `docs/reviewer-messages/` |

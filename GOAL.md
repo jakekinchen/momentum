@@ -12,7 +12,7 @@ EOD completion and testing
 
 ## Current Slice
 
-docs/briefs/011-jordan-plyometric-knee-safety.md
+docs/briefs/012-eod-prd-acceptance-audit.md
 
 ## Stop Conditions
 
