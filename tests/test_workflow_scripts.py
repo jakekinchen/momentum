@@ -52,6 +52,11 @@ def _latest_manager_log() -> str:
     return sorted(logs)[-1]
 
 
+def _current_active_brief() -> str:
+    goal = (REPO_ROOT / "GOAL.md").read_text(encoding="utf-8")
+    return _markdown_section(goal, "Current Slice").strip().splitlines()[0]
+
+
 def _valid_resume_brief(
     brief_path: str = "docs/briefs/007-verified-ontology-lock.md",
 ) -> str:
@@ -316,12 +321,13 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
 
 def test_agent_thread_status_reports_current_goal_state_and_audits() -> None:
     result = _run(["bash", "scripts/agent_thread_status.sh"])
+    active_brief = _current_active_brief()
 
     assert "handoff: docs/agent-thread-handoff.md" in result.stdout
     assert "stop sentinel: absent" in result.stdout
     assert "executor product slices: follow GOAL.md and active brief" in result.stdout
     assert "current milestone: EOD completion and testing" in result.stdout
-    assert "current slice: docs/briefs/011-jordan-plyometric-knee-safety.md" in result.stdout
+    assert f"current slice: {active_brief}" in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
     assert "agent thread status clean" in result.stdout
@@ -1038,6 +1044,7 @@ def test_resume_brief_validator_rejects_vector_safety_enforcement(
 
 def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     result = _run(["bash", "scripts/audit_autonomous_workflow.sh"])
+    active_brief = _current_active_brief()
 
     assert "ok   README.md" in result.stdout
     assert "ok   docs/briefs/000-template-human-approved-resume.md" in result.stdout
@@ -1231,8 +1238,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log planner requires evidence fill" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "ok   manager log planner avoids placeholder git add target" in result.stdout
-    assert "active brief: docs/briefs/011-jordan-plyometric-knee-safety.md" in result.stdout
-    assert "ok   docs/briefs/011-jordan-plyometric-knee-safety.md" in result.stdout
+    assert f"active brief: {active_brief}" in result.stdout
+    assert f"ok   {active_brief}" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
     assert "suggested checks:" in result.stdout
     assert "- uv run pytest" in result.stdout
