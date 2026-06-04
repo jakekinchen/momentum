@@ -158,6 +158,10 @@ require_text_in_file \
   "AGENTS.md requires manager support logs"
 require_text_in_file \
   "AGENTS.md" \
+  "docs/manager-log latest:" \
+  "AGENTS.md points manager turns to latest manager log"
+require_text_in_file \
+  "AGENTS.md" \
   "bash scripts/validate_resume_brief.sh" \
   "AGENTS.md points to resume brief validation"
 require_text_in_file \
@@ -180,6 +184,10 @@ require_text_in_file \
   "README.md" \
   "docs/manager-log/NNN-*.md" \
   "README.md requires manager support logs"
+require_text_in_file \
+  "README.md" \
+  "docs/manager-log latest:" \
+  "README.md points manager turns to latest manager log"
 require_text_in_file \
   "README.md" \
   "bash scripts/validate_resume_brief.sh" \

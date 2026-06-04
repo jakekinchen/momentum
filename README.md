@@ -56,7 +56,9 @@ human direction removes or replaces the sentinel.
 While the stop sentinel is present, manager-only process support may use
 `bash scripts/plan_next_manager_log.sh` to choose the next numbered
 `docs/manager-log/NNN-*.md` path and must leave a manager log for any support
-slice.
+slice. Before writing a new manager log, review the `docs/manager-log latest:`
+line printed by `bash scripts/agent_thread_status.sh` or
+`bash scripts/audit_autonomous_workflow.sh`.
 
 ## Safe Checks
 

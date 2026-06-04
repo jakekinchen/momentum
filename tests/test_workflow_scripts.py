@@ -290,6 +290,7 @@ def test_agents_md_points_future_threads_to_status_handoff() -> None:
     assert "<stop-orchestrator/>" in agents
     assert "bash scripts/plan_next_manager_log.sh" in agents
     assert "docs/manager-log/NNN-*.md" in agents
+    assert "docs/manager-log latest:" in agents
     assert "bash scripts/validate_resume_brief.sh" in agents
 
 
@@ -302,6 +303,7 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "uv run python -m kg.validation" in readme
     assert "bash scripts/plan_next_manager_log.sh" in readme
     assert "docs/manager-log/NNN-*.md" in readme
+    assert "docs/manager-log latest:" in readme
     assert "bash scripts/validate_resume_brief.sh" in readme
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in readme
     assert (
@@ -730,12 +732,14 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   AGENTS.md preserves stop sentinel guidance" in result.stdout
     assert "ok   AGENTS.md points to manager log planner" in result.stdout
     assert "ok   AGENTS.md requires manager support logs" in result.stdout
+    assert "ok   AGENTS.md points manager turns to latest manager log" in result.stdout
     assert "ok   AGENTS.md points to resume brief validation" in result.stdout
     assert "ok   README.md points to agent status" in result.stdout
     assert "ok   README.md points to handoff" in result.stdout
     assert "ok   README.md preserves stop sentinel guidance" in result.stdout
     assert "ok   README.md points to manager log planner" in result.stdout
     assert "ok   README.md requires manager support logs" in result.stdout
+    assert "ok   README.md points manager turns to latest manager log" in result.stdout
     assert "ok   README.md points to resume brief validation" in result.stdout
     assert (
         "ok   handoff explains audited manager log entrypoint guidance"
