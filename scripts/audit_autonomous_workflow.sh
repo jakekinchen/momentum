@@ -470,6 +470,14 @@ require_text_in_file \
   "resume planner avoids no-slug validation target"
 require_text_in_file \
   "scripts/plan_next_resume_brief.sh" \
+  "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" \
+  "resume planner uses planner resume-validation placeholder"
+reject_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "bash scripts/validate_resume_brief.sh <candidate-brief-path>" \
+  "resume planner avoids candidate-path validation placeholder"
+require_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
   "next brief: rerun with a lowercase slug to print exact path" \
   "resume planner avoids placeholder next path"
 require_text_in_file \

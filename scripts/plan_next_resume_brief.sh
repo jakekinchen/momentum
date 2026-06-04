@@ -91,7 +91,7 @@ fi
 
 section "Validation"
 if [ "$SLUG" = "<slice-name>" ]; then
-  printf 'bash scripts/validate_resume_brief.sh <candidate-brief-path>  # after drafting a candidate brief\n'
+  printf 'bash scripts/validate_resume_brief.sh <planner-next-brief-path>  # after rerunning with a lowercase slug and drafting the candidate brief\n'
 else
   printf 'bash scripts/validate_resume_brief.sh %s\n' "$target"
 fi

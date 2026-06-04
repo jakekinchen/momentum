@@ -699,6 +699,14 @@ def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> Non
         "Rerun with a lowercase slug to print the exact resume-brief validation command"
     ) in result.stdout
     assert (
+        "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
+        in result.stdout
+    )
+    assert (
+        "bash scripts/validate_resume_brief.sh <candidate-brief-path>"
+        not in result.stdout
+    )
+    assert (
         "bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md"
         not in result.stdout
     )
