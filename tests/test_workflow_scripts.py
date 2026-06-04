@@ -429,6 +429,7 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in after_drafting
     assert "Product-stop snapshot recorded:" in handoff
     assert "Treat that command output as the current operational state" in handoff
+    assert re.search(r"placeholder\s+resume-validation command", handoff) is None
     assert "passes the current collected test suite" in handoff
     assert re.search(r"collected [0-9]+ tests", handoff) is None
     assert "manager-log planner/support-log" in handoff
@@ -468,6 +469,39 @@ def test_workflow_audit_rejects_any_hardcoded_handoff_pytest_count(
 
     assert result.returncode == 1
     assert "MISS handoff avoids hardcoded pytest count" in result.stdout
+
+
+def test_workflow_audit_rejects_placeholder_resume_validation_wording(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    handoff = tmp_path / "docs/agent-thread-handoff.md"
+    handoff.write_text(
+        "# Handoff\n\n"
+        "Product-stop snapshot recorded:\n"
+        "Treat that command output as the current operational state\n"
+        "manager-log planner/support-log\n"
+        "manager support log required: docs/manager-log/NNN-*.md\n"
+        "docs/manager-log latest:\n"
+        "review latest command:\n"
+        "next manager log template:\n"
+        "passes the current collected test suite\n"
+        "placeholder\n"
+        "resume-validation command\n"
+        "bash scripts/validate_resume_brief.sh <planner-next-brief-path>\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert (
+        "MISS handoff avoids placeholder resume-validation wording"
+        in result.stdout
+    )
 
 
 def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
@@ -895,6 +929,10 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   handoff explains manager log template path" in result.stdout
     assert "ok   handoff keeps pytest expectation count-neutral" in result.stdout
     assert "ok   handoff avoids hardcoded pytest count" in result.stdout
+    assert (
+        "ok   handoff avoids placeholder resume-validation wording"
+        in result.stdout
+    )
     assert "ok   devops docs explain status manager support-log line" in result.stdout
     assert "ok   devops docs point manager turns to latest manager log" in result.stdout
     assert "ok   devops docs point manager turns to latest review command" in result.stdout

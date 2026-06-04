@@ -37,11 +37,12 @@ bash scripts/agent_thread_status.sh
 The status script prints this handoff pointer, git state, stop-sentinel state,
 manager-log planner guidance, the manager-log planner dry run,
 `manager support log required: docs/manager-log/NNN-*.md`, resume-planning
-guidance, a placeholder
-resume-validation command, the workflow audit, and the Codex pair-state audit,
-then exits with a clean or warning summary. It treats manager-log planner
-failures as status warnings. Exact resume paths come from the resume planner
-after a concrete human-approved slug is supplied.
+guidance, the neutral
+`bash scripts/validate_resume_brief.sh <planner-next-brief-path>` target, the
+workflow audit, and the Codex pair-state audit, then exits with a clean or
+warning summary. It treats manager-log planner failures as status warnings.
+Exact resume paths come from the resume planner after a concrete human-approved
+slug is supplied.
 
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while

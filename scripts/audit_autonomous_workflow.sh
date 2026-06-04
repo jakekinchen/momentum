@@ -67,6 +67,18 @@ reject_regex_in_file() {
   fi
 }
 
+reject_flattened_regex_in_file() {
+  file="$1"
+  pattern="$2"
+  label="$3"
+  if [ -f "$file" ] && tr '\n' ' ' <"$file" | grep -Eq "$pattern"; then
+    printf 'MISS %s\n' "$label"
+    warns=$((warns + 1))
+  else
+    printf 'ok   %s\n' "$label"
+  fi
+}
+
 latest_file() {
   dir="$1"
   if [ -d "$dir" ]; then
@@ -354,6 +366,10 @@ reject_regex_in_file \
   "docs/agent-thread-handoff.md" \
   "collected [0-9]+ tests" \
   "handoff avoids hardcoded pytest count"
+reject_flattened_regex_in_file \
+  "docs/agent-thread-handoff.md" \
+  "placeholder[[:space:]]+resume-validation command" \
+  "handoff avoids placeholder resume-validation wording"
 require_text_in_file \
   "docs/autonomous-workflow/05-devops-and-session-ops.md" \
   "manager support log required: docs/manager-log/NNN-*.md" \
