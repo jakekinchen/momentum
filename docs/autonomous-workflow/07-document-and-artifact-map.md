@@ -23,6 +23,7 @@
 ## Agent Orientation
 
 - `scripts/agent_thread_status.sh`
+- `scripts/plan_next_resume_brief.sh`
 
 ## Expected Product Artifacts
 

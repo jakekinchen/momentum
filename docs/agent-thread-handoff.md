@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:16:11Z
+Last updated: 2026-06-04T18:20:37Z
 
 ## Current State
 
@@ -31,7 +31,7 @@ bash scripts/agent_thread_status.sh
 ```
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
-the workflow audit, and the Codex pair-state audit.
+the resume-plan command, the workflow audit, and the Codex pair-state audit.
 
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while
@@ -43,6 +43,7 @@ You can also run the underlying audits directly:
 git status --short --branch
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
+bash scripts/plan_next_resume_brief.sh verified-ontology-lock
 ```
 
 ## Safe Checks
@@ -88,6 +89,9 @@ safe resume should:
 - remove or intentionally replace `<stop-orchestrator/>` in `GOAL.md`;
 - copy `docs/briefs/000-template-human-approved-resume.md` into a new numbered
   active brief under `docs/briefs/`;
+- use `bash scripts/plan_next_resume_brief.sh verified-ontology-lock` with a
+  slug matching the human-approved slice to preview the next brief path and
+  exact copy command before changing files;
 - update `GOAL.md` to point at that brief;
 - preserve the source-of-truth order in `AGENTS.md`;
 - leave a session log for executor work or a reviewer decision for review work;

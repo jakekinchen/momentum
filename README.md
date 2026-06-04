@@ -14,6 +14,17 @@ bash scripts/agent_thread_status.sh
 That command prints the current git state, stop-sentinel state, workflow audit,
 and Codex pair-state audit.
 
+If fresh human direction arrives and a future thread needs to draft the next
+active brief, first run the dry-run planner:
+
+```bash
+bash scripts/plan_next_resume_brief.sh verified-ontology-lock
+```
+
+Replace the example slug with the human-approved slice name. The command
+proposes the next numbered brief path and exact copy command without writing
+files or changing `GOAL.md`.
+
 Then read:
 
 - `AGENTS.md`
@@ -34,6 +45,7 @@ uv run pytest
 uv run python -m kg.validation
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
+bash scripts/plan_next_resume_brief.sh verified-ontology-lock
 ```
 
 ## Guardrails

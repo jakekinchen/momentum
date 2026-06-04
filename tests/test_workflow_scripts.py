@@ -23,6 +23,10 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "handoff: docs/agent-thread-handoff.md" in result.stdout
     assert "stop sentinel: present" in result.stdout
     assert "executor product slices: stopped until fresh human direction" in result.stdout
+    assert (
+        "resume plan example: "
+        "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
+    ) in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
 
@@ -56,6 +60,29 @@ def test_resume_template_preserves_human_approval_guardrails() -> None:
     assert "uv run python -m kg.validation" in template
 
 
+def test_resume_plan_script_reports_next_brief_without_mutating() -> None:
+    brief_numbers = [
+        int(path.name[:3])
+        for path in (REPO_ROOT / "docs/briefs").glob("[0-9][0-9][0-9]-*.md")
+        if not path.name.startswith("000-template-")
+    ]
+    next_number = max(brief_numbers, default=0) + 1
+    expected_target = f"docs/briefs/{next_number:03d}-agent-thread-test.md"
+    target_path = REPO_ROOT / expected_target
+
+    result = _run(["bash", "scripts/plan_next_resume_brief.sh", "agent-thread-test"])
+
+    assert "mode: dry-run (no files written)" in result.stdout
+    assert "stop sentinel: present" in result.stdout
+    assert f"next brief: {expected_target}" in result.stdout
+    assert (
+        "copy command: cp docs/briefs/000-template-human-approved-resume.md "
+        f"{expected_target}"
+    ) in result.stdout
+    assert f"git add {expected_target} GOAL.md" in result.stdout
+    assert not target_path.exists()
+
+
 def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     result = _run(["bash", "scripts/audit_autonomous_workflow.sh"])
 
@@ -64,6 +91,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   docs/agent-thread-handoff.md" in result.stdout
     assert "ok   scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout
+    assert "ok   executable scripts/plan_next_resume_brief.sh" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
     assert "workflow audit clean" in result.stdout
