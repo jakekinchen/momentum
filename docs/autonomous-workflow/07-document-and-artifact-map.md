@@ -18,6 +18,10 @@
 - `docs/reviewer-messages/`
 - `docs/manager-log/`
 
+## Agent Orientation
+
+- `scripts/agent_thread_status.sh`
+
 ## Expected Product Artifacts
 
 - `graph/*.seed.json`

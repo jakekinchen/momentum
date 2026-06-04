@@ -5,6 +5,7 @@ Useful commands:
 ```bash
 git status --short --branch
 git log --oneline -5
+bash scripts/agent_thread_status.sh
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
 bash scripts/run_codex_pair_cycle.sh --once --dry-run
@@ -28,4 +29,3 @@ Repo-local marker files:
 - `.codex-reviewer-latest-log`
 
 These marker files are ignored by git.
-

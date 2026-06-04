@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:00:36Z
+Last updated: 2026-06-04T18:02:57Z
 
 ## Current State
 
@@ -23,7 +23,16 @@ executor product slice while the stop sentinel is present.
 1. Read `AGENTS.md`.
 2. Read `GOAL.md` and respect the stop sentinel.
 3. Read `docs/reviewer-messages/006-review-m5-ontology-sidecar-validation.md`.
-4. Run the state audits:
+4. Run the one-command agent status check:
+
+```bash
+bash scripts/agent_thread_status.sh
+```
+
+The status script prints this handoff pointer, git state, stop-sentinel state,
+the workflow audit, and the Codex pair-state audit.
+
+You can also run the underlying audits directly:
 
 ```bash
 git status --short --branch
