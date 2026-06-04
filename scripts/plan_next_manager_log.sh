@@ -53,7 +53,11 @@ else
 fi
 
 next_num="$(printf '%03d' "$((10#$latest_num + 1))")"
-target="docs/manager-log/${next_num}-${SLUG}.md"
+if [ "$SLUG" = "<support-slug>" ]; then
+  target_template="docs/manager-log/${next_num}-<support-slug>.md"
+else
+  target="docs/manager-log/${next_num}-${SLUG}.md"
+fi
 
 section "Current Guard"
 if grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' GOAL.md 2>/dev/null; then
@@ -73,12 +77,14 @@ if [ "$latest_file" = "none" ]; then
 else
   printf "review latest command: sed -n '1,160p' %s\n" "$latest_file"
 fi
-printf 'next manager log: %s\n' "$target"
 
 if [ "$SLUG" = "<support-slug>" ]; then
+  printf 'next manager log: rerun with a lowercase slug to print exact path\n'
+  printf 'next manager log template: %s\n' "$target_template"
   printf 'choose slug: bash scripts/plan_next_manager_log.sh manager-log-template\n'
   printf 'copy command: rerun with a lowercase slug to print an exact copy command\n'
 else
+  printf 'next manager log: %s\n' "$target"
   printf 'copy command: cp %s %s\n' "$template" "$target"
 fi
 

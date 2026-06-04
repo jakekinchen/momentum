@@ -258,7 +258,8 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "printf 'mode: dry-run (no files written)\\n'\n"
             "printf 'docs/manager-log/000-template-manager-support.md\\n'\n"
             "printf 'review latest command:\\n'\n"
-            "printf 'next manager log: docs/manager-log/001-test.md\\n'\n"
+            "printf 'next manager log: rerun with a lowercase slug to print exact path\\n'\n"
+            "printf 'next manager log template: docs/manager-log/001-<support-slug>.md\\n'\n"
             "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n"
         ),
         "scripts/plan_next_resume_brief.sh": "#!/usr/bin/env bash\n",
@@ -294,7 +295,12 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
     assert "== Manager Log Planner ==" in result.stdout
     assert "review latest command: sed -n '1,160p' docs/manager-log/" in result.stdout
-    assert "next manager log: docs/manager-log/" in result.stdout
+    assert (
+        "next manager log: rerun with a lowercase slug to print exact path"
+        in result.stdout
+    )
+    assert "next manager log template: docs/manager-log/" in result.stdout
+    assert "next manager log: docs/manager-log/" not in result.stdout
     assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
     assert "resume plan dry run: bash scripts/plan_next_resume_brief.sh" in result.stdout
     assert (
@@ -324,7 +330,12 @@ def test_agent_thread_status_minimal_root_uses_neutral_resume_target(
     assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
     assert "== Manager Log Planner ==" in result.stdout
     assert "review latest command:" in result.stdout
-    assert "next manager log: docs/manager-log/001-test.md" in result.stdout
+    assert (
+        "next manager log: rerun with a lowercase slug to print exact path"
+        in result.stdout
+    )
+    assert "next manager log template: docs/manager-log/001-<support-slug>.md" in result.stdout
+    assert "next manager log: docs/manager-log/001-test.md" not in result.stdout
     assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
     assert (
         "resume brief validation: "
@@ -556,6 +567,12 @@ def test_manager_log_plan_without_slug_avoids_placeholder_exact_paths() -> None:
         "copy command: rerun with a lowercase slug to print an exact copy command"
         in result.stdout
     )
+    assert (
+        "next manager log: rerun with a lowercase slug to print exact path"
+        in result.stdout
+    )
+    assert "next manager log template: docs/manager-log/" in result.stdout
+    assert "next manager log: docs/manager-log/" not in result.stdout
     assert (
         "cp docs/manager-log/000-template-manager-support.md docs/manager-log/"
         not in result.stdout
@@ -917,6 +934,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log planner uses manager support template" in result.stdout
     assert "ok   manager log planner prints latest manager log path" in result.stdout
     assert "ok   manager log planner prints latest review command" in result.stdout
+    assert "ok   manager log planner avoids placeholder next path" in result.stdout
+    assert "ok   manager log planner shows placeholder path as template" in result.stdout
     assert "ok   manager log planner avoids no-slug exact git add paths" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
@@ -1195,6 +1214,37 @@ def test_workflow_audit_requires_manager_log_planner_review_command(
     assert result.returncode == 1
     assert "ok   manager log planner prints latest manager log path" in result.stdout
     assert "MISS manager log planner prints latest review command" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_rejects_placeholder_manager_next_path(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    planner = tmp_path / "scripts/plan_next_manager_log.sh"
+    planner.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf 'mode: dry-run (no files written)\\n'\n"
+        "printf 'docs/manager-log/000-template-manager-support.md\\n'\n"
+        "printf 'latest manager log: docs/manager-log/050-example.md\\n'\n"
+        "printf 'review latest command:\\n'\n"
+        "printf 'next manager log: docs/manager-log/051-<support-slug>.md\\n'\n"
+        "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n",
+        encoding="utf-8",
+    )
+    planner.chmod(0o755)
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS manager log planner avoids placeholder next path" in result.stdout
+    assert (
+        "MISS manager log planner shows placeholder path as template"
+        in result.stdout
+    )
     assert "workflow audit warnings:" in result.stdout
 
 

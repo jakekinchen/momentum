@@ -456,6 +456,14 @@ require_text_in_file \
   "manager log planner prints latest review command"
 require_text_in_file \
   "scripts/plan_next_manager_log.sh" \
+  "next manager log: rerun with a lowercase slug to print exact path" \
+  "manager log planner avoids placeholder next path"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
+  "next manager log template:" \
+  "manager log planner shows placeholder path as template"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
   "Commit with exact paths after rerunning with a concrete slug" \
   "manager log planner avoids no-slug exact git add paths"
 reject_text_in_file \
