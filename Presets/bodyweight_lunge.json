@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "bodyweight_lunge",
+  "name": "Bodyweight Lunge",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "primary.shoulder",
+      "primary.hip",
+      "primary.knee",
+      "primary.ankle"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "auto_lock",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Stand tall in a side-view lunge stance",
+        "capture_seconds": 1.0,
+        "signals": [
+          "front_knee",
+          "torso_tilt"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "primary.shoulder",
+    "hip": "primary.hip",
+    "knee": "primary.knee",
+    "ankle": "primary.ankle"
+  },
+  "signals": {
+    "front_knee_left": "angle(left.hip, left.knee, left.ankle)",
+    "front_knee_right": "angle(right.hip, right.knee, right.ankle)",
+    "front_knee_raw": "angle(primary.hip, primary.knee, primary.ankle)",
+    "torso_raw": "angle_to_vertical(primary.shoulder, primary.hip)",
+    "front_knee_symmetry": "abs(front_knee_left - front_knee_right)"
+  },
+  "filters": {
+    "front_knee": {
+      "source": "front_knee_raw",
+      "type": "ema",
+      "alpha": 0.35
+    },
+    "torso_tilt": {
+      "source": "torso_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "phase_signal": "front_knee",
+    "down_when": "front_knee < 105",
+    "down_min_ms": 120,
+    "bottom_min_ms": 80,
+    "up_when": "front_knee > 160",
+    "up_min_ms": 120,
+    "min_rom_deg": 50,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "depth",
+      "when": "phase == 'bottom'",
+      "expect": "front_knee <= 100",
+      "min_violation_ms": 0,
+      "cue": "Lower into the lunge",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "torso",
+      "when": "phase in ['descending','bottom']",
+      "expect": "torso_tilt <= 45",
+      "min_violation_ms": 250,
+      "cue": "Keep your chest tall",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "tracking",
+      "when": "phase == 'bottom'",
+      "expect": "front_knee_symmetry <= 20",
+      "min_violation_ms": 0,
+      "cue": "Track the front knee",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000
+    }
+  ],
+  "set": {
+    "target_reps": 10
+  }
+}
