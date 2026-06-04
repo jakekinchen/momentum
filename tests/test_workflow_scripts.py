@@ -232,6 +232,7 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "stop sentinel: present" in result.stdout
     assert "executor product slices: stopped until fresh human direction" in result.stdout
     assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
+    assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
     assert "resume plan dry run: bash scripts/plan_next_resume_brief.sh" in result.stdout
     assert (
         "resume plan slug example: "
@@ -258,6 +259,7 @@ def test_agent_thread_status_minimal_root_uses_neutral_resume_target(
     result = _run(["bash", "scripts/agent_thread_status.sh", str(tmp_path)])
 
     assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
+    assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
     assert (
         "resume brief validation: "
         "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
@@ -725,6 +727,10 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         in result.stdout
     )
     assert "ok   scripts/agent_thread_status.sh points to manager log planner" in result.stdout
+    assert (
+        "ok   scripts/agent_thread_status.sh requires manager support logs"
+        in result.stdout
+    )
     assert "ok   manager protocol defines stopped-state support" in result.stdout
     assert "ok   manager protocol preserves stopped-state product boundary" in result.stdout
     assert "ok   manager protocol requires manager support logs" in result.stdout

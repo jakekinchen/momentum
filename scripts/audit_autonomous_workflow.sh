@@ -185,11 +185,15 @@ for file in README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-d
     "$file avoids stale hardcoded resume-validation target"
 done
 
-section "Status resume guidance"
+section "Status stopped-state guidance"
 require_text_in_file \
   "scripts/agent_thread_status.sh" \
   "manager log plan dry run: bash scripts/plan_next_manager_log.sh" \
   "scripts/agent_thread_status.sh points to manager log planner"
+require_text_in_file \
+  "scripts/agent_thread_status.sh" \
+  "manager support log required: docs/manager-log/NNN-*.md" \
+  "scripts/agent_thread_status.sh requires manager support logs"
 require_text_in_file \
   "scripts/agent_thread_status.sh" \
   "resume plan dry run: bash scripts/plan_next_resume_brief.sh" \
