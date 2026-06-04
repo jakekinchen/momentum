@@ -44,10 +44,23 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "uv run python -m kg.validation" in readme
 
 
+def test_resume_template_preserves_human_approval_guardrails() -> None:
+    template = (
+        REPO_ROOT / "docs/briefs/000-template-human-approved-resume.md"
+    ).read_text(encoding="utf-8")
+
+    assert "## Human Direction" in template
+    assert "fresh human direction" in template
+    assert "<stop-orchestrator/>" in template
+    assert "docs/briefs/007-<slice-name>.md" in template
+    assert "uv run python -m kg.validation" in template
+
+
 def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     result = _run(["bash", "scripts/audit_autonomous_workflow.sh"])
 
     assert "ok   README.md" in result.stdout
+    assert "ok   docs/briefs/000-template-human-approved-resume.md" in result.stdout
     assert "ok   docs/agent-thread-handoff.md" in result.stdout
     assert "ok   scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout

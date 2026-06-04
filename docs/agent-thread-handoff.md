@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:13:36Z
+Last updated: 2026-06-04T18:16:11Z
 
 ## Current State
 
@@ -56,7 +56,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 41 tests and passed.
+- `uv run pytest` collected 42 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -66,7 +66,7 @@ Expected current validation shape:
 
 The pytest suite includes workflow-script coverage for the agent status command,
 the `README.md` and `AGENTS.md` handoff pointers, the workflow audit's handoff
-checks, and the loop-start stop guard.
+checks, the resume brief template, and the loop-start stop guard.
 
 ## Hard Invariants
 
@@ -86,7 +86,8 @@ A future thread should resume product work only after fresh human direction. A
 safe resume should:
 
 - remove or intentionally replace `<stop-orchestrator/>` in `GOAL.md`;
-- add a new active brief under `docs/briefs/`;
+- copy `docs/briefs/000-template-human-approved-resume.md` into a new numbered
+  active brief under `docs/briefs/`;
 - update `GOAL.md` to point at that brief;
 - preserve the source-of-truth order in `AGENTS.md`;
 - leave a session log for executor work or a reviewer decision for review work;

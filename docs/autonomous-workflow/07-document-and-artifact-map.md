@@ -15,6 +15,7 @@
 ## Planning And Evidence
 
 - `docs/briefs/`
+- `docs/briefs/000-template-human-approved-resume.md`
 - `docs/session-logs/`
 - `docs/reviewer-messages/`
 - `docs/manager-log/`
