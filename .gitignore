@@ -1,0 +1,12 @@
+.DS_Store
+.codex-goal-loop.pid
+.codex-*-session-id
+.codex-*-latest-log
+.codex-*-last-message-path
+.autonomous-workflow.lock/
+__pycache__/
+.pytest_cache/
+.venv/
+dist/
+build/
+
