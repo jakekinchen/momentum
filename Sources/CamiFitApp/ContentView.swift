@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var viewModel: AppExerciseSessionViewModel
     @State private var showLive = false
+    @State private var showSynthetic = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -82,6 +83,10 @@ struct ContentView: View {
                     showLive = true
                 }
                 .buttonStyle(.borderedProminent)
+
+                Button("Demo") {
+                    showSynthetic = true
+                }
             }
 
             Spacer()
@@ -94,6 +99,13 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showLive) {
             LiveCameraView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showSynthetic) {
+            if let url = Bundle.module.url(forResource: "synthetic_squat_demo", withExtension: "jsonl", subdirectory: "Demo") {
+                SyntheticDemoView(viewModel: viewModel, framesURL: url)
+            } else {
+                Text("Demo trace not bundled").padding(40)
+            }
         }
     }
 
