@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var viewModel: AppExerciseSessionViewModel
+    @State private var showLive = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -76,6 +77,11 @@ struct ContentView: View {
                 Button("Check Mock Worker") {
                     viewModel.preflightMockWorker()
                 }
+
+                Button("Live Camera") {
+                    showLive = true
+                }
+                .buttonStyle(.borderedProminent)
             }
 
             Spacer()
@@ -85,6 +91,9 @@ struct ContentView: View {
         .onAppear {
             viewModel.loadAvailablePresets()
             viewModel.loadRecordedRuns()
+        }
+        .sheet(isPresented: $showLive) {
+            LiveCameraView(viewModel: viewModel)
         }
     }
 

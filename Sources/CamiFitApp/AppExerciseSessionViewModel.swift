@@ -53,6 +53,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     private let presetSourceCandidates: [URL]
     private let recordedRunSourceCandidates: [URL]
     private var selectedProgram: ExerciseProgram?
+    private var liveFrames: [PoseFrame] = []
 
     public convenience init(presetsDirectory: URL) {
         self.init(
@@ -337,6 +338,29 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         state.scoreText = last.formSummary.score.map { String(format: "%.3f", $0) }
         state.diagnosticText = diagnosticText(from: last)
         return state
+    }
+
+    /// Feed one live camera frame: accumulate, re-run the engine over the buffer, and publish
+    /// updated reps/form + the skeleton overlay. Swallows engine errors so a single bad frame
+    /// never breaks the live loop.
+    public func ingestLiveFrame(_ frame: PoseFrame) {
+        liveFrames.append(frame)
+        do {
+            _ = try process(frames: liveFrames)
+        } catch {
+            state.diagnosticText = "live engine error: \(error)"
+        }
+        latestPoseOverlayState = AppPoseOverlayState(frame: frame)
+    }
+
+    public func resetLiveSession() {
+        liveFrames.removeAll()
+        state.repCount = 0
+        state.holdSeconds = 0
+        state.holdTargetReached = false
+        state.cueText = nil
+        state.diagnosticText = nil
+        latestPoseOverlayState = AppPoseOverlayState.empty
     }
 
     private static func defaultPresetSourceCandidates() -> [URL] {
