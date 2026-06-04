@@ -1,5 +1,17 @@
 # AGENTS.md
 
+## Agent Thread Orientation
+
+Before starting work, run:
+
+```bash
+bash scripts/agent_thread_status.sh
+```
+
+Use `docs/agent-thread-handoff.md` for the current stop/resume state. If
+`GOAL.md` contains `<stop-orchestrator/>`, do not start a new executor product
+slice until fresh human direction removes or replaces the sentinel.
+
 ## Source of Truth
 
 For FitGraph KG work, follow these files in order:
@@ -23,4 +35,3 @@ For FitGraph KG work, follow these files in order:
   `docs/session-logs/`.
 - Every reviewer turn must leave a decision under `docs/reviewer-messages/`.
 - Use exact git add paths for scoped commits.
-

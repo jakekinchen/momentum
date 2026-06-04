@@ -27,6 +27,14 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "== Pair State Audit ==" in result.stdout
 
 
+def test_agents_md_points_future_threads_to_status_handoff() -> None:
+    agents = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+
+    assert "bash scripts/agent_thread_status.sh" in agents
+    assert "docs/agent-thread-handoff.md" in agents
+    assert "<stop-orchestrator/>" in agents
+
+
 def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     result = _run(["bash", "scripts/audit_autonomous_workflow.sh"])
 
