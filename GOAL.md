@@ -8,11 +8,11 @@ safety filtering, alternatives, decision receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-M2 - Safety engine and decision receipts
+M3 - Alternatives and workout candidate API
 
 ## Current Slice
 
-docs/briefs/003-m2-safety-engine-receipts.md
+docs/briefs/004-m3-alternatives-workout-candidates.md
 
 ## Stop Conditions
 
