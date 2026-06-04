@@ -99,7 +99,7 @@ printf '7. Run: bash scripts/agent_thread_status.sh\n'
 printf '8. Fill the manager log Validation Evidence with the command outcomes.\n'
 printf '9. Run: git diff --check\n'
 if [ "$SLUG" = "<support-slug>" ]; then
-  printf '10. Commit with exact paths after rerunning with a concrete slug: git add <planner-next-manager-log-path> <changed-support-paths>\n'
+  printf '10. Rerun with a lowercase slug before staging; the concrete-slug output prints the exact git add path.\n'
 else
   printf '10. Commit with exact paths: git add %s <changed-support-paths>\n' "$target"
 fi

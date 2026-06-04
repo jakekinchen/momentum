@@ -279,7 +279,8 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "printf 'Review the latest manager log with the printed review latest command\\n'\n"
             "printf 'Fill the manager log Validation Evidence with the command outcomes\\n'\n"
             "printf 'Run: git diff --check\\n'\n"
-            "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n"
+            "printf 'Rerun with a lowercase slug before staging; "
+            "the concrete-slug output prints the exact git add path\\n'\n"
         ),
         "scripts/plan_next_resume_brief.sh": (
             "#!/usr/bin/env bash\n"
@@ -695,7 +696,12 @@ def test_manager_log_plan_without_slug_avoids_placeholder_exact_paths() -> None:
     )
     assert "Fill the manager log Validation Evidence" in result.stdout
     assert "Run: git diff --check" in result.stdout
-    assert "git add <planner-next-manager-log-path> <changed-support-paths>" in result.stdout
+    assert (
+        "Rerun with a lowercase slug before staging; "
+        "the concrete-slug output prints the exact git add path"
+        in result.stdout
+    )
+    assert "git add <planner-next-manager-log-path>" not in result.stdout
 
 
 def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> None:
@@ -1199,6 +1205,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log planner requires diff check" in result.stdout
     assert "ok   manager log planner requires evidence fill" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
+    assert "ok   manager log planner avoids placeholder git add target" in result.stdout
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
@@ -1543,7 +1550,8 @@ def test_workflow_audit_requires_manager_log_planner_review_command(
         "printf 'mode: dry-run (no files written)\\n'\n"
         "printf 'docs/manager-log/000-template-manager-support.md\\n'\n"
         "printf 'latest manager log: docs/manager-log/050-example.md\\n'\n"
-        "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n",
+        "printf 'Rerun with a lowercase slug before staging; "
+        "the concrete-slug output prints the exact git add path\\n'\n",
         encoding="utf-8",
     )
     planner.chmod(0o755)
@@ -1574,7 +1582,7 @@ def test_workflow_audit_rejects_placeholder_manager_next_path(
         "printf 'latest manager log: docs/manager-log/050-example.md\\n'\n"
         "printf 'review latest command:\\n'\n"
         "printf 'next manager log: docs/manager-log/051-<support-slug>.md\\n'\n"
-        "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n",
+        "printf 'git add <planner-next-manager-log-path> <changed-support-paths>\\n'\n",
         encoding="utf-8",
     )
     planner.chmod(0o755)
@@ -1590,6 +1598,11 @@ def test_workflow_audit_rejects_placeholder_manager_next_path(
         "MISS manager log planner shows placeholder path as template"
         in result.stdout
     )
+    assert (
+        "MISS manager log planner avoids no-slug exact git add paths"
+        in result.stdout
+    )
+    assert "MISS manager log planner avoids placeholder git add target" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

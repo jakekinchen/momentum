@@ -654,7 +654,7 @@ require_text_in_file \
   "manager log planner shows placeholder path as template"
 require_text_in_file \
   "scripts/plan_next_manager_log.sh" \
-  "Commit with exact paths after rerunning with a concrete slug" \
+  "Rerun with a lowercase slug before staging; the concrete-slug output prints the exact git add path" \
   "manager log planner avoids no-slug exact git add paths"
 require_text_in_file \
   "scripts/plan_next_manager_log.sh" \
@@ -668,6 +668,10 @@ reject_text_in_file \
   "scripts/plan_next_manager_log.sh" \
   "git add docs/manager-log/" \
   "manager log planner avoids placeholder exact git add target"
+reject_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
+  "git add <planner-next-manager-log-path>" \
+  "manager log planner avoids placeholder git add target"
 
 section "Goal"
 if [ -f GOAL.md ]; then
