@@ -22,6 +22,7 @@ public struct AppExerciseSessionState: Equatable {
     public var cueText: String?
     public var scoreText: String?
     public var diagnosticText: String?
+    public var presetSourceDescription: String?
 
     public var holdProgressText: String {
         if holdTargetReached {
@@ -39,16 +40,32 @@ public enum AppExerciseSessionError: Error, Equatable {
 public final class AppExerciseSessionViewModel: ObservableObject {
     @Published public private(set) var availablePresets: [AppPresetSummary] = []
     @Published public private(set) var state = AppExerciseSessionState()
+    public private(set) var resolvedPresetSourceURL: URL?
 
-    private let presetsDirectory: URL
+    private let presetSourceCandidates: [URL]
     private var selectedProgram: ExerciseProgram?
 
-    public init(presetsDirectory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Presets")) {
-        self.presetsDirectory = presetsDirectory
+    public convenience init(presetsDirectory: URL) {
+        self.init(presetSourceCandidates: [presetsDirectory])
+    }
+
+    public convenience init() {
+        self.init(presetSourceCandidates: AppExerciseSessionViewModel.defaultPresetSourceCandidates())
+    }
+
+    public init(presetSourceCandidates: [URL]) {
+        self.presetSourceCandidates = presetSourceCandidates
     }
 
     public func loadAvailablePresets() {
-        availablePresets = Self.loadPresetSummaries(from: presetsDirectory)
+        let resolved = Self.resolvePresetSummaries(from: presetSourceCandidates)
+        availablePresets = resolved.presets
+        resolvedPresetSourceURL = resolved.sourceURL
+        state.presetSourceDescription = resolved.sourceURL?.path
+        if availablePresets.isEmpty {
+            state.diagnosticText = "No presets found"
+        }
+
         if state.selectedExerciseID == nil, let first = availablePresets.first {
             try? selectPreset(id: first.id)
         }
@@ -63,7 +80,8 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         selectedProgram = program
         state = AppExerciseSessionState(
             selectedExerciseID: program.id,
-            selectedExerciseName: program.name
+            selectedExerciseName: program.name,
+            presetSourceDescription: resolvedPresetSourceURL?.path
         )
     }
 
@@ -98,6 +116,27 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         state.scoreText = last.formSummary.score.map { String(format: "%.3f", $0) }
         state.diagnosticText = diagnosticText(from: last)
         return state
+    }
+
+    private static func defaultPresetSourceCandidates() -> [URL] {
+        var candidates: [URL] = []
+        if let resourceURL = Bundle.module.url(forResource: "Presets", withExtension: nil) {
+            candidates.append(resourceURL)
+        }
+
+        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Presets"))
+        return candidates
+    }
+
+    private static func resolvePresetSummaries(from candidates: [URL]) -> (sourceURL: URL?, presets: [AppPresetSummary]) {
+        for candidate in candidates {
+            let presets = loadPresetSummaries(from: candidate)
+            if !presets.isEmpty {
+                return (candidate, presets)
+            }
+        }
+
+        return (nil, [])
     }
 
     private static func loadPresetSummaries(from directory: URL) -> [AppPresetSummary] {

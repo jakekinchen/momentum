@@ -23,7 +23,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "CamiFitApp",
-            dependencies: ["CamiFitEngine"]
+            dependencies: ["CamiFitEngine"],
+            resources: [
+                .copy("Resources/Presets")
+            ]
         ),
         .testTarget(
             name: "CamiFitEngineTests",

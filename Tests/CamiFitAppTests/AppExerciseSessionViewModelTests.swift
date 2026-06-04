@@ -3,6 +3,34 @@ import CamiFitEngine
 @testable import CamiFitApp
 
 final class AppExerciseSessionViewModelTests: XCTestCase {
+    func testDefaultViewModelDiscoversPackagedPresetResources() throws {
+        let viewModel = AppExerciseSessionViewModel()
+
+        viewModel.loadAvailablePresets()
+
+        XCTAssertEqual(Set(viewModel.availablePresets.map(\.id)), [
+            "bodyweight_lunge",
+            "bodyweight_plank",
+            "bodyweight_pushup",
+            "bodyweight_squat"
+        ])
+        XCTAssertNotNil(viewModel.resolvedPresetSourceURL)
+        XCTAssertTrue(viewModel.resolvedPresetSourceURL?.path.contains("Presets") == true)
+
+        try viewModel.selectPreset(id: "bodyweight_plank")
+        let state = try viewModel.process(frames: Self.loadPoseFixture("synthetic_plank_clean_hold_trace.json"))
+
+        XCTAssertEqual(state.selectedExerciseName, "Bodyweight Plank")
+        XCTAssertEqual(state.holdSeconds, 1.0, accuracy: 0.000_001)
+        XCTAssertTrue(state.holdTargetReached)
+        XCTAssertNotNil(state.presetSourceDescription)
+
+        print(
+            "app-viewmodel-default-resource source=\(viewModel.resolvedPresetSourceURL?.path ?? "nil") " +
+            "presets=\(viewModel.availablePresets.map(\.id).joined(separator: ",")) held=\(state.holdSeconds) target=\(state.holdTargetReached)"
+        )
+    }
+
     func testLoadsBundledPresetListAndSelectsSquatAndPlank() throws {
         let viewModel = AppExerciseSessionViewModel(presetsDirectory: Self.presetsDirectory)
 
@@ -18,6 +46,19 @@ final class AppExerciseSessionViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.selectedExerciseName, "Bodyweight Plank")
 
         print("app-viewmodel-presets \(viewModel.availablePresets.map { "\($0.id):\($0.kind.rawValue)" }.joined(separator: ","))")
+    }
+
+    func testInjectedMissingPresetDirectoryFailsClosed() {
+        let missingDirectory = Self.packageRoot.appendingPathComponent("does-not-exist/presets")
+        let viewModel = AppExerciseSessionViewModel(presetsDirectory: missingDirectory)
+
+        viewModel.loadAvailablePresets()
+
+        XCTAssertEqual(viewModel.availablePresets, [])
+        XCTAssertNil(viewModel.resolvedPresetSourceURL)
+        XCTAssertEqual(viewModel.state.diagnosticText, "No presets found")
+
+        print("app-viewmodel-missing-presets source=nil presets=0 diagnostic=\(viewModel.state.diagnosticText ?? "nil")")
     }
 
     func testSquatFixtureUpdatesRepCountThroughAppSessionPath() throws {
