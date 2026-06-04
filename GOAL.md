@@ -8,11 +8,11 @@ safety filtering, alternatives, decision receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-M3 - Alternatives and workout candidate API
+M4 - Member context and Copilot fact cards
 
 ## Current Slice
 
-docs/briefs/004-m3-alternatives-workout-candidates.md
+docs/briefs/005-m4-member-context-fact-cards.md
 
 ## Stop Conditions
 
