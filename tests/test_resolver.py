@@ -66,6 +66,18 @@ def test_resolves_only_db_kb_as_hard_allowed_equipment_subset() -> None:
     assert all(constraint.safety_behavior == "allowed_equipment_only" for constraint in constraints)
 
 
+def test_resolves_prd_db_kb_subset_with_terminal_punctuation() -> None:
+    constraints = resolve_text("Only DB and KB.")
+
+    assert [(constraint.constraint_type, constraint.value) for constraint in constraints] == [
+        ("Equipment", "dumbbell"),
+        ("Equipment", "kettlebell"),
+    ]
+    assert all(constraint.hard is True for constraint in constraints)
+    assert all(constraint.source_text == "Only DB and KB." for constraint in constraints)
+    assert all(constraint.safety_behavior == "allowed_equipment_only" for constraint in constraints)
+
+
 def test_resolves_deadlift_family_exclusion() -> None:
     [constraint] = resolve_text("exclude deadlifts")
 

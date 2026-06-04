@@ -7,9 +7,12 @@ import re
 from kg.constraints import ResolvedConstraint
 from kg.graph_store import GraphNode, LocalGraph, load_local_graph
 
+_BOUNDARY_PUNCTUATION = ".,;:!?\"'()[]{}"
+
 
 def _normalize(text: str) -> str:
-    return re.sub(r"\s+", " ", text.strip().lower())
+    normalized = re.sub(r"\s+", " ", text.strip().lower())
+    return normalized.strip(_BOUNDARY_PUNCTUATION)
 
 
 def _node_value(node_id: str) -> str:
