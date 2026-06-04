@@ -176,7 +176,13 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "Leave `docs/manager-log/NNN-*.md`.\n"
             "They do not require executor logs or reviewer decisions.\n"
         ),
-        "docs/autonomous-workflow/01-operating-model.md": "# Operating\n",
+        "docs/autonomous-workflow/01-operating-model.md": (
+            "# Operating\n\n"
+            "## Stopped State\n\n"
+            "When `GOAL.md` contains `<stop-orchestrator/>`, executor product slices are stopped.\n"
+            "Review `docs/manager-log latest:`.\n"
+            "Leave `docs/manager-log/NNN-*.md`.\n"
+        ),
         "docs/autonomous-workflow/02-role-contracts.md": (
             "# Roles\n\n"
             "## Manager Contract\n\n"
@@ -750,6 +756,11 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   executable scripts/plan_next_manager_log.sh" in result.stdout
     assert "ok   executable scripts/plan_next_resume_brief.sh" in result.stdout
     assert "ok   executable scripts/validate_resume_brief.sh" in result.stdout
+    assert "ok   operating model defines stopped state" in result.stdout
+    assert "ok   operating model preserves stop sentinel boundary" in result.stdout
+    assert "ok   operating model stops executor product slices" in result.stdout
+    assert "ok   operating model points manager turns to latest manager log" in result.stdout
+    assert "ok   operating model requires manager support logs" in result.stdout
     assert "ok   role contracts define manager contract" in result.stdout
     assert "ok   manager role contract preserves stop sentinel boundary" in result.stdout
     assert "ok   manager role contract points to latest manager log" in result.stdout
@@ -1033,6 +1044,34 @@ def test_workflow_audit_requires_workflow_readme_manager_support_guidance(
     )
     assert "MISS workflow README requires manager support logs" in result.stdout
     assert "MISS workflow README separates manager support evidence" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_operating_model_stopped_state(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    operating_model = tmp_path / "docs/autonomous-workflow/01-operating-model.md"
+    operating_model.write_text(
+        "# Operating\n\n"
+        "The workflow uses Executor, Reviewer, and Manager roles.\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS operating model defines stopped state" in result.stdout
+    assert "MISS operating model preserves stop sentinel boundary" in result.stdout
+    assert "MISS operating model stops executor product slices" in result.stdout
+    assert (
+        "MISS operating model points manager turns to latest manager log"
+        in result.stdout
+    )
+    assert "MISS operating model requires manager support logs" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

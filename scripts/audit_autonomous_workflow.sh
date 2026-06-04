@@ -135,6 +135,28 @@ require_executable "scripts/run_codex_pair_cycle.sh"
 require_executable "scripts/start_codex_goal_loop.sh"
 require_executable "scripts/stop_codex_goal_loop.sh"
 
+section "Operating model"
+require_text_in_file \
+  "docs/autonomous-workflow/01-operating-model.md" \
+  "## Stopped State" \
+  "operating model defines stopped state"
+require_text_in_file \
+  "docs/autonomous-workflow/01-operating-model.md" \
+  "<stop-orchestrator/>" \
+  "operating model preserves stop sentinel boundary"
+require_text_in_file \
+  "docs/autonomous-workflow/01-operating-model.md" \
+  "stopped until fresh human direction" \
+  "operating model stops executor product slices"
+require_text_in_file \
+  "docs/autonomous-workflow/01-operating-model.md" \
+  "docs/manager-log latest:" \
+  "operating model points manager turns to latest manager log"
+require_text_in_file \
+  "docs/autonomous-workflow/01-operating-model.md" \
+  "docs/manager-log/NNN-*.md" \
+  "operating model requires manager support logs"
+
 section "Role contracts"
 require_text_in_file \
   "docs/autonomous-workflow/02-role-contracts.md" \

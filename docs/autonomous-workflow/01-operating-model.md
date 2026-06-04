@@ -19,8 +19,14 @@ The Manager is the third-party overseer. The Manager keeps the pair aligned to
 the PRD, watches for stale plans or weak evidence, and intervenes only when the
 workflow itself needs steering.
 
+## Stopped State
+
+When `GOAL.md` contains `<stop-orchestrator/>`, executor product slices are
+stopped until fresh human direction changes the goal. Manager-support work may
+continue only as process support, should review `docs/manager-log latest:`, and
+must leave `docs/manager-log/NNN-*.md`.
+
 ## Evidence Rule
 
 Do not close work from intent, prose, or apparent effort. Close work from files,
 tests, command output, logs, commits, and product-relevant demonstrations.
-
