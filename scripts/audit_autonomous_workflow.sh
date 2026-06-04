@@ -31,6 +31,18 @@ require_executable() {
   fi
 }
 
+require_text_in_file() {
+  file="$1"
+  text="$2"
+  label="$3"
+  if [ -f "$file" ] && grep -Fq "$text" "$file"; then
+    printf 'ok   %s\n' "$label"
+  else
+    printf 'MISS %s\n' "$label"
+    warns=$((warns + 1))
+  fi
+}
+
 latest_file() {
   dir="$1"
   if [ -d "$dir" ]; then
@@ -92,6 +104,36 @@ require_executable "scripts/validate_resume_brief.sh"
 require_executable "scripts/run_codex_pair_cycle.sh"
 require_executable "scripts/start_codex_goal_loop.sh"
 require_executable "scripts/stop_codex_goal_loop.sh"
+
+section "Entrypoint guidance"
+require_text_in_file \
+  "AGENTS.md" \
+  "bash scripts/agent_thread_status.sh" \
+  "AGENTS.md points to agent status"
+require_text_in_file \
+  "AGENTS.md" \
+  "docs/agent-thread-handoff.md" \
+  "AGENTS.md points to handoff"
+require_text_in_file \
+  "AGENTS.md" \
+  "<stop-orchestrator/>" \
+  "AGENTS.md preserves stop sentinel guidance"
+require_text_in_file \
+  "README.md" \
+  "bash scripts/agent_thread_status.sh" \
+  "README.md points to agent status"
+require_text_in_file \
+  "README.md" \
+  "docs/agent-thread-handoff.md" \
+  "README.md points to handoff"
+require_text_in_file \
+  "README.md" \
+  "<stop-orchestrator/>" \
+  "README.md preserves stop sentinel guidance"
+require_text_in_file \
+  "README.md" \
+  "bash scripts/validate_resume_brief.sh" \
+  "README.md points to resume brief validation"
 
 section "Goal"
 if [ -f GOAL.md ]; then

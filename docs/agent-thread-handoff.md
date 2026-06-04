@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:49:52Z
+Last updated: 2026-06-04T18:52:16Z
 
 ## Current State
 
@@ -65,7 +65,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 56 tests and passed.
+- `uv run pytest` collected 57 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -77,9 +77,11 @@ The pytest suite includes workflow-script coverage for the agent status command,
 the `README.md` and `AGENTS.md` handoff pointers, the workflow audit's handoff
 checks, the resume brief template, the resume planner and validator, and the
 loop-start stop guard. The workflow audit exits non-zero when required
-artifacts are missing, and resume-brief validation rejects vector safety
-enforcement language. The workflow audit also verifies that the active brief
-named in `GOAL.md` exists. The resume planner prints the candidate
+artifacts are missing or when `README.md` / `AGENTS.md` lose the agent-status,
+handoff, stop-sentinel, or resume-validation entrypoint guidance. Resume-brief
+validation rejects vector safety enforcement language. The workflow audit also
+verifies that the active brief named in `GOAL.md` exists. The resume planner
+prints the candidate
 `validate_resume_brief.sh` command once a concrete slug is supplied, and
 candidate resume briefs must carry that self-validation command before the
 `GOAL.md` update. The resume validator also requires that command to target the

@@ -92,6 +92,79 @@ Run the workflow audit and KG validation commands.
 """
 
 
+def _write_minimal_workflow_root(
+    root: Path,
+    *,
+    agents: str | None = None,
+    readme: str | None = None,
+) -> None:
+    default_agents = """# AGENTS.md
+
+- Run `bash scripts/agent_thread_status.sh`.
+- Read `docs/agent-thread-handoff.md`.
+- Respect `<stop-orchestrator/>`.
+"""
+    default_readme = """# FitGraph KG
+
+- Start with `bash scripts/agent_thread_status.sh`.
+- Read `docs/agent-thread-handoff.md`.
+- Respect `<stop-orchestrator/>`.
+- Validate drafted resume briefs with `bash scripts/validate_resume_brief.sh`.
+"""
+    files = {
+        "AGENTS.md": agents if agents is not None else default_agents,
+        "README.md": readme if readme is not None else default_readme,
+        "GOAL.md": (
+            "# GOAL\n\n"
+            "<stop-orchestrator/>\n\n"
+            "## Current Slice\n\n"
+            "docs/briefs/006-m5-ontology-sidecar-validation.md\n"
+        ),
+        "docs/kg-module-prd.md": "# PRD\n",
+        "docs/agent-thread-handoff.md": "# Handoff\n",
+        "executor-reviewer-pair-programming.md": "# Pair\n",
+        "docs/briefs/000-template-human-approved-resume.md": "# Template\n",
+        "docs/briefs/006-m5-ontology-sidecar-validation.md": "# Active brief\n",
+        "docs/autonomous-workflow/README.md": "# Workflow\n",
+        "docs/autonomous-workflow/01-operating-model.md": "# Operating\n",
+        "docs/autonomous-workflow/02-role-contracts.md": "# Roles\n",
+        "docs/autonomous-workflow/03-planning-system.md": "# Planning\n",
+        "docs/autonomous-workflow/04-execution-protocol.md": "# Execution\n",
+        "docs/autonomous-workflow/05-devops-and-session-ops.md": "# Devops\n",
+        "docs/autonomous-workflow/06-manager-guardian-protocol.md": "# Manager\n",
+        "docs/autonomous-workflow/07-document-and-artifact-map.md": "# Artifacts\n",
+        "docs/autonomous-workflow/08-scaffold-adoption-matrix.md": "# Matrix\n",
+        "docs/autonomous-workflow/09-fitgraph-autonomous-plan.md": "## M0 - Test\n",
+        "scripts/audit_codex_pair_state.mjs": "console.log('ok')\n",
+        "pyproject.toml": "[project]\nname = \"fitgraph-test\"\nversion = \"0.0.0\"\n",
+    }
+    executable_scripts = {
+        "scripts/agent_thread_status.sh": "#!/usr/bin/env bash\n",
+        "scripts/audit_autonomous_workflow.sh": "#!/usr/bin/env bash\n",
+        "scripts/plan_next_resume_brief.sh": "#!/usr/bin/env bash\n",
+        "scripts/validate_resume_brief.sh": "#!/usr/bin/env bash\n",
+        "scripts/run_codex_pair_cycle.sh": "#!/usr/bin/env bash\n",
+        "scripts/start_codex_goal_loop.sh": (
+            "#!/usr/bin/env bash\n"
+            "printf 'Refusing to start Codex goal loop\\n'\n"
+        ),
+        "scripts/stop_codex_goal_loop.sh": "#!/usr/bin/env bash\n",
+    }
+    for path, text in {**files, **executable_scripts}.items():
+        target = root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    for path in executable_scripts:
+        (root / path).chmod(0o755)
+    for directory in (
+        "docs/session-logs",
+        "docs/reviewer-messages",
+        "docs/manager-log",
+    ):
+        (root / directory).mkdir(parents=True, exist_ok=True)
+    _run(["git", "init", "--quiet"], cwd=root)
+
+
 def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     result = _run(["bash", "scripts/agent_thread_status.sh"])
 
@@ -439,6 +512,13 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/plan_next_resume_brief.sh" in result.stdout
     assert "ok   executable scripts/validate_resume_brief.sh" in result.stdout
+    assert "ok   AGENTS.md points to agent status" in result.stdout
+    assert "ok   AGENTS.md points to handoff" in result.stdout
+    assert "ok   AGENTS.md preserves stop sentinel guidance" in result.stdout
+    assert "ok   README.md points to agent status" in result.stdout
+    assert "ok   README.md points to handoff" in result.stdout
+    assert "ok   README.md preserves stop sentinel guidance" in result.stdout
+    assert "ok   README.md points to resume brief validation" in result.stdout
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
@@ -455,6 +535,29 @@ def test_workflow_audit_exits_nonzero_on_missing_artifacts(tmp_path: Path) -> No
     assert result.returncode == 1
     assert "MISS AGENTS.md" in result.stdout
     assert "MISS README.md" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_entrypoint_guidance_content(tmp_path: Path) -> None:
+    _write_minimal_workflow_root(
+        tmp_path,
+        agents="# AGENTS.md\n\nMissing current handoff guidance.\n",
+        readme="# FitGraph KG\n\nMissing current handoff guidance.\n",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS AGENTS.md points to agent status" in result.stdout
+    assert "MISS AGENTS.md points to handoff" in result.stdout
+    assert "MISS AGENTS.md preserves stop sentinel guidance" in result.stdout
+    assert "MISS README.md points to agent status" in result.stdout
+    assert "MISS README.md points to handoff" in result.stdout
+    assert "MISS README.md preserves stop sentinel guidance" in result.stdout
+    assert "MISS README.md points to resume brief validation" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 
