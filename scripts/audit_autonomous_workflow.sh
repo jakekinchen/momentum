@@ -415,6 +415,10 @@ for file in AGENTS.md README.md docs/agent-thread-handoff.md docs/autonomous-wor
     "$file" \
     "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md" \
     "$file avoids stale hardcoded resume-validation target"
+  reject_text_in_file \
+    "$file" \
+    "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" \
+    "$file avoids hardcoded resume planner slug"
 done
 
 section "Status stopped-state guidance"

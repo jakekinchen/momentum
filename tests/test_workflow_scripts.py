@@ -417,6 +417,8 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "next manager log template:" in readme
     assert "bash scripts/validate_resume_brief.sh" in readme
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in readme
+    assert "bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>" in readme
+    assert "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" not in readme
     assert (
         "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
         not in readme
@@ -453,6 +455,14 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "bash scripts/validate_resume_brief.sh" not in direct_audits
     assert "After drafting a candidate resume brief" in handoff
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in after_drafting
+    assert (
+        "bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>"
+        in handoff
+    )
+    assert (
+        "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
+        not in handoff
+    )
     assert "Product-stop snapshot recorded:" in handoff
     assert "Treat that command output as the current operational state" in handoff
     assert re.search(r"placeholder\s+resume-validation command", handoff) is None

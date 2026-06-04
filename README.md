@@ -27,10 +27,10 @@ bash scripts/plan_next_resume_brief.sh
 Then rerun it with the human-approved slice slug:
 
 ```bash
-bash scripts/plan_next_resume_brief.sh verified-ontology-lock
+bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>
 ```
 
-Replace the example slug with the human-approved slice name. The command
+Replace `<lowercase-slice-slug>` with the human-approved slice name. The command
 proposes the next numbered brief path and exact copy command without writing
 files or changing `GOAL.md`.
 

@@ -143,7 +143,7 @@ safe resume should:
 - remove or intentionally replace `<stop-orchestrator/>` in `GOAL.md`;
 - copy `docs/briefs/000-template-human-approved-resume.md` into a new numbered
   active brief under `docs/briefs/`;
-- use `bash scripts/plan_next_resume_brief.sh verified-ontology-lock` with a
+- use `bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>` with a
   slug matching the human-approved slice to preview the next brief path and
   exact copy command before changing files;
 - run `bash scripts/validate_resume_brief.sh <planner-next-brief-path>` on the
