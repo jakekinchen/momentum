@@ -20,6 +20,19 @@
       }
     },
     {
+      "id": "SafetyRule:avoid_high_impact_knee_stress",
+      "severity": "MEDICAL_HARD_BLOCK",
+      "reason_code": "ACTIVE_KNEE_HIGH_IMPACT_RESTRICTION",
+      "description": "Block high-impact knee stress when an active knee restriction is present.",
+      "uses_concepts": ["BodyRegion:knee"],
+      "match": {
+        "edge_predicate": "STRESSES",
+        "properties": {
+          "impact_level": ["high"]
+        }
+      }
+    },
+    {
       "id": "SafetyRule:avoid_loaded_lumbar_stress",
       "severity": "MEDICAL_HARD_BLOCK",
       "reason_code": "ACTIVE_LOWER_BACK_RESTRICTION",

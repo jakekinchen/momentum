@@ -141,6 +141,30 @@ def test_safe_candidate_can_be_selected_under_knee_restriction() -> None:
     assert receipt.graph_paths == ()
 
 
+def test_active_knee_restriction_blocks_high_impact_plyometric_jumping() -> None:
+    receipts = evaluate_candidates(
+        ["Exercise:jump_squat", "Exercise:glute_bridge"],
+        available_equipment=HOME_EQUIPMENT,
+        constraints=[_active_knee_restriction()],
+    )
+    by_id = {receipt.exercise_id: receipt for receipt in receipts}
+    jump_receipt = by_id["Exercise:jump_squat"]
+    selected_receipt = by_id["Exercise:glute_bridge"]
+
+    assert jump_receipt.decision == "filtered"
+    assert jump_receipt.primary_severity == "MEDICAL_HARD_BLOCK"
+    assert jump_receipt.primary_reason_code == "ACTIVE_KNEE_HIGH_IMPACT_RESTRICTION"
+    assert jump_receipt.reason_codes == ("ACTIVE_KNEE_HIGH_IMPACT_RESTRICTION",)
+    assert "Exercise:jump_squat -STRESSES-> BodyRegion:left_knee" in jump_receipt.graph_paths
+    assert "BodyRegion:left_knee -PART_OF-> BodyRegion:knee" in jump_receipt.graph_paths
+    assert (
+        "SafetyRule:avoid_high_impact_knee_stress -USES_CONCEPT-> BodyRegion:knee"
+        in jump_receipt.graph_paths
+    )
+    assert selected_receipt.decision == "selected"
+    assert selected_receipt.primary_reason_code == "PASSED_SAFETY"
+
+
 def test_bad_lower_back_restriction_blocks_loaded_lumbar_stress() -> None:
     receipt = _receipt_for(
         "Exercise:kettlebell_deadlift",

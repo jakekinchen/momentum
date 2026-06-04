@@ -163,6 +163,26 @@
       "properties": {}
     },
     {
+      "id": "MovementPattern:plyometric",
+      "type": "MovementPattern",
+      "label": "plyometric",
+      "aliases": ["plyometric", "plyometrics", "jumping"],
+      "properties": {
+        "verification_status": "local_unverified"
+      }
+    },
+    {
+      "id": "Exercise:jump_squat",
+      "type": "Exercise",
+      "label": "Jump Squat",
+      "aliases": ["jump squat", "plyometric squat"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.4,
+        "verification_status": "local_unverified"
+      }
+    },
+    {
       "id": "Exercise:goblet_squat",
       "type": "Exercise",
       "label": "Goblet Squat",
@@ -253,6 +273,50 @@
       "properties": {
         "runtime_safety_edge": true
       }
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "REQUIRES",
+      "target": "Equipment:yoga_mat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:left_knee",
+      "properties": {
+        "load_level": "low",
+        "impact_level": "high",
+        "flexion_depth": "moderate",
+        "loaded": false,
+        "axial_load": "none",
+        "balance_demand": "medium",
+        "laterality": "left"
+      }
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:quadriceps",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:squat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:plyometric",
+      "properties": {}
     },
     {
       "source": "Exercise:goblet_squat",
