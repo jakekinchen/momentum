@@ -35,3 +35,33 @@ enum RegimenBlockParser {
         return blocks
     }
 }
+
+enum RegimenValidationError: Error, Equatable {
+    case decode(String)
+    case evaluation(String)
+    case noSampleFrame
+}
+
+extension RegimenBlockParser {
+    static func validateExercise(json: String) -> Result<ExerciseProgram, RegimenValidationError> {
+        guard let data = json.data(using: .utf8) else { return .failure(.decode("not utf8")) }
+        let program: ExerciseProgram
+        do { program = try ProgramLoader.load(data: data) }
+        catch { return .failure(.decode(String(describing: error))) }
+
+        guard let frame = sampleFrame() else { return .failure(.noSampleFrame) }
+        do {
+            var processor = try FrameSignalProcessor(program: program)
+            _ = processor.process(frame: frame)
+        } catch {
+            return .failure(.evaluation(String(describing: error)))
+        }
+        return .success(program)
+    }
+
+    static func sampleFrame() -> PoseFrame? {
+        guard let url = Bundle.module.url(forResource: "synthetic_squat_demo", withExtension: "jsonl", subdirectory: "Demo"),
+              let frames = try? MediaPipePoseJSONLDecoder.decode(contentsOf: url) else { return nil }
+        return frames.first
+    }
+}
