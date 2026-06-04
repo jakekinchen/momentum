@@ -2,9 +2,9 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var viewModel: AppExerciseSessionViewModel
+    @ObservedObject var codex: CodexAppServerClient
     @StateObject private var liveSession = LiveSession()
     @StateObject private var chat = ChatViewModel()
-    @StateObject private var codex = CodexAppServerClient()
     @State private var chatVisible = true
 
     var body: some View {
@@ -53,7 +53,6 @@ struct ContentView: View {
         }
         .onDisappear {
             liveSession.stop()
-            codex.stop()
         }
     }
 }
@@ -367,7 +366,6 @@ private struct SessionSidebar: View {
         Form {
             ExerciseSection()
             CameraSection()
-            AccountSection()
             #if DEBUG
             DeveloperSection()
             #endif
@@ -444,43 +442,81 @@ private struct ExerciseSection: View {
     }
 }
 
-private struct AccountSection: View {
+// MARK: - Settings (Cmd+,)
+
+struct CamiFitSettingsView: View {
     @EnvironmentObject private var codex: CodexAppServerClient
 
     var body: some View {
-        Section("OpenAI") {
-            HStack(spacing: 8) {
-                Image(systemName: codex.isLoggedIn ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.xmark")
-                    .foregroundStyle(codex.isLoggedIn ? .green : .secondary)
-                Text(codex.loginDetail)
+        Form {
+            Section {
+                LabeledContent("Status") {
+                    HStack(spacing: 6) {
+                        Image(systemName: statusIcon)
+                            .foregroundStyle(statusColor)
+                        Text(codex.accountDetail)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+
+                accountActions
+            } header: {
+                Text("OpenAI Account")
+            } footer: {
+                Text("CamiFit signs in with your ChatGPT account through Codex. The coach uses this account for every reply.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
             }
+        }
+        .formStyle(.grouped)
+        .frame(width: 460, height: 240)
+        .onAppear { codex.refreshAccount() }
+    }
 
-            if codex.isLoggedIn {
-                Button {
-                    codex.logout()
-                } label: {
-                    Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-                .buttonStyle(.glass)
-            } else {
-                Button {
-                    codex.login()
-                } label: {
-                    Label("Sign in to OpenAI", systemImage: "person.crop.circle.badge.plus")
-                }
-                .buttonStyle(.glassProminent)
-                .tint(.accentColor)
+    @ViewBuilder
+    private var accountActions: some View {
+        switch codex.account {
+        case .signedIn:
+            Button("Disconnect OpenAI Account", role: .destructive) {
+                codex.logout()
             }
+        case .pending:
+            HStack(spacing: 10) {
+                ProgressView().controlSize(.small)
+                Text("Waiting for browser sign-in…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Cancel") { codex.cancelLogin() }
+            }
+        case .signedOut, .unknown:
+            HStack(spacing: 10) {
+                Button("Connect OpenAI Account") {
+                    codex.startLogin()
+                }
+                .buttonStyle(.borderedProminent)
+                Button("Refresh") {
+                    codex.refreshAccount()
+                }
+            }
+        }
+    }
 
-            Button {
-                codex.refreshLoginStatus()
-            } label: {
-                Label("Refresh status", systemImage: "arrow.clockwise")
-            }
-            .buttonStyle(.glass)
+    private var statusIcon: String {
+        switch codex.account {
+        case .signedIn: "checkmark.circle.fill"
+        case .pending: "clock.fill"
+        case .signedOut: "xmark.circle"
+        case .unknown: "questionmark.circle"
+        }
+    }
+
+    private var statusColor: Color {
+        switch codex.account {
+        case .signedIn: .green
+        case .pending: .orange
+        case .signedOut, .unknown: .secondary
         }
     }
 }
@@ -709,7 +745,7 @@ private struct ChatHeader: View {
     }
 
     private var statusText: String {
-        if !codex.isLoggedIn { return "Sign in under Settings → OpenAI" }
+        if codex.account != .signedIn { return "Sign in via CamiFit ▸ Settings" }
         switch codex.state {
         case .idle: return "Idle"
         case .starting: return "Connecting to Codex…"
@@ -720,7 +756,7 @@ private struct ChatHeader: View {
 
     private var statusColor: Color {
         switch codex.state {
-        case .ready: return codex.isLoggedIn ? .green : .orange
+        case .ready: return codex.account == .signedIn ? .green : .orange
         case .failed: return .red
         default: return .orange
         }

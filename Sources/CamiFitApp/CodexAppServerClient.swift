@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -16,9 +17,14 @@ final class CodexAppServerClient: ObservableObject {
         case failed(String)
     }
 
+    enum AccountState: Equatable { case unknown, signedOut, pending, signedIn }
+
     @Published private(set) var state: ConnectionState = .idle
-    @Published private(set) var isLoggedIn = false
-    @Published private(set) var loginDetail = "Checking sign-in…"
+    @Published private(set) var account: AccountState = .unknown
+    @Published private(set) var accountEmail: String?
+    @Published private(set) var accountDetail = "Checking sign-in…"
+
+    private var pendingLoginId: String?
 
     private var process: Process?
     private var stdin: FileHandle?
@@ -95,12 +101,12 @@ final class CodexAppServerClient: ObservableObject {
         }
         process = proc
 
-        refreshLoginStatus()
         sendRequest(method: "initialize",
                     params: ["clientInfo": ["name": "CamiFit", "version": "0.1.0"],
                              "capabilities": ["experimentalApi": true]]) { [weak self] _ in
             self?.sendNotification("initialized", params: nil)
             self?.startThread()
+            self?.refreshAccount()
         }
     }
 
@@ -112,12 +118,14 @@ final class CodexAppServerClient: ObservableObject {
         threadID = nil
         activeTurn = nil
         responseHandlers.removeAll()
+        account = .unknown
         state = .idle
     }
 
     private func startThread() {
         sendRequest(method: "thread/start",
-                    params: ["approvalPolicy": "untrusted",
+                    params: ["approvalPolicy": "never",
+                             "sandbox": "read-only",
                              "baseInstructions": baseInstructions,
                              "cwd": NSTemporaryDirectory()]) { [weak self] result in
             guard let self else { return }
@@ -237,11 +245,14 @@ final class CodexAppServerClient: ObservableObject {
 
         guard let method else { return }
 
-        // Server -> client request (has id + method): auto-decline any approval.
+        // Server -> client request (has id + method). We don't service any of these: under
+        // approvalPolicy "never" no approvals fire, and in ChatGPT auth mode Codex refreshes
+        // its own tokens. Reply with a proper JSON-RPC error, never a fake result (a malformed
+        // reply to account/chatgptAuthTokens/refresh is what produced the 401).
         if let id = msg["id"] {
-            var reply: [String: Any] = ["jsonrpc": "2.0", "id": id]
-            reply["result"] = denialResult(for: method)
-            writeMessage(reply)
+            writeMessage(["jsonrpc": "2.0", "id": id,
+                          "error": ["code": -32601,
+                                    "message": "Unsupported server request method '\(method)'"]])
             return
         }
 
@@ -258,20 +269,16 @@ final class CodexAppServerClient: ObservableObject {
         case "error":
             let text = errorText(in: params) ?? "Codex reported an error."
             finishTurn { $0.onError(text) }
-        case "account/updated", "account/login/completed":
-            refreshLoginStatus()
+        case "account/login/completed":
+            let success = (params["success"] as? Bool) ?? false
+            pendingLoginId = nil
+            account = success ? .signedIn : .signedOut
+            if !success { accountDetail = errorText(in: params) ?? "Sign-in did not complete." }
+            refreshAccount()
+        case "account/updated":
+            refreshAccount()
         default:
             break
-        }
-    }
-
-    /// v1 approval methods speak `ReviewDecision` ("denied"); v2 `item/*` speak ("decline").
-    private func denialResult(for method: String) -> [String: Any] {
-        switch method {
-        case "execCommandApproval", "applyPatchApproval":
-            return ["decision": "denied"]
-        default:
-            return ["decision": "decline"]
         }
     }
 
@@ -281,59 +288,62 @@ final class CodexAppServerClient: ObservableObject {
         return nil
     }
 
-    // MARK: - Login (ChatGPT OAuth via the codex CLI)
+    // MARK: - OpenAI account (ChatGPT login over the live app-server connection)
 
-    func refreshLoginStatus() {
-        // `codex login status` prints to stderr, so consider both streams.
-        runCodex(["login", "status"]) { [weak self] _, out, err in
-            let text = (out + "\n" + err).trimmingCharacters(in: .whitespacesAndNewlines)
-            let lower = text.lowercased()
-            let loggedIn = lower.contains("logged in") && !lower.contains("not logged in")
-            self?.isLoggedIn = loggedIn
-            let firstLine = text
-                .components(separatedBy: "\n")
-                .first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })
-            self?.loginDetail = firstLine ?? (loggedIn ? "Signed in" : "Not signed in")
+    /// Reads the connected account so the UI can show signed-in state (no CLI needed).
+    func refreshAccount() {
+        guard process != nil else { return }
+        sendRequest(method: "account/read", params: ["refreshToken": false]) { [weak self] result in
+            guard let self else { return }
+            if let acct = result["account"] as? [String: Any],
+               let type = acct["type"] as? String, !type.isEmpty {
+                self.account = .signedIn
+                self.accountEmail = acct["email"] as? String
+                let plan = acct["planType"] as? String
+                self.accountDetail = (self.accountEmail.map { "Signed in as \($0)" } ?? "Signed in with ChatGPT")
+                    + (plan.map { " · \($0)" } ?? "")
+            } else if self.account != .pending {
+                self.account = .signedOut
+                self.accountEmail = nil
+                self.accountDetail = "Not signed in"
+            }
         }
     }
 
-    /// Runs Codex's browser OAuth flow. Codex stores/refreshes the token in ~/.codex.
-    func login() {
-        loginDetail = "Opening browser to sign in…"
-        runCodex(["login"]) { [weak self] _, _, _ in
-            self?.refreshLoginStatus()
+    /// Starts the ChatGPT browser sign-in over the *live* connection, so the running server
+    /// instance receives the credentials directly. (A separate `codex login` process would
+    /// leave this server with stale auth — the cause of the 401.)
+    func startLogin() {
+        guard process != nil else { start(); return }
+        account = .pending
+        accountDetail = "Opening browser to sign in…"
+        sendRequest(method: "account/login/start", params: ["type": "chatgpt"]) { [weak self] result in
+            guard let self else { return }
+            self.pendingLoginId = result["loginId"] as? String
+            if let urlString = result["authUrl"] as? String, let url = URL(string: urlString) {
+                NSWorkspace.shared.open(url)
+                self.accountDetail = "Finish signing in in your browser…"
+            } else {
+                self.account = .signedOut
+                self.accountDetail = "Could not start sign-in."
+            }
         }
+    }
+
+    func cancelLogin() {
+        if let loginId = pendingLoginId {
+            sendRequest(method: "account/login/cancel", params: ["loginId": loginId])
+        }
+        pendingLoginId = nil
+        account = .signedOut
+        accountDetail = "Not signed in"
     }
 
     func logout() {
-        loginDetail = "Signing out…"
-        runCodex(["logout"]) { [weak self] _, _, _ in
-            self?.refreshLoginStatus()
-        }
-    }
-
-    private func runCodex(_ args: [String], completion: @escaping (Int32, String, String) -> Void) {
-        guard let codexURL = Self.resolveCodexURL() else {
-            completion(127, "", "codex not found")
-            return
-        }
-        let proc = Process()
-        proc.executableURL = codexURL
-        proc.arguments = args
-        let outPipe = Pipe()
-        let errPipe = Pipe()
-        proc.standardOutput = outPipe
-        proc.standardError = errPipe
-        proc.terminationHandler = { finished in
-            let out = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            let err = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            let code = finished.terminationStatus
-            DispatchQueue.main.async { completion(code, out, err) }
-        }
-        do {
-            try proc.run()
-        } catch {
-            completion(127, "", error.localizedDescription)
+        sendRequest(method: "account/logout", params: [:]) { [weak self] _ in
+            self?.account = .signedOut
+            self?.accountEmail = nil
+            self?.accountDetail = "Not signed in"
         }
     }
 }
