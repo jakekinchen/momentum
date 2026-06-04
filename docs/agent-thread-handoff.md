@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:02:57Z
+Last updated: 2026-06-04T18:05:08Z
 
 ## Current State
 
@@ -96,7 +96,7 @@ Good next human-approved brief themes include:
 - Do not run `scripts/run_codex_pair_cycle.sh --once` while the stop sentinel is
   present.
 - Do not start `scripts/start_codex_goal_loop.sh` while the stop sentinel is
-  present.
+  present. The start script should refuse with a stop-sentinel message.
 - Do not pin external ontology IDs from memory or unstated assumptions.
 - Do not replace deterministic safety checks with LLM, embedding, or vector
   retrieval behavior.

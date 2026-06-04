@@ -14,6 +14,9 @@ bash scripts/start_codex_goal_loop.sh --max-cycles 3
 bash scripts/stop_codex_goal_loop.sh
 ```
 
+`scripts/start_codex_goal_loop.sh` refuses to start while `GOAL.md` contains
+`<stop-orchestrator/>`.
+
 Runtime logs are written under:
 
 ```text

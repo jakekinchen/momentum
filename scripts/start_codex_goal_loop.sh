@@ -57,6 +57,13 @@ repo_slug="$(printf '%s' "$(basename "$ROOT")" | tr -cs 'a-zA-Z0-9._-' '-')"
 runtime_dir="/tmp/autonomous-project-workflow/$repo_slug"
 mkdir -p "$runtime_dir"
 
+if [ -f "$ROOT/GOAL.md" ] &&
+  grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' "$ROOT/GOAL.md"; then
+  printf 'Stop sentinel present in GOAL.md. Refusing to start Codex goal loop.\n' >&2
+  printf 'Remove or replace <stop-orchestrator/> only after fresh human direction.\n' >&2
+  exit 1
+fi
+
 pid_file="$ROOT/.codex-goal-loop.pid"
 if [ -f "$pid_file" ]; then
   old_pid="$(cat "$pid_file")"
