@@ -30,6 +30,10 @@ bash scripts/start_codex_goal_loop.sh --max-cycles 3
 `scripts/start_codex_goal_loop.sh` refuses to start while `GOAL.md` contains
 `<stop-orchestrator/>`.
 
+`scripts/audit_autonomous_workflow.sh` exits non-zero when required workflow
+artifacts are missing. `scripts/agent_thread_status.sh` still prints both the
+workflow audit and pair-state audit, then exits non-zero if either check fails.
+
 Runtime logs are written under:
 
 ```text

@@ -143,4 +143,5 @@ if [ "$warns" -eq 0 ]; then
   printf 'workflow audit clean\n'
 else
   printf 'workflow audit warnings: %s\n' "$warns"
+  exit 1
 fi

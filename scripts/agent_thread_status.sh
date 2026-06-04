@@ -38,7 +38,17 @@ else
 fi
 
 section "Workflow Audit"
-bash scripts/audit_autonomous_workflow.sh
+workflow_status=0
+bash scripts/audit_autonomous_workflow.sh || workflow_status=$?
 
 section "Pair State Audit"
-node scripts/audit_codex_pair_state.mjs
+pair_status=0
+node scripts/audit_codex_pair_state.mjs || pair_status=$?
+
+section "Agent Status Summary"
+if [ "$workflow_status" -eq 0 ] && [ "$pair_status" -eq 0 ]; then
+  printf 'agent thread status clean\n'
+else
+  printf 'agent thread status warnings: workflow=%s pair=%s\n' "$workflow_status" "$pair_status"
+  exit 1
+fi

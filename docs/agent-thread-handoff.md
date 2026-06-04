@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:32:22Z
+Last updated: 2026-06-04T18:35:16Z
 
 ## Current State
 
@@ -32,7 +32,7 @@ bash scripts/agent_thread_status.sh
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
 the resume-plan and resume-validation commands, the workflow audit, and the
-Codex pair-state audit.
+Codex pair-state audit, then exits with a clean or warning summary.
 
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while
@@ -65,7 +65,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 48 tests and passed.
+- `uv run pytest` collected 49 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -76,7 +76,8 @@ Expected current validation shape:
 The pytest suite includes workflow-script coverage for the agent status command,
 the `README.md` and `AGENTS.md` handoff pointers, the workflow audit's handoff
 checks, the resume brief template, the resume planner and validator, and the
-loop-start stop guard.
+loop-start stop guard. The workflow audit exits non-zero when required
+artifacts are missing.
 
 ## Hard Invariants
 

@@ -106,6 +106,7 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     ) in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
+    assert "agent thread status clean" in result.stdout
 
 
 def test_agents_md_points_future_threads_to_status_handoff() -> None:
@@ -124,6 +125,7 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "<stop-orchestrator/>" in readme
     assert "uv run python -m kg.validation" in readme
     assert "bash scripts/validate_resume_brief.sh" in readme
+    assert "final clean/warning summary" in readme
 
 
 def test_readme_safe_checks_do_not_require_candidate_resume_brief() -> None:
@@ -260,6 +262,18 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   start loop stop guard present" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
     assert "workflow audit clean" in result.stdout
+
+
+def test_workflow_audit_exits_nonzero_on_missing_artifacts(tmp_path: Path) -> None:
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS AGENTS.md" in result.stdout
+    assert "MISS README.md" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
 
 
 def test_start_goal_loop_refuses_before_spawning_when_stop_sentinel_present(
