@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T19:01:40Z
+Last updated: 2026-06-04T19:03:41Z
 
 ## Current State
 
@@ -92,7 +92,9 @@ must appear in the brief's `## Resume Checklist`. Static orientation docs use
 `<planner-next-brief-path>` and the workflow audit rejects stale hardcoded
 `007` resume-validation targets. If the status command cannot derive a planner
 target, it also falls back to `<planner-next-brief-path>` rather than a
-hardcoded numbered brief.
+hardcoded numbered brief. No-slug planner output does not print command-shaped
+placeholder `GOAL.md` or `git add` paths; rerun the planner with a concrete
+slug before using exact paths.
 
 ## Hard Invariants
 

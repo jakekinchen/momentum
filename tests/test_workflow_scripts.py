@@ -361,6 +361,16 @@ def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> Non
         "bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md"
         not in result.stdout
     )
+    assert (
+        "Update GOAL.md to point Current Slice at docs/briefs/007-<slice-name>.md"
+        not in result.stdout
+    )
+    assert "git add docs/briefs/007-<slice-name>.md GOAL.md" not in result.stdout
+    assert (
+        "Update GOAL.md to point Current Slice at the drafted candidate brief "
+        "after rerunning with a concrete slug"
+    ) in result.stdout
+    assert "git add <planner-next-brief-path> GOAL.md" in result.stdout
 
 
 def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -> None:

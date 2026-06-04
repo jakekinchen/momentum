@@ -70,13 +70,18 @@ section "Required Follow-Up"
 printf '1. Replace the Human Direction section with the exact user instruction.\n'
 if [ "$SLUG" = "<slice-name>" ]; then
   printf '2. Rerun with a lowercase slug to print the exact resume-brief validation command.\n'
+  printf '3. Update GOAL.md to point Current Slice at the drafted candidate brief after rerunning with a concrete slug.\n'
 else
   printf '2. Run: bash scripts/validate_resume_brief.sh %s\n' "$target"
+  printf '3. Update GOAL.md to point Current Slice at %s.\n' "$target"
 fi
-printf '3. Update GOAL.md to point Current Slice at %s.\n' "$target"
 printf '4. Remove or replace <stop-orchestrator/> only after human approval.\n'
 printf '5. Run: bash scripts/agent_thread_status.sh\n'
-printf '6. Commit with exact paths: git add %s GOAL.md\n' "$target"
+if [ "$SLUG" = "<slice-name>" ]; then
+  printf '6. Commit with exact paths after rerunning with a concrete slug: git add <planner-next-brief-path> GOAL.md\n'
+else
+  printf '6. Commit with exact paths: git add %s GOAL.md\n' "$target"
+fi
 
 section "Validation"
 if [ "$SLUG" = "<slice-name>" ]; then
