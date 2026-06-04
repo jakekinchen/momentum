@@ -9,6 +9,18 @@ section() {
   printf '\n== %s ==\n' "$1"
 }
 
+resume_brief_example_target() {
+  target="$(
+    { bash scripts/plan_next_resume_brief.sh verified-ontology-lock 2>/dev/null || true; } |
+      awk -F': ' '/^next brief:/ { print $2; exit }'
+  )"
+  if [ -n "${target:-}" ]; then
+    printf '%s\n' "$target"
+  else
+    printf 'docs/briefs/007-verified-ontology-lock.md\n'
+  fi
+}
+
 section "Agent Thread Handoff"
 if [ -f docs/agent-thread-handoff.md ]; then
   printf 'handoff: docs/agent-thread-handoff.md\n'
@@ -28,7 +40,7 @@ if [ -f GOAL.md ]; then
     printf 'stop sentinel: present\n'
     printf 'executor product slices: stopped until fresh human direction\n'
     printf 'resume plan example: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\n'
-    printf 'resume brief validation example: bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md\n'
+    printf 'resume brief validation example: bash scripts/validate_resume_brief.sh %s\n' "$(resume_brief_example_target)"
   else
     printf 'stop sentinel: absent\n'
     printf 'executor product slices: follow GOAL.md and active brief\n'

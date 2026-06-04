@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:54:05Z
+Last updated: 2026-06-04T18:55:57Z
 
 ## Current State
 
@@ -31,8 +31,9 @@ bash scripts/agent_thread_status.sh
 ```
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
-the resume-plan and resume-validation commands, the workflow audit, and the
-Codex pair-state audit, then exits with a clean or warning summary.
+the resume-plan command, a planner-derived resume-validation command, the
+workflow audit, and the Codex pair-state audit, then exits with a clean or
+warning summary.
 
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while
@@ -81,7 +82,8 @@ artifacts are missing or when either `README.md` or `AGENTS.md` loses the
 agent-status, handoff, stop-sentinel, or resume-validation entrypoint guidance.
 Resume-brief validation rejects vector safety enforcement language. The
 workflow audit also verifies that the active brief named in `GOAL.md` exists.
-The resume planner prints the candidate
+The agent status command derives its resume-validation example from the resume
+planner. The resume planner prints the candidate
 `validate_resume_brief.sh` command once a concrete slug is supplied, and
 candidate resume briefs must carry that self-validation command before the
 `GOAL.md` update. The resume validator also requires that command to target the

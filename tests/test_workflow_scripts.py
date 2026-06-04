@@ -26,6 +26,14 @@ def _run(command: list[str], *, check: bool = True, cwd: Path = REPO_ROOT) -> su
     )
 
 
+def _next_resume_brief_for_slug(slug: str) -> str:
+    result = _run(["bash", "scripts/plan_next_resume_brief.sh", slug])
+    for line in result.stdout.splitlines():
+        if line.startswith("next brief: "):
+            return line.split(": ", 1)[1]
+    raise AssertionError("planner did not print next brief")
+
+
 def _valid_resume_brief(
     brief_path: str = "docs/briefs/007-verified-ontology-lock.md",
 ) -> str:
@@ -167,6 +175,7 @@ def _write_minimal_workflow_root(
 
 
 def test_agent_thread_status_reports_stop_state_and_audits() -> None:
+    expected_resume_brief = _next_resume_brief_for_slug("verified-ontology-lock")
     result = _run(["bash", "scripts/agent_thread_status.sh"])
 
     assert "handoff: docs/agent-thread-handoff.md" in result.stdout
@@ -178,8 +187,7 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     ) in result.stdout
     assert (
         "resume brief validation example: "
-        "bash scripts/validate_resume_brief.sh "
-        "docs/briefs/007-verified-ontology-lock.md"
+        f"bash scripts/validate_resume_brief.sh {expected_resume_brief}"
     ) in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
