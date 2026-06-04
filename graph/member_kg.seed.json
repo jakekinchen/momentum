@@ -1,0 +1,12 @@
+{
+  "schema_version": "0.1.0",
+  "graph_version": "fitgraph-kg-m0-skeleton-v0",
+  "status": "placeholder",
+  "description": "Placeholder member graph seed. Jordan context and Copilot fact nodes are PRD-pending.",
+  "nodes": [],
+  "edges": [],
+  "todo": [
+    "Add Member, Goal, Preference, EquipmentAvailability, InjuryEpisode, Restriction, WorkoutSession, observations, messages, and SourceSpan nodes.",
+    "Add member-context edges required for deterministic fact cards."
+  ]
+}

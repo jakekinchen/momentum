@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1.0",
+  "graph_version": "fitgraph-kg-m0-skeleton-v0",
+  "status": "placeholder",
+  "description": "Placeholder SKOS-style mapping seed. No ontology IDs are verified or pinned in M0.",
+  "local_terms": [],
+  "ontology_concepts": [],
+  "mappings": [],
+  "runtime_policy": {
+    "maps_to_edges_are_safety_edges": false,
+    "vector_search_for_safety_enforcement": false
+  },
+  "todo": [
+    "Add curated LocalTerm to OntologyConcept MAPS_TO edges with provenance.",
+    "Keep MAPS_TO grounding separate from local runtime safety traversal."
+  ]
+}

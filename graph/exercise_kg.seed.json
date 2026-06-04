@@ -1,0 +1,12 @@
+{
+  "schema_version": "0.1.0",
+  "graph_version": "fitgraph-kg-m0-skeleton-v0",
+  "status": "placeholder",
+  "description": "Placeholder exercise graph seed. Runtime exercise facts are PRD-pending.",
+  "nodes": [],
+  "edges": [],
+  "todo": [
+    "Add Exercise, ExerciseFamily, MuscleGroup, BodyRegion, MovementPattern, and Equipment nodes.",
+    "Add TARGETS, STRESSES, REQUIRES, HAS_PATTERN, VARIANT_OF, and PART_OF edges."
+  ]
+}

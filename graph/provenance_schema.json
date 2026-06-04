@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "status": "placeholder",
+  "description": "Minimal PROV-shaped decision receipt placeholder for future validation.",
+  "required_decision_fields": [
+    "decision",
+    "primary_severity",
+    "reason_codes",
+    "primary_reason_code",
+    "graph_paths",
+    "constraint_fingerprint",
+    "graph_version",
+    "ruleset_version",
+    "ontology_lock_version"
+  ],
+  "prov_shape": {
+    "RecommendationRun": "Activity",
+    "Decision": "Entity",
+    "SafetyEngine": "Agent",
+    "generated_by_edge": "Decision -GENERATED_BY-> RecommendationRun",
+    "used_edge": "Decision -USED-> Exercise | SafetyRule | MemberFact | SourceSpan"
+  },
+  "todo": [
+    "Add JSON Schema validation once decision receipts are emitted."
+  ]
+}
