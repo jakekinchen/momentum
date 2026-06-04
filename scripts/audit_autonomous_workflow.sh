@@ -358,6 +358,18 @@ require_text_in_file \
   "handoff explains status resume planner dry run"
 require_text_in_file \
   "docs/agent-thread-handoff.md" \
+  "runs both no-argument planner dry runs" \
+  "handoff explains status runs both planners"
+require_text_in_file \
+  "docs/agent-thread-handoff.md" \
+  "The resume-brief planner prints \`next brief template:\` without writing files." \
+  "handoff explains resume planner template output"
+reject_flattened_regex_in_file \
+  "docs/agent-thread-handoff.md" \
+  "manager-log planner, runs that planner dry run" \
+  "handoff avoids manager-only status planner wording"
+require_text_in_file \
+  "docs/agent-thread-handoff.md" \
   "Product-stop snapshot recorded:" \
   "handoff labels static product snapshot"
 require_text_in_file \

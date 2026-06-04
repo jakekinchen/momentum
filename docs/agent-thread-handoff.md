@@ -106,12 +106,13 @@ The workflow audit verifies that the Manager protocol preserves stopped-state
 support boundaries and durable manager-log guidance.
 It also verifies that `docs/manager-log/000-template-manager-support.md` exists
 and keeps the required stopped-state manager log sections.
-The agent status command points stopped-state manager threads to the no-argument
-manager-log planner, runs that planner dry run, and prints
-`manager support log required: docs/manager-log/NNN-*.md`. The manager-log
-planner prints the latest support log, `review latest command:`, and
-`next manager log template:` without writing files. Rerun it with a lowercase
-support slug before using exact manager-log paths or `git add` paths.
+The agent status command runs both no-argument planner dry runs. The manager-log
+planner prints the latest support log, `review latest command:`,
+`next manager log template:`, and
+`manager support log required: docs/manager-log/NNN-*.md` without writing files.
+The resume-brief planner prints `next brief template:` without writing files.
+Rerun the relevant planner with a lowercase slug before using exact paths or
+`git add` paths.
 Resume-brief validation rejects vector safety enforcement language. The
 workflow audit also verifies that the active brief named in `GOAL.md` exists.
 The agent status command intentionally keeps stopped-state resume validation

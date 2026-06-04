@@ -484,6 +484,9 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "review latest command:" in handoff
     assert "next manager log template:" in handoff
     assert "resume-brief planner dry run" in handoff
+    assert "runs both no-argument planner dry runs" in handoff
+    assert "The resume-brief planner prints `next brief template:`" in handoff
+    assert "manager-log planner, runs that planner dry run" not in handoff
     assert (
         "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
         not in handoff
@@ -1032,6 +1035,9 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   handoff explains audited manager log entrypoint guidance"
         in result.stdout
     )
+    assert "ok   handoff explains status runs both planners" in result.stdout
+    assert "ok   handoff explains resume planner template output" in result.stdout
+    assert "ok   handoff avoids manager-only status planner wording" in result.stdout
     assert "ok   handoff labels static product snapshot" in result.stdout
     assert "ok   handoff points live state to status output" in result.stdout
     assert "ok   handoff explains status manager support-log line" in result.stdout
