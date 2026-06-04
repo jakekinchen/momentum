@@ -74,6 +74,8 @@ Before an executor starts:
 - Remove or intentionally replace `<stop-orchestrator/>` in `GOAL.md`.
 - Copy this template into a new numbered brief, such as
   `docs/briefs/007-<slice-name>.md`.
+- Run `bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md`
+  on the drafted brief before updating `GOAL.md`.
 - Update `GOAL.md` to point at the new active brief.
 - Run `bash scripts/agent_thread_status.sh`.
 - Commit the brief and `GOAL.md` update with exact `git add` paths.

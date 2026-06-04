@@ -165,6 +165,7 @@ reject_text_i "vector search will enforce safety" "no unsafe vector enforcement 
 reject_text_i "use vector retrieval for safety enforcement" "no unsafe vector retrieval enforcement claim"
 
 section "Validation Commands"
+require_text "bash scripts/validate_resume_brief.sh" "resume brief self-validation command present"
 require_text "uv run pytest" "pytest command present"
 require_text "uv run python -m kg.validation" "KG validation command present"
 require_text "bash scripts/audit_autonomous_workflow.sh" "workflow audit command present"

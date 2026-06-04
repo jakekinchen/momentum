@@ -85,6 +85,7 @@ Run the workflow audit and KG validation commands.
 ## Resume Checklist
 
 - Update `GOAL.md`.
+- Run `bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md`.
 - Run `bash scripts/agent_thread_status.sh`.
 """
 
@@ -175,6 +176,7 @@ def test_resume_template_preserves_human_approval_guardrails() -> None:
     assert "fresh human direction" in template
     assert "<stop-orchestrator/>" in template
     assert "docs/briefs/007-<slice-name>.md" in template
+    assert "bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md" in template
     assert "uv run python -m kg.validation" in template
 
 
@@ -245,6 +247,7 @@ def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -
     assert "resume brief validation clean" in result.stdout
     assert "ok   human direction replaced with concrete instruction" in result.stdout
     assert "ok   no template placeholder: Replace this section" in result.stdout
+    assert "ok   resume brief self-validation command present" in result.stdout
     assert "stop sentinel: present" in result.stdout
 
 
@@ -299,6 +302,33 @@ def test_resume_brief_validator_rejects_raw_template_copy(tmp_path: Path) -> Non
     assert "MISS human direction replaced with concrete instruction" in result.stdout
     assert "MISS no template placeholder: YYYY-MM-DD" in result.stdout
     assert "MISS no template placeholder: Replace this section" in result.stdout
+    assert "resume brief validation warnings:" in result.stdout
+
+
+def test_resume_brief_validator_requires_self_validation_command(
+    tmp_path: Path,
+) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-missing-self-validation.md"
+    missing_command = _valid_resume_brief().replace(
+        "- Run `bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md`.\n",
+        "",
+    )
+    brief_path.write_text(missing_command, encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            "docs/briefs/007-missing-self-validation.md",
+            str(tmp_path),
+        ],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS resume brief self-validation command present" in result.stdout
     assert "resume brief validation warnings:" in result.stdout
 
 
