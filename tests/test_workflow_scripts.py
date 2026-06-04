@@ -233,6 +233,10 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
         "scripts/agent_thread_status.sh": (
             "#!/usr/bin/env bash\n"
             "printf 'resume plan dry run: bash scripts/plan_next_resume_brief.sh\\n'\n"
+            "section() { printf '\\n== %s ==\\n' \"$1\"; }\n"
+            "manager_log_plan_status=0\n"
+            "section \"Manager Log Planner\"\n"
+            "bash scripts/plan_next_manager_log.sh || manager_log_plan_status=$?\n"
             "printf 'resume brief validation: "
             "bash scripts/validate_resume_brief.sh <planner-next-brief-path>\\n'\n"
         ),
@@ -242,6 +246,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "printf 'mode: dry-run (no files written)\\n'\n"
             "printf 'docs/manager-log/000-template-manager-support.md\\n'\n"
             "printf 'review latest command:\\n'\n"
+            "printf 'next manager log: docs/manager-log/001-test.md\\n'\n"
             "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n"
         ),
         "scripts/plan_next_resume_brief.sh": "#!/usr/bin/env bash\n",
@@ -275,6 +280,9 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "stop sentinel: present" in result.stdout
     assert "executor product slices: stopped until fresh human direction" in result.stdout
     assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
+    assert "== Manager Log Planner ==" in result.stdout
+    assert "review latest command: sed -n '1,160p' docs/manager-log/" in result.stdout
+    assert "next manager log: docs/manager-log/" in result.stdout
     assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
     assert "resume plan dry run: bash scripts/plan_next_resume_brief.sh" in result.stdout
     assert (
@@ -302,6 +310,9 @@ def test_agent_thread_status_minimal_root_uses_neutral_resume_target(
     result = _run(["bash", "scripts/agent_thread_status.sh", str(tmp_path)])
 
     assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
+    assert "== Manager Log Planner ==" in result.stdout
+    assert "review latest command:" in result.stdout
+    assert "next manager log: docs/manager-log/001-test.md" in result.stdout
     assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
     assert (
         "resume brief validation: "
@@ -853,6 +864,11 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         in result.stdout
     )
     assert "ok   scripts/agent_thread_status.sh points to manager log planner" in result.stdout
+    assert "ok   scripts/agent_thread_status.sh runs manager log planner" in result.stdout
+    assert (
+        "ok   scripts/agent_thread_status.sh reports manager planner status"
+        in result.stdout
+    )
     assert (
         "ok   scripts/agent_thread_status.sh requires manager support logs"
         in result.stdout
@@ -1153,6 +1169,37 @@ def test_workflow_audit_requires_manager_log_planner_review_command(
     assert result.returncode == 1
     assert "ok   manager log planner prints latest manager log path" in result.stdout
     assert "MISS manager log planner prints latest review command" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_status_manager_log_planner_run(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    status_script = tmp_path / "scripts/agent_thread_status.sh"
+    status_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf 'manager log plan dry run: bash scripts/plan_next_manager_log.sh\\n'\n"
+        "printf 'manager support log required: docs/manager-log/NNN-*.md\\n'\n"
+        "printf 'resume plan dry run: bash scripts/plan_next_resume_brief.sh\\n'\n"
+        "printf 'resume brief validation: "
+        "bash scripts/validate_resume_brief.sh <planner-next-brief-path>\\n'\n",
+        encoding="utf-8",
+    )
+    status_script.chmod(0o755)
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "ok   scripts/agent_thread_status.sh points to manager log planner" in result.stdout
+    assert "MISS scripts/agent_thread_status.sh runs manager log planner" in result.stdout
+    assert (
+        "MISS scripts/agent_thread_status.sh reports manager planner status"
+        in result.stdout
+    )
     assert "workflow audit warnings:" in result.stdout
 
 

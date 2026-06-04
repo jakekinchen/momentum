@@ -350,6 +350,14 @@ require_text_in_file \
   "scripts/agent_thread_status.sh points to manager log planner"
 require_text_in_file \
   "scripts/agent_thread_status.sh" \
+  "section \"Manager Log Planner\"" \
+  "scripts/agent_thread_status.sh runs manager log planner"
+require_text_in_file \
+  "scripts/agent_thread_status.sh" \
+  "manager_log_plan_status" \
+  "scripts/agent_thread_status.sh reports manager planner status"
+require_text_in_file \
+  "scripts/agent_thread_status.sh" \
   "manager support log required: docs/manager-log/NNN-*.md" \
   "scripts/agent_thread_status.sh requires manager support logs"
 require_text_in_file \

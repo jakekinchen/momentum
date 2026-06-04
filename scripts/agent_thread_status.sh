@@ -9,6 +9,8 @@ section() {
   printf '\n== %s ==\n' "$1"
 }
 
+manager_log_plan_status=0
+
 section "Agent Thread Handoff"
 if [ -f docs/agent-thread-handoff.md ]; then
   printf 'handoff: docs/agent-thread-handoff.md\n'
@@ -32,6 +34,8 @@ if [ -f GOAL.md ]; then
     printf 'resume plan dry run: bash scripts/plan_next_resume_brief.sh\n'
     printf 'resume plan slug example: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\n'
     printf 'resume brief validation: bash scripts/validate_resume_brief.sh <planner-next-brief-path>\n'
+    section "Manager Log Planner"
+    bash scripts/plan_next_manager_log.sh || manager_log_plan_status=$?
   else
     printf 'stop sentinel: absent\n'
     printf 'executor product slices: follow GOAL.md and active brief\n'
@@ -49,9 +53,9 @@ pair_status=0
 node scripts/audit_codex_pair_state.mjs || pair_status=$?
 
 section "Agent Status Summary"
-if [ "$workflow_status" -eq 0 ] && [ "$pair_status" -eq 0 ]; then
+if [ "$workflow_status" -eq 0 ] && [ "$pair_status" -eq 0 ] && [ "$manager_log_plan_status" -eq 0 ]; then
   printf 'agent thread status clean\n'
 else
-  printf 'agent thread status warnings: workflow=%s pair=%s\n' "$workflow_status" "$pair_status"
+  printf 'agent thread status warnings: workflow=%s pair=%s manager_log_plan=%s\n' "$workflow_status" "$pair_status" "$manager_log_plan_status"
   exit 1
 fi
