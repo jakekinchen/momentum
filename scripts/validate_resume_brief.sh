@@ -47,6 +47,29 @@ reject_text() {
   fi
 }
 
+reject_text_i() {
+  text="$1"
+  label="$2"
+  if grep -Fiq "$text" "$BRIEF"; then
+    miss "$label"
+  else
+    ok "$label"
+  fi
+}
+
+require_any_text() {
+  label="$1"
+  shift
+  for text in "$@"; do
+    if grep -Fq "$text" "$BRIEF" ||
+      printf '%s\n' "$brief_flat_text" | grep -Fq "$text"; then
+      ok "$label"
+      return
+    fi
+  done
+  miss "$label"
+}
+
 section "Resume Brief Validation"
 printf 'mode: dry-run (no files written)\n'
 printf 'root: %s\n' "$ROOT"
@@ -77,6 +100,10 @@ if [ ! -f "$BRIEF" ]; then
   exit 1
 fi
 ok "brief file exists"
+brief_flat_text="$(
+  tr '\n' ' ' < "$BRIEF" |
+    sed 's/[[:space:]][[:space:]]*/ /g'
+)"
 
 section "Required Sections"
 for heading in \
@@ -121,10 +148,21 @@ reject_text "List work that must not be done" "no template placeholder: Out of s
 reject_text "docs/briefs/007-<slice-name>.md" "no template placeholder: example brief path"
 
 section "Guardrails"
-require_text "deterministic graph behavior" "deterministic graph behavior preserved"
+require_any_text \
+  "deterministic graph behavior preserved" \
+  "Preserve deterministic graph behavior over LLM-driven eligibility" \
+  "preserving deterministic graph behavior" \
+  "deterministic graph behavior"
 require_text "graph/ontology-lock.json" "ontology lock truthfulness preserved"
 require_text "MAPS_TO" "MAPS_TO audit metadata preserved"
-require_text "vector" "vector safety-enforcement guardrail present"
+require_any_text \
+  "vector safety-enforcement guardrail present" \
+  "Vector search must not enforce safety" \
+  "vector search is not used for safety enforcement" \
+  "would replace deterministic safety enforcement with LLM, embedding, or vector retrieval behavior"
+reject_text_i "use vector search for safety enforcement" "no unsafe vector safety enforcement claim"
+reject_text_i "vector search will enforce safety" "no unsafe vector enforcement claim"
+reject_text_i "use vector retrieval for safety enforcement" "no unsafe vector retrieval enforcement claim"
 
 section "Validation Commands"
 require_text "uv run pytest" "pytest command present"

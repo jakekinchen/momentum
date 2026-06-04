@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:35:16Z
+Last updated: 2026-06-04T18:37:34Z
 
 ## Current State
 
@@ -65,7 +65,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 49 tests and passed.
+- `uv run pytest` collected 51 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -77,7 +77,8 @@ The pytest suite includes workflow-script coverage for the agent status command,
 the `README.md` and `AGENTS.md` handoff pointers, the workflow audit's handoff
 checks, the resume brief template, the resume planner and validator, and the
 loop-start stop guard. The workflow audit exits non-zero when required
-artifacts are missing.
+artifacts are missing, and resume-brief validation rejects vector safety
+enforcement language.
 
 ## Hard Invariants
 

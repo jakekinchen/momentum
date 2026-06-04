@@ -66,7 +66,7 @@ node scripts/audit_codex_pair_state.mjs
 ## Evidence To Record
 
 - Validation command output.
-- Confirmation that vector search is not used for safety enforcement.
+- Confirmation that Vector search must not enforce safety.
 
 ## Reachability / Demo Proof
 
@@ -223,6 +223,34 @@ def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -
     assert "stop sentinel: present" in result.stdout
 
 
+def test_resume_brief_validator_accepts_wrapped_vector_guardrail(
+    tmp_path: Path,
+) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-wrapped-vector.md"
+    wrapped_brief = _valid_resume_brief().replace(
+        "Confirmation that Vector search must not enforce safety.",
+        (
+            "The slice would replace deterministic safety enforcement with LLM, embedding,\n"
+            "or vector retrieval behavior."
+        ),
+    )
+    brief_path.write_text(wrapped_brief, encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            "docs/briefs/007-wrapped-vector.md",
+            str(tmp_path),
+        ]
+    )
+
+    assert "resume brief validation clean" in result.stdout
+    assert "ok   vector safety-enforcement guardrail present" in result.stdout
+
+
 def test_resume_brief_validator_rejects_raw_template_copy(tmp_path: Path) -> None:
     brief_dir = tmp_path / "docs/briefs"
     brief_dir.mkdir(parents=True)
@@ -246,6 +274,35 @@ def test_resume_brief_validator_rejects_raw_template_copy(tmp_path: Path) -> Non
     assert "MISS human direction replaced with concrete instruction" in result.stdout
     assert "MISS no template placeholder: YYYY-MM-DD" in result.stdout
     assert "MISS no template placeholder: Replace this section" in result.stdout
+    assert "resume brief validation warnings:" in result.stdout
+
+
+def test_resume_brief_validator_rejects_vector_safety_enforcement(
+    tmp_path: Path,
+) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-vector-safety.md"
+    unsafe_brief = _valid_resume_brief().replace(
+        "Confirmation that Vector search must not enforce safety.",
+        "Use vector search for safety enforcement.",
+    )
+    brief_path.write_text(unsafe_brief, encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            "docs/briefs/007-vector-safety.md",
+            str(tmp_path),
+        ],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS vector safety-enforcement guardrail present" in result.stdout
+    assert "MISS no unsafe vector safety enforcement claim" in result.stdout
+    assert "ok   no unsafe vector retrieval enforcement claim" in result.stdout
     assert "resume brief validation warnings:" in result.stdout
 
 
