@@ -1,7 +1,5 @@
 # GOAL
 
-<stop-orchestrator/>
-
 ## Active Mission
 
 Build the FitGraph Knowledge Graph module described in
@@ -10,11 +8,11 @@ safety filtering, alternatives, decision receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-M5 - Ontology sidecar and validation
+EOD completion and testing
 
 ## Current Slice
 
-docs/briefs/006-m5-ontology-sidecar-validation.md
+docs/briefs/007-eod-completion-testing.md
 
 ## Stop Conditions
 

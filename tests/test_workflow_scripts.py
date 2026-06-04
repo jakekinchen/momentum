@@ -314,43 +314,14 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
     _run(["git", "init", "--quiet"], cwd=root)
 
 
-def test_agent_thread_status_reports_stop_state_and_audits() -> None:
+def test_agent_thread_status_reports_current_goal_state_and_audits() -> None:
     result = _run(["bash", "scripts/agent_thread_status.sh"])
 
     assert "handoff: docs/agent-thread-handoff.md" in result.stdout
-    assert "stop sentinel: present" in result.stdout
-    assert "executor product slices: stopped until fresh human direction" in result.stdout
-    assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
-    assert "== Manager Log Planner ==" in result.stdout
-    assert "review latest command: sed -n '1,160p' docs/manager-log/" in result.stdout
-    assert (
-        "next manager log: rerun with a lowercase slug to print exact path"
-        in result.stdout
-    )
-    assert "next manager log template: docs/manager-log/" in result.stdout
-    assert "next manager log: docs/manager-log/" not in result.stdout
-    assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
-    assert "resume plan dry run: bash scripts/plan_next_resume_brief.sh" in result.stdout
-    assert "== Resume Brief Planner ==" in result.stdout
-    assert "next brief: rerun with a lowercase slug to print exact path" in result.stdout
-    assert "next brief template: docs/briefs/" in result.stdout
-    assert (
-        "resume plan with slug: "
-        "bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>"
-    ) in result.stdout
-    assert (
-        "resume plan slug example: "
-        "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
-        not in result.stdout
-    )
-    assert (
-        "resume brief validation: "
-        "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
-    ) in result.stdout
-    assert (
-        "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
-        not in result.stdout
-    )
+    assert "stop sentinel: absent" in result.stdout
+    assert "executor product slices: follow GOAL.md and active brief" in result.stdout
+    assert "current milestone: EOD completion and testing" in result.stdout
+    assert "current slice: docs/briefs/007-eod-completion-testing.md" in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
     assert "agent thread status clean" in result.stdout
@@ -621,7 +592,8 @@ def test_resume_plan_script_reports_next_brief_without_mutating() -> None:
     result = _run(["bash", "scripts/plan_next_resume_brief.sh", "agent-thread-test"])
 
     assert "mode: dry-run (no files written)" in result.stdout
-    assert "stop sentinel: present" in result.stdout
+    assert "stop sentinel: absent" in result.stdout
+    assert "product work: follow GOAL.md and the active brief" in result.stdout
     assert f"next brief: {expected_target}" in result.stdout
     assert (
         "copy command: cp docs/briefs/000-template-human-approved-resume.md "
@@ -647,8 +619,8 @@ def test_manager_log_plan_with_slug_prints_exact_candidate_paths() -> None:
     result = _run(["bash", "scripts/plan_next_manager_log.sh", "manager-log-planner"])
 
     assert "mode: dry-run (no files written)" in result.stdout
-    assert "stop sentinel: present" in result.stdout
-    assert "support mode: manager process support only" in result.stdout
+    assert "stop sentinel: absent" in result.stdout
+    assert "support mode: verify GOAL.md and active role before writing manager logs" in result.stdout
     assert f"latest manager log: {expected_latest}" in result.stdout
     assert (
         f"review latest command: sed -n '1,160p' {expected_latest}"
@@ -1053,7 +1025,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   workflow README requires manager support logs" in result.stdout
     assert "ok   workflow README separates manager support evidence" in result.stdout
     assert "ok   scaffold matrix names current active brief" in result.stdout
-    assert "ok   scaffold matrix preserves stop sentinel state" in result.stdout
+    assert "ok   scaffold matrix captures resumed stop state" in result.stdout
     assert "ok   scaffold matrix points to latest manager log" in result.stdout
     assert "ok   scaffold matrix captures completed autonomous plan" in result.stdout
     assert "ok   scaffold matrix avoids stale M0 active brief" in result.stdout
@@ -1215,9 +1187,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log planner requires evidence fill" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "ok   manager log planner avoids placeholder git add target" in result.stdout
-    assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
-    assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
-    assert "ok   start loop stop guard present" in result.stdout
+    assert "active brief: docs/briefs/007-eod-completion-testing.md" in result.stdout
+    assert "ok   docs/briefs/007-eod-completion-testing.md" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
     assert "suggested checks:" in result.stdout
     assert "- uv run pytest" in result.stdout

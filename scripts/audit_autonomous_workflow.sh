@@ -246,14 +246,27 @@ require_text_in_file \
   "workflow README separates manager support evidence"
 
 section "Scaffold adoption matrix"
-require_text_in_file \
-  "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
-  "docs/briefs/006-m5-ontology-sidecar-validation.md" \
-  "scaffold matrix names current active brief"
-require_text_in_file \
-  "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
-  "<stop-orchestrator/>" \
-  "scaffold matrix preserves stop sentinel state"
+goal_active_brief="$(active_brief_from_goal || true)"
+if [ -n "${goal_active_brief:-}" ]; then
+  require_text_in_file \
+    "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+    "$goal_active_brief" \
+    "scaffold matrix names current active brief"
+else
+  printf 'MISS scaffold matrix names current active brief\n'
+  warns=$((warns + 1))
+fi
+if grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' GOAL.md 2>/dev/null; then
+  require_text_in_file \
+    "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+    "<stop-orchestrator/>" \
+    "scaffold matrix preserves stop sentinel state"
+else
+  require_text_in_file \
+    "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+    "Stop sentinel | Absent" \
+    "scaffold matrix captures resumed stop state"
+fi
 require_text_in_file \
   "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
   "docs/manager-log latest:" \
