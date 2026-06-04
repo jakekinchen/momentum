@@ -1,8 +1,9 @@
 {
   "schema_version": "0.1.0",
   "status": "placeholder",
-  "description": "Minimal PROV-shaped decision receipt placeholder for future validation.",
+  "description": "Minimal PROV-shaped decision receipt fields for validation.",
   "required_decision_fields": [
+    "exercise_id",
     "decision",
     "primary_severity",
     "reason_codes",
