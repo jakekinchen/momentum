@@ -1,4 +1,5 @@
 import XCTest
+import CamiFitEngine
 @testable import CamiFitApp
 
 final class AppPoseProviderRunStatusTests: XCTestCase {
@@ -81,10 +82,82 @@ final class AppPoseProviderRunStatusTests: XCTestCase {
         )
     }
 
+    func testDirectProviderFailureUpdatesFailedStatusWithDeterministicDescriptor() {
+        let viewModel = AppExerciseSessionViewModel()
+        let provider = StatusThrowingPoseProvider(error: StatusProviderFailure.message("direct provider unavailable"))
+
+        let summary = viewModel.runRecordedProvider(provider, selectedPresetID: "bodyweight_squat")
+
+        XCTAssertEqual(summary.frameCount, 0)
+        XCTAssertEqual(summary.selectedExerciseID, "bodyweight_squat")
+        XCTAssertEqual(summary.selectedExerciseName, "Bodyweight Squat")
+        XCTAssertEqual(summary.diagnosticText, "Pose provider failed: direct provider unavailable")
+        XCTAssertEqual(viewModel.latestHUDState?.frameCount, 0)
+        XCTAssertEqual(viewModel.latestHUDState?.diagnosticText, "Pose provider failed: direct provider unavailable")
+        guard case let .failed(failure) = viewModel.poseProviderRunStatus else {
+            return XCTFail("Expected failed status, got \(viewModel.poseProviderRunStatus)")
+        }
+        XCTAssertEqual(failure.descriptor.mode, "provider")
+        XCTAssertEqual(failure.descriptor.source, "direct-provider")
+        XCTAssertEqual(failure.diagnosticText, "Pose provider failed: direct provider unavailable")
+
+        print(
+            "app-provider-status-direct-failure mode=\(failure.descriptor.mode) " +
+            "source=\(failure.descriptor.source) diagnostic=\(failure.diagnosticText)"
+        )
+    }
+
+    func testConfiguredRecordedRunFailureUpdatesFailedStatusWithRequestedSource() {
+        let viewModel = AppExerciseSessionViewModel()
+
+        let summary = viewModel.runConfiguredPoseProvider(mode: .recordedRun(id: "missing-recorded-run"))
+
+        XCTAssertEqual(summary.frameCount, 0)
+        XCTAssertEqual(summary.diagnosticText, "Pose provider configuration failed: recorded run not found: missing-recorded-run")
+        XCTAssertEqual(viewModel.latestHUDState?.frameCount, 0)
+        XCTAssertEqual(
+            viewModel.latestHUDState?.diagnosticText,
+            "Pose provider configuration failed: recorded run not found: missing-recorded-run"
+        )
+        guard case let .failed(failure) = viewModel.poseProviderRunStatus else {
+            return XCTFail("Expected failed status, got \(viewModel.poseProviderRunStatus)")
+        }
+        XCTAssertEqual(failure.descriptor.mode, "recorded-run")
+        XCTAssertEqual(failure.descriptor.source, "recorded:missing-recorded-run")
+        XCTAssertEqual(
+            failure.diagnosticText,
+            "Pose provider configuration failed: recorded run not found: missing-recorded-run"
+        )
+
+        print(
+            "app-provider-status-configured-failure mode=\(failure.descriptor.mode) " +
+            "source=\(failure.descriptor.source) diagnostic=\(failure.diagnosticText)"
+        )
+    }
+
     private static var packageRoot: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
+    }
+}
+
+private struct StatusThrowingPoseProvider: PoseProvider {
+    let error: Error
+
+    func frames() throws -> [PoseFrame] {
+        throw error
+    }
+}
+
+private enum StatusProviderFailure: Error, CustomStringConvertible {
+    case message(String)
+
+    var description: String {
+        switch self {
+        case let .message(message):
+            return message
+        }
     }
 }
