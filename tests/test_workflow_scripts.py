@@ -197,8 +197,33 @@ def test_resume_plan_script_reports_next_brief_without_mutating() -> None:
         "copy command: cp docs/briefs/000-template-human-approved-resume.md "
         f"{expected_target}"
     ) in result.stdout
+    assert (
+        f"Run: bash scripts/validate_resume_brief.sh {expected_target}"
+        in result.stdout
+    )
+    assert (
+        f"bash scripts/validate_resume_brief.sh {expected_target}"
+        in result.stdout
+    )
     assert f"git add {expected_target} GOAL.md" in result.stdout
     assert not target_path.exists()
+
+
+def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> None:
+    result = _run(["bash", "scripts/plan_next_resume_brief.sh"])
+
+    assert "mode: dry-run (no files written)" in result.stdout
+    assert (
+        "choose slug: bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
+        in result.stdout
+    )
+    assert (
+        "Rerun with a lowercase slug to print the exact resume-brief validation command"
+    ) in result.stdout
+    assert (
+        "bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md"
+        not in result.stdout
+    )
 
 
 def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -> None:

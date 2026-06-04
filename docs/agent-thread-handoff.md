@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:40:22Z
+Last updated: 2026-06-04T18:42:33Z
 
 ## Current State
 
@@ -65,7 +65,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 52 tests and passed.
+- `uv run pytest` collected 53 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -79,7 +79,8 @@ checks, the resume brief template, the resume planner and validator, and the
 loop-start stop guard. The workflow audit exits non-zero when required
 artifacts are missing, and resume-brief validation rejects vector safety
 enforcement language. The workflow audit also verifies that the active brief
-named in `GOAL.md` exists.
+named in `GOAL.md` exists. The resume planner prints the candidate
+`validate_resume_brief.sh` command once a concrete slug is supplied.
 
 ## Hard Invariants
 

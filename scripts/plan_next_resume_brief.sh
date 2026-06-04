@@ -68,12 +68,22 @@ fi
 
 section "Required Follow-Up"
 printf '1. Replace the Human Direction section with the exact user instruction.\n'
-printf '2. Update GOAL.md to point Current Slice at %s.\n' "$target"
-printf '3. Remove or replace <stop-orchestrator/> only after human approval.\n'
-printf '4. Run: bash scripts/agent_thread_status.sh\n'
-printf '5. Commit with exact paths: git add %s GOAL.md\n' "$target"
+if [ "$SLUG" = "<slice-name>" ]; then
+  printf '2. Rerun with a lowercase slug to print the exact resume-brief validation command.\n'
+else
+  printf '2. Run: bash scripts/validate_resume_brief.sh %s\n' "$target"
+fi
+printf '3. Update GOAL.md to point Current Slice at %s.\n' "$target"
+printf '4. Remove or replace <stop-orchestrator/> only after human approval.\n'
+printf '5. Run: bash scripts/agent_thread_status.sh\n'
+printf '6. Commit with exact paths: git add %s GOAL.md\n' "$target"
 
 section "Validation"
+if [ "$SLUG" = "<slice-name>" ]; then
+  printf 'bash scripts/validate_resume_brief.sh <candidate-brief-path>  # after drafting a candidate brief\n'
+else
+  printf 'bash scripts/validate_resume_brief.sh %s\n' "$target"
+fi
 printf 'uv run pytest\n'
 printf 'uv run python -m kg.validation\n'
 printf 'bash scripts/audit_autonomous_workflow.sh\n'
