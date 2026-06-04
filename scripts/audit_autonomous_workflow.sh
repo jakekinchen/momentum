@@ -99,6 +99,7 @@ require_file "docs/kg-module-prd.md"
 require_file "docs/agent-thread-handoff.md"
 require_file "executor-reviewer-pair-programming.md"
 require_file "docs/briefs/000-template-human-approved-resume.md"
+require_file "docs/manager-log/000-template-manager-support.md"
 require_file "docs/autonomous-workflow/README.md"
 require_file "docs/autonomous-workflow/01-operating-model.md"
 require_file "docs/autonomous-workflow/02-role-contracts.md"
@@ -194,6 +195,32 @@ require_text_in_file \
   "docs/autonomous-workflow/06-manager-guardian-protocol.md" \
   "Manager-only support does not need executor" \
   "manager protocol separates manager logs from executor/reviewer artifacts"
+require_text_in_file \
+  "docs/autonomous-workflow/06-manager-guardian-protocol.md" \
+  "docs/manager-log/000-template-manager-support.md" \
+  "manager protocol points to manager log template"
+
+section "Manager log template"
+require_text_in_file \
+  "docs/manager-log/000-template-manager-support.md" \
+  "## Status" \
+  "manager log template includes status"
+require_text_in_file \
+  "docs/manager-log/000-template-manager-support.md" \
+  "## Manager Action" \
+  "manager log template includes manager action"
+require_text_in_file \
+  "docs/manager-log/000-template-manager-support.md" \
+  "## Validation Evidence" \
+  "manager log template includes validation evidence"
+require_text_in_file \
+  "docs/manager-log/000-template-manager-support.md" \
+  "## Guardrail" \
+  "manager log template includes guardrail"
+require_text_in_file \
+  "docs/manager-log/000-template-manager-support.md" \
+  "This is process support only" \
+  "manager log template preserves stopped-state guardrail"
 
 section "Goal"
 if [ -f GOAL.md ]; then

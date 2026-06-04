@@ -150,6 +150,14 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
         "executor-reviewer-pair-programming.md": "# Pair\n",
         "docs/briefs/000-template-human-approved-resume.md": "# Template\n",
         "docs/briefs/006-m5-ontology-sidecar-validation.md": "# Active brief\n",
+        "docs/manager-log/000-template-manager-support.md": (
+            "# Manager Log NNN - Short Title\n\n"
+            "## Status\n\n"
+            "## Manager Action\n\n"
+            "## Validation Evidence\n\n"
+            "## Guardrail\n\n"
+            "This is process support only.\n"
+        ),
         "docs/autonomous-workflow/README.md": "# Workflow\n",
         "docs/autonomous-workflow/01-operating-model.md": "# Operating\n",
         "docs/autonomous-workflow/02-role-contracts.md": "# Roles\n",
@@ -162,6 +170,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "Stopped-state support must not start product execution.\n"
             "Write `docs/manager-log/NNN-*.md` for support turns.\n"
             "Manager-only support does not need executor session logs or reviewer decisions.\n"
+            "Use `docs/manager-log/000-template-manager-support.md`.\n"
         ),
         "docs/autonomous-workflow/07-document-and-artifact-map.md": "# Artifacts\n",
         "docs/autonomous-workflow/08-scaffold-adoption-matrix.md": "# Matrix\n",
@@ -602,6 +611,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
 
     assert "ok   README.md" in result.stdout
     assert "ok   docs/briefs/000-template-human-approved-resume.md" in result.stdout
+    assert "ok   docs/manager-log/000-template-manager-support.md" in result.stdout
     assert "ok   docs/agent-thread-handoff.md" in result.stdout
     assert "ok   scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout
@@ -649,6 +659,12 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   manager protocol separates manager logs from executor/reviewer artifacts"
         in result.stdout
     )
+    assert "ok   manager protocol points to manager log template" in result.stdout
+    assert "ok   manager log template includes status" in result.stdout
+    assert "ok   manager log template includes manager action" in result.stdout
+    assert "ok   manager log template includes validation evidence" in result.stdout
+    assert "ok   manager log template includes guardrail" in result.stdout
+    assert "ok   manager log template preserves stopped-state guardrail" in result.stdout
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
@@ -752,6 +768,31 @@ def test_workflow_audit_requires_stopped_state_manager_protocol(tmp_path: Path) 
         "MISS manager protocol separates manager logs from executor/reviewer artifacts"
         in result.stdout
     )
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_manager_log_template_shape(tmp_path: Path) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    template = tmp_path / "docs/manager-log/000-template-manager-support.md"
+    template.write_text(
+        "# Incomplete Manager Template\n\n"
+        "## Status\n\n"
+        "Missing required stopped-state sections.\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "ok   docs/manager-log/000-template-manager-support.md" in result.stdout
+    assert "ok   manager log template includes status" in result.stdout
+    assert "MISS manager log template includes manager action" in result.stdout
+    assert "MISS manager log template includes validation evidence" in result.stdout
+    assert "MISS manager log template includes guardrail" in result.stdout
+    assert "MISS manager log template preserves stopped-state guardrail" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

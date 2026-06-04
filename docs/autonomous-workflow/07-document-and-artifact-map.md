@@ -19,6 +19,7 @@
 - `docs/session-logs/`
 - `docs/reviewer-messages/`
 - `docs/manager-log/`
+- `docs/manager-log/000-template-manager-support.md`
 
 ## Agent Orientation
 

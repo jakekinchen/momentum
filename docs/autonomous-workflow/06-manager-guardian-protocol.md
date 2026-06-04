@@ -17,6 +17,9 @@ evidence, and guardrail statement. Manager-only support does not need executor
 session logs or reviewer decisions unless the thread is also acting in one of
 those roles.
 
+Use `docs/manager-log/000-template-manager-support.md` as the starting shape
+for stopped-state manager support logs.
+
 ## Manager Checks
 
 - Is the active brief still aligned with `docs/kg-module-prd.md`?
