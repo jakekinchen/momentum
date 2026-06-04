@@ -38,6 +38,14 @@ latest_file() {
   fi
 }
 
+active_brief_from_goal() {
+  awk '
+    /^## Current Slice[[:space:]]*$/ { in_section = 1; next }
+    /^## / && in_section { exit }
+    in_section && NF { print; exit }
+  ' GOAL.md
+}
+
 section "Repo"
 printf 'root: %s\n' "$(pwd)"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -88,6 +96,14 @@ require_executable "scripts/stop_codex_goal_loop.sh"
 section "Goal"
 if [ -f GOAL.md ]; then
   sed -n '1,100p' GOAL.md
+  active_brief="$(active_brief_from_goal || true)"
+  if [ -n "${active_brief:-}" ]; then
+    printf '\nactive brief: %s\n' "$active_brief"
+    require_file "$active_brief"
+  else
+    printf '\nMISS active brief named in GOAL.md\n'
+    warns=$((warns + 1))
+  fi
   if grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' GOAL.md; then
     printf '\nSTOP SENTINEL PRESENT\n'
     if grep -q 'Refusing to start Codex goal loop' scripts/start_codex_goal_loop.sh 2>/dev/null; then

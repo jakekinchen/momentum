@@ -316,6 +316,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/plan_next_resume_brief.sh" in result.stdout
     assert "ok   executable scripts/validate_resume_brief.sh" in result.stdout
+    assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
+    assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
     assert "workflow audit clean" in result.stdout
@@ -330,6 +332,25 @@ def test_workflow_audit_exits_nonzero_on_missing_artifacts(tmp_path: Path) -> No
     assert result.returncode == 1
     assert "MISS AGENTS.md" in result.stdout
     assert "MISS README.md" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_goal_current_slice_file(tmp_path: Path) -> None:
+    (tmp_path / "GOAL.md").write_text(
+        "# GOAL\n\n"
+        "## Current Slice\n\n"
+        "docs/briefs/999-missing.md\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "active brief: docs/briefs/999-missing.md" in result.stdout
+    assert "MISS docs/briefs/999-missing.md" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 
