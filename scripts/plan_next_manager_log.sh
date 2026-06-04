@@ -42,6 +42,16 @@ if [ -z "${latest_num:-}" ]; then
   latest_num="000"
 fi
 
+if [ "$latest_num" = "000" ]; then
+  latest_file="none"
+else
+  latest_file="$(
+    find docs/manager-log -maxdepth 1 -type f -name "${latest_num}-*.md" |
+      sort |
+      tail -1
+  )"
+fi
+
 next_num="$(printf '%03d' "$((10#$latest_num + 1))")"
 target="docs/manager-log/${next_num}-${SLUG}.md"
 
@@ -57,6 +67,7 @@ fi
 section "Next Manager Log"
 printf 'template: %s\n' "$template"
 printf 'latest numbered manager log: %s\n' "$latest_num"
+printf 'latest manager log: %s\n' "$latest_file"
 printf 'next manager log: %s\n' "$target"
 
 if [ "$SLUG" = "<support-slug>" ]; then

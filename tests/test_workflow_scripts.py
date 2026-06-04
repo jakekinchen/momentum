@@ -460,6 +460,7 @@ def test_manager_log_plan_with_slug_prints_exact_candidate_paths() -> None:
     assert "mode: dry-run (no files written)" in result.stdout
     assert "stop sentinel: present" in result.stdout
     assert "support mode: manager process support only" in result.stdout
+    assert "latest manager log: docs/manager-log/" in result.stdout
     assert f"next manager log: {expected_target}" in result.stdout
     assert (
         "copy command: cp docs/manager-log/000-template-manager-support.md "
@@ -799,6 +800,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log template preserves stopped-state guardrail" in result.stdout
     assert "ok   manager log planner is dry run" in result.stdout
     assert "ok   manager log planner uses manager support template" in result.stdout
+    assert "ok   manager log planner prints latest manager log path" in result.stdout
     assert "ok   manager log planner avoids no-slug exact git add paths" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout

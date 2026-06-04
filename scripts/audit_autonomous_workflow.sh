@@ -310,6 +310,10 @@ require_text_in_file \
   "manager log planner uses manager support template"
 require_text_in_file \
   "scripts/plan_next_manager_log.sh" \
+  "latest manager log:" \
+  "manager log planner prints latest manager log path"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
   "Commit with exact paths after rerunning with a concrete slug" \
   "manager log planner avoids no-slug exact git add paths"
 reject_text_in_file \
