@@ -12,7 +12,7 @@ EOD completion and testing
 
 ## Current Slice
 
-docs/briefs/009-copilot-sleep-churn-coach-brief-fact-cards.md
+docs/briefs/010-bad-lower-back-resolver-safety.md
 
 ## Stop Conditions
 
