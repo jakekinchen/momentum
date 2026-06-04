@@ -89,6 +89,23 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         loadAvailablePresets()
     }
 
+    @Published public private(set) var activeRoutine: WorkoutRoutine?
+    @Published public private(set) var activeRoutineBlockIndex: Int = 0
+
+    public func startRoutine(_ routine: WorkoutRoutine) throws {
+        activeRoutine = routine
+        activeRoutineBlockIndex = 0
+        if case let .preset(id) = routine.blocks.first?.exerciseRef { try? selectPreset(id: id) }
+    }
+
+    public func advanceRoutine() {
+        guard let routine = activeRoutine else { return }
+        let next = activeRoutineBlockIndex + 1
+        guard next < routine.blocks.count else { activeRoutine = nil; return }
+        activeRoutineBlockIndex = next
+        if case let .preset(id) = routine.blocks[next].exerciseRef { try? selectPreset(id: id) }
+    }
+
     public func loadAvailablePresets() {
         let resolved = Self.resolvePresetSummaries(from: presetSourceCandidates)
         availablePresets = resolved.presets

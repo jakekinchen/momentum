@@ -1,13 +1,13 @@
 import CamiFitEngine
 import Foundation
 
-enum ExerciseRef: Codable, Equatable {
+public enum ExerciseRef: Codable, Equatable {
     case preset(id: String)
     case inline(ExerciseProgram)
 
     private enum CodingKeys: String, CodingKey { case preset, inline }
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         if let id = try c.decodeIfPresent(String.self, forKey: .preset) {
             self = .preset(id: id)
@@ -16,7 +16,7 @@ enum ExerciseRef: Codable, Equatable {
         }
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         switch self {
         case let .preset(id): try c.encode(id, forKey: .preset)
@@ -25,17 +25,17 @@ enum ExerciseRef: Codable, Equatable {
     }
 }
 
-struct RoutineBlock: Codable, Equatable {
-    var exerciseRef: ExerciseRef
-    var sets: Int
-    var reps: Int?
-    var holdSeconds: Double?
-    var restSeconds: Int
+public struct RoutineBlock: Codable, Equatable {
+    public var exerciseRef: ExerciseRef
+    public var sets: Int
+    public var reps: Int?
+    public var holdSeconds: Double?
+    public var restSeconds: Int
 }
 
-struct WorkoutRoutine: Codable, Equatable, Identifiable {
-    var id: String
-    var name: String
-    var description: String
-    var blocks: [RoutineBlock]
+public struct WorkoutRoutine: Codable, Equatable, Identifiable {
+    public var id: String
+    public var name: String
+    public var description: String
+    public var blocks: [RoutineBlock]
 }
