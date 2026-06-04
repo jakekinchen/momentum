@@ -38,6 +38,10 @@ def _missing_card(member_id: str, query: str) -> FactCard:
     )
 
 
+def _member_label(graph: LocalGraph, member_id: str) -> str:
+    return graph.node(member_id).label
+
+
 def _source_nodes(graph: LocalGraph, node_id: str) -> tuple[str, ...]:
     return tuple(edge.target for edge in graph.outgoing(node_id, "DERIVED_FROM"))
 
@@ -154,3 +158,98 @@ def adherence_trend(member_id: str, graph: LocalGraph | None = None) -> list[Fac
             query=query,
         )
     ]
+
+
+def sleep_this_week(member_id: str, graph: LocalGraph | None = None) -> list[FactCard]:
+    """Return deterministic fact cards for current-week sleep observations."""
+
+    member_graph = _graph(graph)
+    query = "member_retrieval.sleep_this_week"
+    if not _member_exists(member_graph, member_id):
+        return [_missing_card(member_id, query)]
+
+    cards: list[FactCard] = []
+    for edge in member_graph.outgoing(member_id, "HAS_BIOMARKER_OBSERVATION"):
+        node = member_graph.node(edge.target)
+        properties = node.properties or {}
+        if properties.get("metric") != "sleep_hours" or properties.get("period") != "last_7_days":
+            continue
+        raw_values = properties.get("values", [])
+        values = [float(value) for value in raw_values if isinstance(value, int | float)]
+        if not values:
+            continue
+        average = sum(values) / len(values)
+        unit = str(properties.get("unit", "hours"))
+        period_end = str(properties.get("period_end", "unknown date"))
+        cards.append(
+            FactCard(
+                claim=(
+                    f"{_member_label(member_graph, member_id)} averaged {average:.1f} {unit} "
+                    f"of sleep over {len(values)} nights ending {period_end}."
+                ),
+                confidence="deterministic",
+                source_nodes=(edge.target, *_source_nodes(member_graph, edge.target)),
+                query=query,
+            )
+        )
+    return cards or [_missing_card(member_id, query)]
+
+
+def churn_risk(member_id: str, graph: LocalGraph | None = None) -> list[FactCard]:
+    """Return deterministic fact cards for explicit graph-backed churn signals."""
+
+    member_graph = _graph(graph)
+    query = "member_retrieval.churn_risk"
+    if not _member_exists(member_graph, member_id):
+        return [_missing_card(member_id, query)]
+
+    cards: list[FactCard] = []
+    for edge in member_graph.outgoing(member_id, "HAS_CHURN_SIGNAL"):
+        node = member_graph.node(edge.target)
+        properties = node.properties or {}
+        risk_level = str(properties.get("risk_level", "unknown"))
+        reasons = tuple(str(reason) for reason in properties.get("reasons", []))
+        observed_at = str(properties.get("observed_at", "unknown date"))
+        reason_text = "; ".join(reasons) if reasons else "no graph reason recorded"
+        cards.append(
+            FactCard(
+                claim=(
+                    f"{_member_label(member_graph, member_id)} has {risk_level} churn risk "
+                    f"on {observed_at}: {reason_text}."
+                ),
+                confidence="deterministic",
+                source_nodes=(edge.target, *_source_nodes(member_graph, edge.target)),
+                query=query,
+            )
+        )
+    return cards or [_missing_card(member_id, query)]
+
+
+def coach_brief(member_id: str, graph: LocalGraph | None = None) -> list[FactCard]:
+    """Return deterministic fact cards for source-backed coach briefs."""
+
+    member_graph = _graph(graph)
+    query = "member_retrieval.coach_brief"
+    if not _member_exists(member_graph, member_id):
+        return [_missing_card(member_id, query)]
+
+    cards: list[FactCard] = []
+    for edge in member_graph.outgoing(member_id, "HAS_COACH_BRIEF"):
+        node = member_graph.node(edge.target)
+        properties = node.properties or {}
+        generated_for = str(properties.get("generated_for", "unknown date"))
+        text = str(properties.get("text", "")).strip()
+        if not text:
+            continue
+        cards.append(
+            FactCard(
+                claim=(
+                    f"Coach brief for {_member_label(member_graph, member_id)} "
+                    f"on {generated_for}: {text}"
+                ),
+                confidence="deterministic",
+                source_nodes=(edge.target, *_source_nodes(member_graph, edge.target)),
+                query=query,
+            )
+        )
+    return cards or [_missing_card(member_id, query)]

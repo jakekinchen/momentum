@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1.0",
-  "graph_version": "fitgraph-kg-m4-member-v0",
+  "graph_version": "fitgraph-kg-m4-member-v1",
   "status": "seed",
   "description": "Tiny member-context graph for deterministic Coach Copilot fact-card tests.",
   "nodes": [
@@ -66,6 +66,45 @@
       }
     },
     {
+      "id": "BiomarkerObservation:jordan_sleep_week_2026_06_04",
+      "type": "BiomarkerObservation",
+      "label": "Jordan sleep last 7 days ending 2026-06-04",
+      "aliases": ["sleep this week"],
+      "properties": {
+        "metric": "sleep_hours",
+        "period": "last_7_days",
+        "period_end": "2026-06-04",
+        "unit": "hours",
+        "values": [6.1, 5.4, 7.2, 6.0, 5.1, 7.8, 6.3]
+      }
+    },
+    {
+      "id": "ChurnSignal:jordan_elevated_adherence_fatigue_2026_06_04",
+      "type": "ChurnSignal",
+      "label": "Elevated churn risk from adherence and fatigue signals",
+      "aliases": ["churn risk"],
+      "properties": {
+        "risk_level": "elevated",
+        "observed_at": "2026-06-04",
+        "reasons": [
+          "Weekly adherence fell from 100% to 50% over 2 weeks",
+          "One skipped session with a fatigue/work explanation",
+          "Login frequency down vs. prior month"
+        ],
+        "model_scored": false
+      }
+    },
+    {
+      "id": "CoachBrief:jordan_morning_2026_06_04",
+      "type": "CoachBrief",
+      "label": "Jordan coach brief 2026-06-04",
+      "aliases": ["show me the brief", "morning brief"],
+      "properties": {
+        "generated_for": "2026-06-04",
+        "text": "Congratulate Jordan on completing yesterday's lower-body session, the first pain-free squat work since the knee flare-up. Then review elevated churn risk because adherence dropped from 100% to 50% over the last two weeks."
+      }
+    },
+    {
       "id": "SourceSpan:jordan_intake_2026_06_04",
       "type": "SourceSpan",
       "label": "Jordan intake note 2026-06-04",
@@ -76,6 +115,19 @@
         "text": "Jordan trains at home with kettlebell and yoga mat, has an active left knee issue, and wants lower-body strength without aggravating the knee.",
         "timestamp": "2026-06-04T00:00:00Z",
         "source_hash": "m4-jordan-seed"
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_copilot_snapshot_2026_06_04",
+      "type": "SourceSpan",
+      "label": "Jordan copilot snapshot 2026-06-04",
+      "aliases": [],
+      "properties": {
+        "source_file": "member_kg.seed.json",
+        "json_path": "$.nodes",
+        "text": "Jordan's last 7 sleep values are 6.1, 5.4, 7.2, 6.0, 5.1, 7.8, and 6.3 hours. Churn risk is elevated due to declining adherence, fatigue/work explanation for a skipped session, and lower login frequency. The 2026-06-04 coach brief is to celebrate the pain-free lower-body session and review churn risk.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "009-jordan-copilot-seed"
       }
     }
   ],
@@ -111,6 +163,24 @@
       "properties": {}
     },
     {
+      "source": "Member:jordan",
+      "predicate": "HAS_BIOMARKER_OBSERVATION",
+      "target": "BiomarkerObservation:jordan_sleep_week_2026_06_04",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_CHURN_SIGNAL",
+      "target": "ChurnSignal:jordan_elevated_adherence_fatigue_2026_06_04",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_COACH_BRIEF",
+      "target": "CoachBrief:jordan_morning_2026_06_04",
+      "properties": {}
+    },
+    {
       "source": "Goal:jordan_lower_body_strength",
       "predicate": "DERIVED_FROM",
       "target": "SourceSpan:jordan_intake_2026_06_04",
@@ -127,10 +197,28 @@
       "predicate": "DERIVED_FROM",
       "target": "SourceSpan:jordan_intake_2026_06_04",
       "properties": {}
+    },
+    {
+      "source": "BiomarkerObservation:jordan_sleep_week_2026_06_04",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_copilot_snapshot_2026_06_04",
+      "properties": {}
+    },
+    {
+      "source": "ChurnSignal:jordan_elevated_adherence_fatigue_2026_06_04",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_copilot_snapshot_2026_06_04",
+      "properties": {}
+    },
+    {
+      "source": "CoachBrief:jordan_morning_2026_06_04",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_copilot_snapshot_2026_06_04",
+      "properties": {}
     }
   ],
   "todo": [
-    "Add richer Preference, WorkoutSession, BiomarkerObservation, Message, Barrier, ChurnSignal, and CoachBrief nodes.",
+    "Add richer Preference, WorkoutSession, Message, Barrier, LabResult, and historical biometric/coach-brief nodes.",
     "Expand member-context retrieval beyond the tiny deterministic M4 fact-card set."
   ]
 }
