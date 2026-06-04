@@ -117,6 +117,21 @@ private struct HeroPreviewCard: View {
             }
             .padding(14)
 
+            if let routine = model.activeRoutine {
+                VStack {
+                    HStack(spacing: 8) {
+                        Text(routine.name).font(.caption.weight(.semibold))
+                        Text("Block \(model.activeRoutineBlockIndex + 1) of \(routine.blocks.count)")
+                            .font(.caption2).foregroundStyle(.secondary)
+                        Button("Next") { model.advanceRoutine() }.buttonStyle(.bordered).controlSize(.mini)
+                    }
+                    .padding(8)
+                    .glassEffect(.regular, in: .capsule)
+                    Spacer()
+                }
+                .padding(.top, 64)
+            }
+
             if let cueText = model.state.cueText {
                 VStack {
                     Spacer()
