@@ -12,7 +12,7 @@ M3 - Integrated macOS app (productize). M2 (push-up, lunge, plank presets) compl
 
 ## Current Slice
 
-docs/briefs/026-macos-app-shell-viewmodel.md
+docs/briefs/027-app-preset-resources.md
 
 ## Stop Conditions
 
