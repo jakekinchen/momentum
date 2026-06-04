@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:59:31Z
+Last updated: 2026-06-04T19:01:40Z
 
 ## Current State
 
@@ -66,7 +66,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 57 tests and passed.
+- `uv run pytest` collected 58 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -90,7 +90,9 @@ candidate resume briefs must carry that self-validation command before the
 candidate brief being validated, not a stale copied path, and the exact command
 must appear in the brief's `## Resume Checklist`. Static orientation docs use
 `<planner-next-brief-path>` and the workflow audit rejects stale hardcoded
-`007` resume-validation targets.
+`007` resume-validation targets. If the status command cannot derive a planner
+target, it also falls back to `<planner-next-brief-path>` rather than a
+hardcoded numbered brief.
 
 ## Hard Invariants
 

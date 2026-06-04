@@ -210,6 +210,24 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "agent thread status clean" in result.stdout
 
 
+def test_agent_thread_status_fallback_avoids_stale_resume_target(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+
+    result = _run(["bash", "scripts/agent_thread_status.sh", str(tmp_path)])
+
+    assert (
+        "resume brief validation example: "
+        "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
+    ) in result.stdout
+    assert (
+        "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
+        not in result.stdout
+    )
+    assert "agent thread status clean" in result.stdout
+
+
 def test_agents_md_points_future_threads_to_status_handoff() -> None:
     agents = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
 

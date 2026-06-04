@@ -17,7 +17,7 @@ resume_brief_example_target() {
   if [ -n "${target:-}" ]; then
     printf '%s\n' "$target"
   else
-    printf 'docs/briefs/007-verified-ontology-lock.md\n'
+    printf '<planner-next-brief-path>\n'
   fi
 }
 
@@ -32,7 +32,7 @@ fi
 section "Git"
 git status --short --branch
 printf 'head: '
-git log --oneline -1
+git log --oneline -1 2>/dev/null || true
 
 section "Goal Stop State"
 if [ -f GOAL.md ]; then
