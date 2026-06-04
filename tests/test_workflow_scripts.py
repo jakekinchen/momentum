@@ -35,9 +35,19 @@ def test_agents_md_points_future_threads_to_status_handoff() -> None:
     assert "<stop-orchestrator/>" in agents
 
 
+def test_readme_points_future_threads_to_status_handoff() -> None:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "bash scripts/agent_thread_status.sh" in readme
+    assert "docs/agent-thread-handoff.md" in readme
+    assert "<stop-orchestrator/>" in readme
+    assert "uv run python -m kg.validation" in readme
+
+
 def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     result = _run(["bash", "scripts/audit_autonomous_workflow.sh"])
 
+    assert "ok   README.md" in result.stdout
     assert "ok   docs/agent-thread-handoff.md" in result.stdout
     assert "ok   scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout

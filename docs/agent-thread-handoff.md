@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:11:33Z
+Last updated: 2026-06-04T18:13:36Z
 
 ## Current State
 
@@ -20,10 +20,11 @@ executor product slice while the stop sentinel is present.
 
 ## Start Here
 
-1. Read `AGENTS.md`; it points future threads to this status/handoff flow.
-2. Read `GOAL.md` and respect the stop sentinel.
-3. Read `docs/reviewer-messages/006-review-m5-ontology-sidecar-validation.md`.
-4. Run the one-command agent status check:
+1. Read `README.md` for the repo-level entrypoint.
+2. Read `AGENTS.md`; it points future threads to this status/handoff flow.
+3. Read `GOAL.md` and respect the stop sentinel.
+4. Read `docs/reviewer-messages/006-review-m5-ontology-sidecar-validation.md`.
+5. Run the one-command agent status check:
 
 ```bash
 bash scripts/agent_thread_status.sh
@@ -55,7 +56,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 40 tests and passed.
+- `uv run pytest` collected 41 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -64,8 +65,8 @@ Expected current validation shape:
   - `ontology_sidecar_export_status: available_unverified`
 
 The pytest suite includes workflow-script coverage for the agent status command,
-the `AGENTS.md` handoff pointer, the workflow audit's handoff checks, and the
-loop-start stop guard.
+the `README.md` and `AGENTS.md` handoff pointers, the workflow audit's handoff
+checks, and the loop-start stop guard.
 
 ## Hard Invariants
 

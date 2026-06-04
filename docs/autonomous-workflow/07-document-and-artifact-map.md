@@ -6,6 +6,7 @@
 
 ## Mission Control
 
+- `README.md`
 - `GOAL.md`
 - `executor-reviewer-pair-programming.md`
 - `docs/autonomous-workflow/`

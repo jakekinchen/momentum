@@ -61,6 +61,7 @@ find . -name AGENTS.md -print 2>/dev/null | sort || true
 
 section "Required workflow files"
 require_file "AGENTS.md"
+require_file "README.md"
 require_file "GOAL.md"
 require_file "docs/kg-module-prd.md"
 require_file "docs/agent-thread-handoff.md"
