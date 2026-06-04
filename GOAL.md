@@ -12,7 +12,7 @@ EOD completion and testing
 
 ## Current Slice
 
-docs/briefs/008-only-db-kb-equipment-resolution.md
+docs/briefs/009-copilot-sleep-churn-coach-brief-fact-cards.md
 
 ## Stop Conditions
 

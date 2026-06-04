@@ -4,7 +4,7 @@
 |---|---|---|
 | PRD | Present | `docs/kg-module-prd.md` |
 | Goal file | Present | `GOAL.md` |
-| Active brief | Current | `docs/briefs/008-only-db-kb-equipment-resolution.md` |
+| Active brief | Current | `docs/briefs/009-copilot-sleep-churn-coach-brief-fact-cards.md` |
 | Stop sentinel | Absent | Fresh human direction resumed the coding pair for EOD completion/testing. |
 | Executor log directory | Present | `docs/session-logs/` |
 | Reviewer message directory | Present | `docs/reviewer-messages/` |
