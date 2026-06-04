@@ -427,6 +427,8 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "bash scripts/validate_resume_brief.sh" not in direct_audits
     assert "After drafting a candidate resume brief" in handoff
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in after_drafting
+    assert "Product-stop snapshot recorded:" in handoff
+    assert "Treat that command output as the current operational state" in handoff
     assert "passes the current collected test suite" in handoff
     assert re.search(r"collected [0-9]+ tests", handoff) is None
     assert "manager-log planner/support-log" in handoff
@@ -447,6 +449,8 @@ def test_workflow_audit_rejects_any_hardcoded_handoff_pytest_count(
     handoff = tmp_path / "docs/agent-thread-handoff.md"
     handoff.write_text(
         "# Handoff\n\n"
+        "Product-stop snapshot recorded:\n"
+        "Treat that command output as the current operational state\n"
         "manager-log planner/support-log\n"
         "manager support log required: docs/manager-log/NNN-*.md\n"
         "docs/manager-log latest:\n"
@@ -883,6 +887,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   handoff explains audited manager log entrypoint guidance"
         in result.stdout
     )
+    assert "ok   handoff labels static product snapshot" in result.stdout
+    assert "ok   handoff points live state to status output" in result.stdout
     assert "ok   handoff explains status manager support-log line" in result.stdout
     assert "ok   handoff points manager turns to latest manager log" in result.stdout
     assert "ok   handoff points manager turns to latest review command" in result.stdout

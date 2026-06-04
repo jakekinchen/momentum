@@ -1,6 +1,10 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T19:40:06Z
+Product-stop snapshot recorded: 2026-06-04T19:40:06Z
+
+Live git head, latest workflow artifacts, and next manager-log template are
+printed by `bash scripts/agent_thread_status.sh` below.
+Treat that command output as the current operational state.
 
 ## Current State
 

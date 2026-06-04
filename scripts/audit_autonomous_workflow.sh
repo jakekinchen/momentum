@@ -324,6 +324,14 @@ require_text_in_file \
   "handoff explains audited manager log entrypoint guidance"
 require_text_in_file \
   "docs/agent-thread-handoff.md" \
+  "Product-stop snapshot recorded:" \
+  "handoff labels static product snapshot"
+require_text_in_file \
+  "docs/agent-thread-handoff.md" \
+  "Treat that command output as the current operational state" \
+  "handoff points live state to status output"
+require_text_in_file \
+  "docs/agent-thread-handoff.md" \
   "manager support log required: docs/manager-log/NNN-*.md" \
   "handoff explains status manager support-log line"
 require_text_in_file \
