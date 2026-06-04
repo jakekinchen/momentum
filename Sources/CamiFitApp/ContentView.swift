@@ -577,6 +577,7 @@ struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
     let role: Role
     var text: String
+    var regimen: [RegimenResult] = []
 }
 
 /// UI-shell chat model: the transcript and composer are real; the responder is a
@@ -630,9 +631,9 @@ final class ChatViewModel: ObservableObject {
 
     private func finish(_ id: UUID) {
         isResponding = false
-        if let idx = messages.firstIndex(where: { $0.id == id }), messages[idx].text.isEmpty {
-            messages[idx].text = "(No response.)"
-        }
+        guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
+        if messages[idx].text.isEmpty { messages[idx].text = "(No response.)" }
+        messages[idx].regimen = RegimenBlockParser.parse(message: messages[idx].text)
     }
 
     private func setError(_ message: String, on id: UUID) {

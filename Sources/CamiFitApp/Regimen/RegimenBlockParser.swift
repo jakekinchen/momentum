@@ -65,3 +65,29 @@ extension RegimenBlockParser {
         return frames.first
     }
 }
+
+enum RegimenResult: Equatable {
+    case exercise(ExerciseProgram)
+    case routine(WorkoutRoutine)
+    case invalid(kind: RegimenBlockKind, message: String)
+}
+
+extension RegimenBlockParser {
+    static func parse(message: String) -> [RegimenResult] {
+        extractBlocks(from: message).map { block in
+            switch block.kind {
+            case .exercise:
+                switch validateExercise(json: block.json) {
+                case let .success(program): return .exercise(program)
+                case let .failure(error): return .invalid(kind: .exercise, message: String(describing: error))
+                }
+            case .routine:
+                guard let data = block.json.data(using: .utf8),
+                      let routine = try? JSONDecoder().decode(WorkoutRoutine.self, from: data) else {
+                    return .invalid(kind: .routine, message: "Could not parse routine JSON.")
+                }
+                return .routine(routine)
+            }
+        }
+    }
+}
