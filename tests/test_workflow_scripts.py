@@ -1031,6 +1031,10 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
+    assert "suggested checks:" in result.stdout
+    assert "- uv run pytest" in result.stdout
+    assert "- uv run python -m kg.validation" in result.stdout
+    assert "suggested checks: uv sync && uv run pytest" not in result.stdout
     assert "workflow audit clean" in result.stdout
 
 

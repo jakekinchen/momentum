@@ -579,10 +579,13 @@ section "Project commands"
 if [ -f pyproject.toml ]; then
   printf 'pyproject.toml present\n'
   printf 'agent status: bash scripts/agent_thread_status.sh\n'
+  printf 'suggested checks:\n'
   if command -v uv >/dev/null 2>&1; then
-    printf 'suggested checks: uv sync && uv run pytest\n'
+    printf '%s\n' '- uv run pytest'
+    printf '%s\n' '- uv run python -m kg.validation'
   else
-    printf 'suggested checks: python -m pytest\n'
+    printf '%s\n' '- python -m pytest'
+    printf '%s\n' '- python -m kg.validation'
   fi
 else
   printf 'pyproject.toml not present yet\n'
