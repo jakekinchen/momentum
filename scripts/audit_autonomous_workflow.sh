@@ -112,6 +112,7 @@ require_file "docs/autonomous-workflow/08-scaffold-adoption-matrix.md"
 require_executable "scripts/agent_thread_status.sh"
 require_executable "scripts/audit_autonomous_workflow.sh"
 require_file "scripts/audit_codex_pair_state.mjs"
+require_executable "scripts/plan_next_manager_log.sh"
 require_executable "scripts/plan_next_resume_brief.sh"
 require_executable "scripts/validate_resume_brief.sh"
 require_executable "scripts/run_codex_pair_cycle.sh"
@@ -221,6 +222,24 @@ require_text_in_file \
   "docs/manager-log/000-template-manager-support.md" \
   "This is process support only" \
   "manager log template preserves stopped-state guardrail"
+
+section "Manager log planner"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
+  "mode: dry-run (no files written)" \
+  "manager log planner is dry run"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
+  "docs/manager-log/000-template-manager-support.md" \
+  "manager log planner uses manager support template"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
+  "Commit with exact paths after rerunning with a concrete slug" \
+  "manager log planner avoids no-slug exact git add paths"
+reject_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
+  "git add docs/manager-log/" \
+  "manager log planner avoids placeholder exact git add target"
 
 section "Goal"
 if [ -f GOAL.md ]; then

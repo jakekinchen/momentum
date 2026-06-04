@@ -34,6 +34,14 @@ def _next_resume_brief_for_slug(slug: str) -> str:
     raise AssertionError("planner did not print next brief")
 
 
+def _next_manager_log_for_slug(slug: str) -> str:
+    result = _run(["bash", "scripts/plan_next_manager_log.sh", slug])
+    for line in result.stdout.splitlines():
+        if line.startswith("next manager log: "):
+            return line.split(": ", 1)[1]
+    raise AssertionError("manager log planner did not print next manager log")
+
+
 def _valid_resume_brief(
     brief_path: str = "docs/briefs/007-verified-ontology-lock.md",
 ) -> str:
@@ -171,6 +179,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "Write `docs/manager-log/NNN-*.md` for support turns.\n"
             "Manager-only support does not need executor session logs or reviewer decisions.\n"
             "Use `docs/manager-log/000-template-manager-support.md`.\n"
+            "Use `bash scripts/plan_next_manager_log.sh <support-slug>`.\n"
         ),
         "docs/autonomous-workflow/07-document-and-artifact-map.md": "# Artifacts\n",
         "docs/autonomous-workflow/08-scaffold-adoption-matrix.md": "# Matrix\n",
@@ -186,6 +195,12 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "bash scripts/validate_resume_brief.sh <planner-next-brief-path>\\n'\n"
         ),
         "scripts/audit_autonomous_workflow.sh": "#!/usr/bin/env bash\n",
+        "scripts/plan_next_manager_log.sh": (
+            "#!/usr/bin/env bash\n"
+            "printf 'mode: dry-run (no files written)\\n'\n"
+            "printf 'docs/manager-log/000-template-manager-support.md\\n'\n"
+            "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n"
+        ),
         "scripts/plan_next_resume_brief.sh": "#!/usr/bin/env bash\n",
         "scripts/validate_resume_brief.sh": "#!/usr/bin/env bash\n",
         "scripts/run_codex_pair_cycle.sh": "#!/usr/bin/env bash\n",
@@ -378,6 +393,44 @@ def test_resume_plan_script_reports_next_brief_without_mutating() -> None:
     )
     assert f"git add {expected_target} GOAL.md" in result.stdout
     assert not target_path.exists()
+
+
+def test_manager_log_plan_with_slug_prints_exact_candidate_paths() -> None:
+    expected_target = _next_manager_log_for_slug("manager-log-planner")
+    target_path = REPO_ROOT / expected_target
+
+    result = _run(["bash", "scripts/plan_next_manager_log.sh", "manager-log-planner"])
+
+    assert "mode: dry-run (no files written)" in result.stdout
+    assert "stop sentinel: present" in result.stdout
+    assert "support mode: manager process support only" in result.stdout
+    assert f"next manager log: {expected_target}" in result.stdout
+    assert (
+        "copy command: cp docs/manager-log/000-template-manager-support.md "
+        f"{expected_target}"
+    ) in result.stdout
+    assert f"git add {expected_target} <changed-support-paths>" in result.stdout
+    assert not target_path.exists()
+
+
+def test_manager_log_plan_without_slug_avoids_placeholder_exact_paths() -> None:
+    result = _run(["bash", "scripts/plan_next_manager_log.sh"])
+
+    assert "mode: dry-run (no files written)" in result.stdout
+    assert (
+        "choose slug: bash scripts/plan_next_manager_log.sh manager-log-template"
+        in result.stdout
+    )
+    assert (
+        "copy command: rerun with a lowercase slug to print an exact copy command"
+        in result.stdout
+    )
+    assert (
+        "cp docs/manager-log/000-template-manager-support.md docs/manager-log/"
+        not in result.stdout
+    )
+    assert "git add docs/manager-log/" not in result.stdout
+    assert "git add <planner-next-manager-log-path> <changed-support-paths>" in result.stdout
 
 
 def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> None:
@@ -615,6 +668,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   docs/agent-thread-handoff.md" in result.stdout
     assert "ok   scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout
+    assert "ok   executable scripts/plan_next_manager_log.sh" in result.stdout
     assert "ok   executable scripts/plan_next_resume_brief.sh" in result.stdout
     assert "ok   executable scripts/validate_resume_brief.sh" in result.stdout
     assert "ok   AGENTS.md points to agent status" in result.stdout
@@ -665,6 +719,10 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log template includes validation evidence" in result.stdout
     assert "ok   manager log template includes guardrail" in result.stdout
     assert "ok   manager log template preserves stopped-state guardrail" in result.stdout
+    assert "ok   manager log planner is dry run" in result.stdout
+    assert "ok   manager log planner uses manager support template" in result.stdout
+    assert "ok   manager log planner avoids no-slug exact git add paths" in result.stdout
+    assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout

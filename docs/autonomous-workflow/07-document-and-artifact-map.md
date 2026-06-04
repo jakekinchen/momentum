@@ -24,6 +24,7 @@
 ## Agent Orientation
 
 - `scripts/agent_thread_status.sh`
+- `scripts/plan_next_manager_log.sh`
 - `scripts/plan_next_resume_brief.sh`
 - `scripts/validate_resume_brief.sh`
 

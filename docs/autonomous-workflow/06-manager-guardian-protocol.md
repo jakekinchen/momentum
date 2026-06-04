@@ -20,6 +20,10 @@ those roles.
 Use `docs/manager-log/000-template-manager-support.md` as the starting shape
 for stopped-state manager support logs.
 
+Use `bash scripts/plan_next_manager_log.sh <support-slug>` to preview the next
+numbered manager-log path and exact copy command before writing a new support
+log.
+
 ## Manager Checks
 
 - Is the active brief still aligned with `docs/kg-module-prd.md`?
