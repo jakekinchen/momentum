@@ -311,9 +311,14 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
     assert "resume plan dry run: bash scripts/plan_next_resume_brief.sh" in result.stdout
     assert (
+        "resume plan with slug: "
+        "bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>"
+    ) in result.stdout
+    assert (
         "resume plan slug example: "
         "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
-    ) in result.stdout
+        not in result.stdout
+    )
     assert (
         "resume brief validation: "
         "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
@@ -344,6 +349,10 @@ def test_agent_thread_status_minimal_root_uses_neutral_resume_target(
     assert "next manager log template: docs/manager-log/001-<support-slug>.md" in result.stdout
     assert "next manager log: docs/manager-log/001-test.md" not in result.stdout
     assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
+    assert (
+        "resume plan with slug: "
+        "bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>"
+    ) in result.stdout
     assert (
         "resume brief validation: "
         "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
@@ -970,7 +979,15 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         in result.stdout
     )
     assert (
+        "ok   scripts/agent_thread_status.sh uses neutral resume planner slug target"
+        in result.stdout
+    )
+    assert (
         "ok   scripts/agent_thread_status.sh uses neutral resume-validation target"
+        in result.stdout
+    )
+    assert (
+        "ok   scripts/agent_thread_status.sh avoids hardcoded resume planner slug"
         in result.stdout
     )
     assert (
@@ -1081,7 +1098,15 @@ def test_workflow_audit_requires_neutral_status_resume_guidance(tmp_path: Path) 
         in result.stdout
     )
     assert (
+        "MISS scripts/agent_thread_status.sh uses neutral resume planner slug target"
+        in result.stdout
+    )
+    assert (
         "MISS scripts/agent_thread_status.sh uses neutral resume-validation target"
+        in result.stdout
+    )
+    assert (
+        "MISS scripts/agent_thread_status.sh avoids hardcoded resume planner slug"
         in result.stdout
     )
     assert (

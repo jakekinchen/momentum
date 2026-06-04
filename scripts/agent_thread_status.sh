@@ -32,7 +32,7 @@ if [ -f GOAL.md ]; then
     printf 'manager log plan dry run: bash scripts/plan_next_manager_log.sh\n'
     printf 'manager support log required: docs/manager-log/NNN-*.md\n'
     printf 'resume plan dry run: bash scripts/plan_next_resume_brief.sh\n'
-    printf 'resume plan slug example: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\n'
+    printf 'resume plan with slug: bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>\n'
     printf 'resume brief validation: bash scripts/validate_resume_brief.sh <planner-next-brief-path>\n'
     section "Manager Log Planner"
     bash scripts/plan_next_manager_log.sh || manager_log_plan_status=$?
