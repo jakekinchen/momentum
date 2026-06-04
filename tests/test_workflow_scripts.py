@@ -190,7 +190,13 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "Use `bash scripts/plan_next_manager_log.sh <support-slug>`.\n"
         ),
         "docs/autonomous-workflow/07-document-and-artifact-map.md": "# Artifacts\n",
-        "docs/autonomous-workflow/08-scaffold-adoption-matrix.md": "# Matrix\n",
+        "docs/autonomous-workflow/08-scaffold-adoption-matrix.md": (
+            "# Matrix\n\n"
+            "`docs/briefs/006-m5-ontology-sidecar-validation.md`\n"
+            "`<stop-orchestrator/>`\n"
+            "`docs/manager-log latest:`\n"
+            "M0-M5 complete\n"
+        ),
         "docs/autonomous-workflow/09-fitgraph-autonomous-plan.md": "## M0 - Test\n",
         "scripts/audit_codex_pair_state.mjs": "console.log('ok')\n",
         "pyproject.toml": "[project]\nname = \"fitgraph-test\"\nversion = \"0.0.0\"\n",
@@ -740,6 +746,12 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager role contract preserves stop sentinel boundary" in result.stdout
     assert "ok   manager role contract points to latest manager log" in result.stdout
     assert "ok   manager role contract points to manager log planner" in result.stdout
+    assert "ok   scaffold matrix names current active brief" in result.stdout
+    assert "ok   scaffold matrix preserves stop sentinel state" in result.stdout
+    assert "ok   scaffold matrix points to latest manager log" in result.stdout
+    assert "ok   scaffold matrix captures completed autonomous plan" in result.stdout
+    assert "ok   scaffold matrix avoids stale M0 active brief" in result.stdout
+    assert "ok   scaffold matrix avoids stale first-slice pending note" in result.stdout
     assert "ok   AGENTS.md points to agent status" in result.stdout
     assert "ok   AGENTS.md points to handoff" in result.stdout
     assert "ok   AGENTS.md preserves stop sentinel guidance" in result.stdout
@@ -945,6 +957,35 @@ def test_workflow_audit_requires_manager_role_contract_stop_guidance(
     )
     assert "MISS manager role contract points to latest manager log" in result.stdout
     assert "MISS manager role contract points to manager log planner" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_rejects_stale_scaffold_matrix_state(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    matrix = tmp_path / "docs/autonomous-workflow/08-scaffold-adoption-matrix.md"
+    matrix.write_text(
+        "# 08 Scaffold Adoption Matrix\n\n"
+        "| Capability | Status | Notes |\n"
+        "|---|---|---|\n"
+        "| Active brief | Present | `docs/briefs/001-m0-kg-module-skeleton.md` |\n"
+        "| Product implementation | Pending | First executor slice should create the walking skeleton. |\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS scaffold matrix names current active brief" in result.stdout
+    assert "MISS scaffold matrix preserves stop sentinel state" in result.stdout
+    assert "MISS scaffold matrix points to latest manager log" in result.stdout
+    assert "MISS scaffold matrix captures completed autonomous plan" in result.stdout
+    assert "MISS scaffold matrix avoids stale M0 active brief" in result.stdout
+    assert "MISS scaffold matrix avoids stale first-slice pending note" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

@@ -153,6 +153,32 @@ require_text_in_file \
   "bash scripts/plan_next_manager_log.sh" \
   "manager role contract points to manager log planner"
 
+section "Scaffold adoption matrix"
+require_text_in_file \
+  "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+  "docs/briefs/006-m5-ontology-sidecar-validation.md" \
+  "scaffold matrix names current active brief"
+require_text_in_file \
+  "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+  "<stop-orchestrator/>" \
+  "scaffold matrix preserves stop sentinel state"
+require_text_in_file \
+  "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+  "docs/manager-log latest:" \
+  "scaffold matrix points to latest manager log"
+require_text_in_file \
+  "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+  "M0-M5 complete" \
+  "scaffold matrix captures completed autonomous plan"
+reject_text_in_file \
+  "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+  "docs/briefs/001-m0-kg-module-skeleton.md" \
+  "scaffold matrix avoids stale M0 active brief"
+reject_text_in_file \
+  "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \
+  "First executor slice should create the walking skeleton." \
+  "scaffold matrix avoids stale first-slice pending note"
+
 section "Entrypoint guidance"
 require_text_in_file \
   "AGENTS.md" \
