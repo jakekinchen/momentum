@@ -191,26 +191,30 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
 
 
 def test_agent_thread_status_reports_stop_state_and_audits() -> None:
-    expected_resume_brief = _next_resume_brief_for_slug("verified-ontology-lock")
     result = _run(["bash", "scripts/agent_thread_status.sh"])
 
     assert "handoff: docs/agent-thread-handoff.md" in result.stdout
     assert "stop sentinel: present" in result.stdout
     assert "executor product slices: stopped until fresh human direction" in result.stdout
+    assert "resume plan dry run: bash scripts/plan_next_resume_brief.sh" in result.stdout
     assert (
-        "resume plan example: "
+        "resume plan slug example: "
         "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
     ) in result.stdout
     assert (
-        "resume brief validation example: "
-        f"bash scripts/validate_resume_brief.sh {expected_resume_brief}"
+        "resume brief validation: "
+        "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
     ) in result.stdout
+    assert (
+        "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
+        not in result.stdout
+    )
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
     assert "agent thread status clean" in result.stdout
 
 
-def test_agent_thread_status_fallback_avoids_stale_resume_target(
+def test_agent_thread_status_minimal_root_uses_neutral_resume_target(
     tmp_path: Path,
 ) -> None:
     _write_minimal_workflow_root(tmp_path)
@@ -218,7 +222,7 @@ def test_agent_thread_status_fallback_avoids_stale_resume_target(
     result = _run(["bash", "scripts/agent_thread_status.sh", str(tmp_path)])
 
     assert (
-        "resume brief validation example: "
+        "resume brief validation: "
         "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
     ) in result.stdout
     assert (
@@ -259,7 +263,8 @@ def test_readme_safe_checks_do_not_require_candidate_resume_brief() -> None:
 
     assert "uv run pytest" in safe_checks
     assert "bash scripts/audit_autonomous_workflow.sh" in safe_checks
-    assert "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" in safe_checks
+    assert "bash scripts/plan_next_resume_brief.sh" in safe_checks
+    assert "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" not in safe_checks
     assert "bash scripts/validate_resume_brief.sh" not in safe_checks
     assert "requires a drafted candidate brief path" in safe_checks
 
@@ -271,7 +276,11 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     after_drafting = handoff.split("After drafting a candidate resume brief", 1)[1]
 
     assert "bash scripts/audit_autonomous_workflow.sh" in direct_audits
-    assert "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" in direct_audits
+    assert "bash scripts/plan_next_resume_brief.sh" in direct_audits
+    assert (
+        "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
+        not in direct_audits
+    )
     assert "bash scripts/validate_resume_brief.sh" not in direct_audits
     assert "After drafting a candidate resume brief" in handoff
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in after_drafting
@@ -291,6 +300,11 @@ def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
 
     assert "bash scripts/agent_thread_status.sh" in safe_commands
     assert "bash scripts/stop_codex_goal_loop.sh" in safe_commands
+    assert "bash scripts/plan_next_resume_brief.sh" in safe_commands
+    assert (
+        "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
+        not in safe_commands
+    )
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in devops
     assert (
         "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"

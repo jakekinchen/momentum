@@ -9,18 +9,6 @@ section() {
   printf '\n== %s ==\n' "$1"
 }
 
-resume_brief_example_target() {
-  target="$(
-    { bash scripts/plan_next_resume_brief.sh verified-ontology-lock 2>/dev/null || true; } |
-      awk -F': ' '/^next brief:/ { print $2; exit }'
-  )"
-  if [ -n "${target:-}" ]; then
-    printf '%s\n' "$target"
-  else
-    printf '<planner-next-brief-path>\n'
-  fi
-}
-
 section "Agent Thread Handoff"
 if [ -f docs/agent-thread-handoff.md ]; then
   printf 'handoff: docs/agent-thread-handoff.md\n'
@@ -39,8 +27,9 @@ if [ -f GOAL.md ]; then
   if grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' GOAL.md; then
     printf 'stop sentinel: present\n'
     printf 'executor product slices: stopped until fresh human direction\n'
-    printf 'resume plan example: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\n'
-    printf 'resume brief validation example: bash scripts/validate_resume_brief.sh %s\n' "$(resume_brief_example_target)"
+    printf 'resume plan dry run: bash scripts/plan_next_resume_brief.sh\n'
+    printf 'resume plan slug example: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\n'
+    printf 'resume brief validation: bash scripts/validate_resume_brief.sh <planner-next-brief-path>\n'
   else
     printf 'stop sentinel: absent\n'
     printf 'executor product slices: follow GOAL.md and active brief\n'

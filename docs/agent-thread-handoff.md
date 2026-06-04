@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T19:03:41Z
+Last updated: 2026-06-04T19:06:24Z
 
 ## Current State
 
@@ -31,9 +31,10 @@ bash scripts/agent_thread_status.sh
 ```
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
-the resume-plan command, a planner-derived resume-validation command, the
+neutral resume-planning guidance, a placeholder resume-validation command, the
 workflow audit, and the Codex pair-state audit, then exits with a clean or
-warning summary.
+warning summary. Exact resume paths come from the resume planner after a
+concrete human-approved slug is supplied.
 
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while
@@ -45,7 +46,7 @@ You can also run the underlying audits directly:
 git status --short --branch
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
-bash scripts/plan_next_resume_brief.sh verified-ontology-lock
+bash scripts/plan_next_resume_brief.sh
 ```
 
 After drafting a candidate resume brief, validate that specific file before
@@ -82,19 +83,17 @@ artifacts are missing or when either `README.md` or `AGENTS.md` loses the
 agent-status, handoff, stop-sentinel, or resume-validation entrypoint guidance.
 Resume-brief validation rejects vector safety enforcement language. The
 workflow audit also verifies that the active brief named in `GOAL.md` exists.
-The agent status command derives its resume-validation example from the resume
-planner. The resume planner prints the candidate
-`validate_resume_brief.sh` command once a concrete slug is supplied, and
-candidate resume briefs must carry that self-validation command before the
+The agent status command intentionally keeps stopped-state resume validation
+neutral with `<planner-next-brief-path>`. The resume planner prints the
+candidate `validate_resume_brief.sh` command once a concrete slug is supplied,
+and candidate resume briefs must carry that self-validation command before the
 `GOAL.md` update. The resume validator also requires that command to target the
 candidate brief being validated, not a stale copied path, and the exact command
 must appear in the brief's `## Resume Checklist`. Static orientation docs use
 `<planner-next-brief-path>` and the workflow audit rejects stale hardcoded
-`007` resume-validation targets. If the status command cannot derive a planner
-target, it also falls back to `<planner-next-brief-path>` rather than a
-hardcoded numbered brief. No-slug planner output does not print command-shaped
-placeholder `GOAL.md` or `git add` paths; rerun the planner with a concrete
-slug before using exact paths.
+`007` resume-validation targets. No-slug planner output does not print
+command-shaped placeholder `GOAL.md` or `git add` paths; rerun the planner with
+a concrete slug before using exact paths.
 
 ## Hard Invariants
 
