@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "bodyweight_plank",
+  "name": "Bodyweight Plank",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "primary.shoulder",
+      "primary.hip",
+      "primary.ankle"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "auto_lock",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Hold a side-view plank in frame",
+        "capture_seconds": 1.0,
+        "signals": [
+          "plank_line"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "primary.shoulder",
+    "hip": "primary.hip",
+    "ankle": "primary.ankle"
+  },
+  "signals": {
+    "plank_line_raw": "angle(primary.shoulder, primary.hip, primary.ankle)"
+  },
+  "filters": {
+    "plank_line": {
+      "source": "plank_line_raw",
+      "type": "ema",
+      "alpha": 1
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": null,
+  "hold": {
+    "signal": "plank_line",
+    "in_range": "plank_line >= 160",
+    "target_seconds": 1.0
+  },
+  "form_rules": [
+    {
+      "id": "hip_line",
+      "when": "phase == 'ready'",
+      "expect": "plank_line >= 160",
+      "min_violation_ms": 0,
+      "cue": "Lift your hips",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500
+    }
+  ],
+  "set": {
+    "target_reps": 1
+  }
+}
