@@ -39,6 +39,11 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
 
+            PoseOverlayView(state: viewModel.latestPoseOverlayState)
+                .frame(height: 180)
+                .background(.black.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
             HStack {
                 Picker("Recorded Run", selection: selectedRecordedRunBinding) {
                     ForEach(viewModel.availableRecordedRuns) { run in
