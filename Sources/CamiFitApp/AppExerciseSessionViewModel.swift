@@ -43,6 +43,8 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     @Published public private(set) var selectedRecordedRunID: String?
     @Published public private(set) var state = AppExerciseSessionState()
     @Published public private(set) var lastPoseProviderRunSummary: AppPoseProviderRunSummary?
+    @Published public private(set) var latestHUDState: AppHUDState?
+    @Published public private(set) var latestPoseOverlayState = AppPoseOverlayState.empty
     public private(set) var resolvedPresetSourceURL: URL?
     public private(set) var resolvedRecordedRunSourceURL: URL?
 
@@ -139,6 +141,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
                 state: state
             )
             lastPoseProviderRunSummary = summary
+            updateDisplayState(from: summary)
             return summary
         }
 
@@ -166,12 +169,14 @@ public final class AppExerciseSessionViewModel: ObservableObject {
                 state: state
             )
             lastPoseProviderRunSummary = summary
+            updateDisplayState(from: summary)
             return summary
         }
 
         let session = AppPoseProviderSession(provider: provider, viewModel: self)
         let summary = session.run(selectedPresetID: presetID)
         lastPoseProviderRunSummary = summary
+        updateDisplayState(from: summary)
         return summary
     }
 
@@ -258,5 +263,16 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         }
 
         return nil
+    }
+
+    private func updateDisplayState(from summary: AppPoseProviderRunSummary) {
+        latestHUDState = AppHUDState(summary: summary)
+
+        guard summary.diagnosticText == nil, let latestPoseFrame = summary.latestPoseFrame else {
+            latestPoseOverlayState = .empty
+            return
+        }
+
+        latestPoseOverlayState = AppPoseOverlayState(frame: latestPoseFrame)
     }
 }

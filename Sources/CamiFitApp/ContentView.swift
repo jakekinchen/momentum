@@ -25,6 +25,7 @@ struct ContentView: View {
                 if let summary = viewModel.lastPoseProviderRunSummary {
                     stat(label: "Frames", value: "\(summary.frameCount)")
                 }
+                stat(label: "Points", value: "\(viewModel.latestPoseOverlayState.points.count)")
             }
 
             if let cueText = viewModel.state.cueText {

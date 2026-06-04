@@ -10,6 +10,7 @@ public struct AppPoseProviderRunSummary: Equatable {
     public let holdTargetReached: Bool
     public let diagnosticText: String?
     public let state: AppExerciseSessionState
+    public let latestPoseFrame: PoseFrame?
 
     public init(
         frameCount: Int,
@@ -19,7 +20,8 @@ public struct AppPoseProviderRunSummary: Equatable {
         holdSeconds: Double,
         holdTargetReached: Bool,
         diagnosticText: String?,
-        state: AppExerciseSessionState
+        state: AppExerciseSessionState,
+        latestPoseFrame: PoseFrame? = nil
     ) {
         self.frameCount = frameCount
         self.selectedExerciseID = selectedExerciseID
@@ -29,6 +31,7 @@ public struct AppPoseProviderRunSummary: Equatable {
         self.holdTargetReached = holdTargetReached
         self.diagnosticText = diagnosticText
         self.state = state
+        self.latestPoseFrame = latestPoseFrame
     }
 }
 
@@ -60,7 +63,8 @@ public final class AppPoseProviderSession {
             return summary(
                 frameCount: frames.count,
                 state: processed.state,
-                diagnosticText: processed.state.diagnosticText ?? processed.diagnosticEvidence
+                diagnosticText: processed.state.diagnosticText ?? processed.diagnosticEvidence,
+                latestPoseFrame: frames.last
             )
         } catch {
             return summary(
@@ -74,7 +78,8 @@ public final class AppPoseProviderSession {
     private func summary(
         frameCount: Int,
         state: AppExerciseSessionState,
-        diagnosticText: String?
+        diagnosticText: String?,
+        latestPoseFrame: PoseFrame? = nil
     ) -> AppPoseProviderRunSummary {
         AppPoseProviderRunSummary(
             frameCount: frameCount,
@@ -84,7 +89,8 @@ public final class AppPoseProviderSession {
             holdSeconds: state.holdSeconds,
             holdTargetReached: state.holdTargetReached,
             diagnosticText: diagnosticText,
-            state: state
+            state: state,
+            latestPoseFrame: latestPoseFrame
         )
     }
 
