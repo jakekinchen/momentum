@@ -22,6 +22,9 @@ struct ContentView: View {
                 stat(label: "Reps", value: "\(viewModel.state.repCount)")
                 stat(label: "Hold", value: viewModel.state.holdProgressText)
                 stat(label: "Score", value: viewModel.state.scoreText ?? "n/a")
+                if let summary = viewModel.lastPoseProviderRunSummary {
+                    stat(label: "Frames", value: "\(summary.frameCount)")
+                }
             }
 
             if let cueText = viewModel.state.cueText {
@@ -29,7 +32,7 @@ struct ContentView: View {
                     .font(.headline)
             }
 
-            if let diagnosticText = viewModel.state.diagnosticText {
+            if let diagnosticText = viewModel.lastPoseProviderRunSummary?.diagnosticText ?? viewModel.state.diagnosticText {
                 Text(diagnosticText)
                     .font(.caption)
                     .foregroundStyle(.secondary)

@@ -10,6 +10,26 @@ public struct AppPoseProviderRunSummary: Equatable {
     public let holdTargetReached: Bool
     public let diagnosticText: String?
     public let state: AppExerciseSessionState
+
+    public init(
+        frameCount: Int,
+        selectedExerciseID: String?,
+        selectedExerciseName: String?,
+        repCount: Int,
+        holdSeconds: Double,
+        holdTargetReached: Bool,
+        diagnosticText: String?,
+        state: AppExerciseSessionState
+    ) {
+        self.frameCount = frameCount
+        self.selectedExerciseID = selectedExerciseID
+        self.selectedExerciseName = selectedExerciseName
+        self.repCount = repCount
+        self.holdSeconds = holdSeconds
+        self.holdTargetReached = holdTargetReached
+        self.diagnosticText = diagnosticText
+        self.state = state
+    }
 }
 
 public final class AppPoseProviderSession {

@@ -40,6 +40,7 @@ public enum AppExerciseSessionError: Error, Equatable {
 public final class AppExerciseSessionViewModel: ObservableObject {
     @Published public private(set) var availablePresets: [AppPresetSummary] = []
     @Published public private(set) var state = AppExerciseSessionState()
+    @Published public private(set) var lastPoseProviderRunSummary: AppPoseProviderRunSummary?
     public private(set) var resolvedPresetSourceURL: URL?
 
     private let presetSourceCandidates: [URL]
@@ -83,6 +84,34 @@ public final class AppExerciseSessionViewModel: ObservableObject {
             selectedExerciseName: program.name,
             presetSourceDescription: resolvedPresetSourceURL?.path
         )
+    }
+
+    @discardableResult
+    public func runRecordedProvider(
+        _ provider: PoseProvider,
+        selectedPresetID requestedPresetID: String? = nil
+    ) -> AppPoseProviderRunSummary {
+        loadAvailablePresets()
+
+        guard let presetID = requestedPresetID ?? state.selectedExerciseID ?? availablePresets.first?.id else {
+            let summary = AppPoseProviderRunSummary(
+                frameCount: 0,
+                selectedExerciseID: state.selectedExerciseID,
+                selectedExerciseName: state.selectedExerciseName,
+                repCount: state.repCount,
+                holdSeconds: state.holdSeconds,
+                holdTargetReached: state.holdTargetReached,
+                diagnosticText: "No preset selected",
+                state: state
+            )
+            lastPoseProviderRunSummary = summary
+            return summary
+        }
+
+        let session = AppPoseProviderSession(provider: provider, viewModel: self)
+        let summary = session.run(selectedPresetID: presetID)
+        lastPoseProviderRunSummary = summary
+        return summary
     }
 
     @discardableResult
