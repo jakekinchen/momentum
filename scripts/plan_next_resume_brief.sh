@@ -43,7 +43,11 @@ if [ -z "${latest_num:-}" ]; then
 fi
 
 next_num="$(printf '%03d' "$((10#$latest_num + 1))")"
-target="docs/briefs/${next_num}-${SLUG}.md"
+if [ "$SLUG" = "<slice-name>" ]; then
+  target_template="docs/briefs/${next_num}-<slice-name>.md"
+else
+  target="docs/briefs/${next_num}-${SLUG}.md"
+fi
 
 section "Current Guard"
 if grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' GOAL.md 2>/dev/null; then
@@ -57,12 +61,14 @@ fi
 section "Next Brief"
 printf 'template: %s\n' "$template"
 printf 'latest numbered brief: %s\n' "$latest_num"
-printf 'next brief: %s\n' "$target"
 
 if [ "$SLUG" = "<slice-name>" ]; then
+  printf 'next brief: rerun with a lowercase slug to print exact path\n'
+  printf 'next brief template: %s\n' "$target_template"
   printf 'choose slug: bash scripts/plan_next_resume_brief.sh next-slice-slug\n'
   printf 'copy command: rerun with a lowercase slug to print an exact copy command\n'
 else
+  printf 'next brief: %s\n' "$target"
   printf 'copy command: cp %s %s\n' "$template" "$target"
 fi
 

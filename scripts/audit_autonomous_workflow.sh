@@ -464,6 +464,14 @@ require_text_in_file \
   "scripts/plan_next_resume_brief.sh" \
   "Rerun with a lowercase slug to print the exact resume-brief validation command" \
   "resume planner avoids no-slug validation target"
+require_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "next brief: rerun with a lowercase slug to print exact path" \
+  "resume planner avoids placeholder next path"
+require_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "next brief template:" \
+  "resume planner shows placeholder path as template"
 reject_text_in_file \
   "scripts/plan_next_resume_brief.sh" \
   "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" \

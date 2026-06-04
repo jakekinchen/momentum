@@ -277,6 +277,8 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "#!/usr/bin/env bash\n"
             "printf 'choose slug: bash scripts/plan_next_resume_brief.sh next-slice-slug\\n'\n"
             "printf 'Rerun with a lowercase slug to print the exact resume-brief validation command\\n'\n"
+            "printf 'next brief: rerun with a lowercase slug to print exact path\\n'\n"
+            "printf 'next brief template:\\n'\n"
         ),
         "scripts/validate_resume_brief.sh": "#!/usr/bin/env bash\n",
         "scripts/run_codex_pair_cycle.sh": "#!/usr/bin/env bash\n",
@@ -678,6 +680,12 @@ def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> Non
         not in result.stdout
     )
     assert (
+        "next brief: rerun with a lowercase slug to print exact path"
+        in result.stdout
+    )
+    assert "next brief template: docs/briefs/" in result.stdout
+    assert "next brief: docs/briefs/" not in result.stdout
+    assert (
         "Rerun with a lowercase slug to print the exact resume-brief validation command"
     ) in result.stdout
     assert (
@@ -1048,6 +1056,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     )
     assert "ok   resume planner uses neutral slug example" in result.stdout
     assert "ok   resume planner avoids no-slug validation target" in result.stdout
+    assert "ok   resume planner avoids placeholder next path" in result.stdout
+    assert "ok   resume planner shows placeholder path as template" in result.stdout
     assert "ok   resume planner avoids hardcoded resume planner slug" in result.stdout
     assert (
         "ok   resume planner avoids stale hardcoded resume-validation target"
@@ -1211,6 +1221,8 @@ def test_workflow_audit_requires_neutral_resume_planner_guidance(
     assert result.returncode == 1
     assert "MISS resume planner uses neutral slug example" in result.stdout
     assert "MISS resume planner avoids no-slug validation target" in result.stdout
+    assert "MISS resume planner avoids placeholder next path" in result.stdout
+    assert "MISS resume planner shows placeholder path as template" in result.stdout
     assert "MISS resume planner avoids hardcoded resume planner slug" in result.stdout
     assert (
         "MISS resume planner avoids stale hardcoded resume-validation target"
