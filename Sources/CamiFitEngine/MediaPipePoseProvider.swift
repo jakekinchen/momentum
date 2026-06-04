@@ -184,7 +184,7 @@ private struct RawPoseRecord: Decodable {
     let timestampMS: Int64
     let imageSize: [Double]
     let posesDetected: Int
-    let primaryPoseID: Int?
+    let primaryPoseID: String?
     let landmarks: [RawMediaPipeLandmark]
     let worldLandmarks: [RawWorldLandmark]
 
@@ -196,6 +196,24 @@ private struct RawPoseRecord: Decodable {
         case primaryPoseID = "primary_pose_id"
         case landmarks
         case worldLandmarks = "world_landmarks"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = try container.decode(String.self, forKey: .type)
+        timestampMS = try container.decode(Int64.self, forKey: .timestampMS)
+        imageSize = try container.decode([Double].self, forKey: .imageSize)
+        posesDetected = try container.decode(Int.self, forKey: .posesDetected)
+        landmarks = try container.decode([RawMediaPipeLandmark].self, forKey: .landmarks)
+        worldLandmarks = try container.decode([RawWorldLandmark].self, forKey: .worldLandmarks)
+
+        if let id = try? container.decode(String.self, forKey: .primaryPoseID) {
+            primaryPoseID = id
+        } else if let id = try? container.decode(Int.self, forKey: .primaryPoseID) {
+            primaryPoseID = String(id)
+        } else {
+            primaryPoseID = nil
+        }
     }
 }
 
