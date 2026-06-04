@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import subprocess
 
 
@@ -340,7 +341,7 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "After drafting a candidate resume brief" in handoff
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in after_drafting
     assert "passes the current collected test suite" in handoff
-    assert "collected 63 tests" not in handoff
+    assert re.search(r"collected [0-9]+ tests", handoff) is None
     assert "manager-log planner/support-log" in handoff
     assert "manager support log required: docs/manager-log/NNN-*.md" in handoff
     assert "docs/manager-log latest:" in handoff
@@ -348,6 +349,31 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
         "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
         not in handoff
     )
+
+
+def test_workflow_audit_rejects_any_hardcoded_handoff_pytest_count(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    handoff = tmp_path / "docs/agent-thread-handoff.md"
+    handoff.write_text(
+        "# Handoff\n\n"
+        "manager-log planner/support-log\n"
+        "manager support log required: docs/manager-log/NNN-*.md\n"
+        "docs/manager-log latest:\n"
+        "passes the current collected test suite\n"
+        "uv run pytest collected 64 tests and passed.\n"
+        "bash scripts/validate_resume_brief.sh <planner-next-brief-path>\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS handoff avoids hardcoded pytest count" in result.stdout
 
 
 def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
@@ -718,7 +744,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   handoff explains status manager support-log line" in result.stdout
     assert "ok   handoff points manager turns to latest manager log" in result.stdout
     assert "ok   handoff keeps pytest expectation count-neutral" in result.stdout
-    assert "ok   handoff avoids stale pytest count" in result.stdout
+    assert "ok   handoff avoids hardcoded pytest count" in result.stdout
     assert "ok   devops docs explain status manager support-log line" in result.stdout
     assert "ok   README.md uses planner resume-validation target" in result.stdout
     assert "ok   README.md avoids stale hardcoded resume-validation target" in result.stdout
