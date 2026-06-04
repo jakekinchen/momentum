@@ -1,8 +1,8 @@
 {
   "schema_version": "0.1.0",
-  "graph_version": "fitgraph-kg-m2-safety-v0",
+  "graph_version": "fitgraph-kg-m3-alternatives-v0",
   "status": "seed",
-  "description": "Tiny local runtime taxonomy and exercise graph for M2 safety receipt tests. Local graph edges, not ontology mappings, drive traversal.",
+  "description": "Tiny local runtime taxonomy and exercise graph for M3 safety and alternatives tests. Local graph edges, not ontology mappings, drive traversal.",
   "nodes": [
     {
       "id": "BodyRegion:knee",
@@ -87,12 +87,62 @@
       }
     },
     {
+      "id": "MuscleGroup:glutes",
+      "type": "MuscleGroup",
+      "label": "glutes",
+      "aliases": ["glutes", "gluteals"],
+      "properties": {}
+    },
+    {
+      "id": "MuscleGroup:hamstrings",
+      "type": "MuscleGroup",
+      "label": "hamstrings",
+      "aliases": ["hamstrings"],
+      "properties": {}
+    },
+    {
+      "id": "MuscleGroup:quadriceps",
+      "type": "MuscleGroup",
+      "label": "quadriceps",
+      "aliases": ["quads", "quadriceps"],
+      "properties": {}
+    },
+    {
+      "id": "MuscleGroup:chest",
+      "type": "MuscleGroup",
+      "label": "chest",
+      "aliases": ["chest", "pecs"],
+      "properties": {}
+    },
+    {
+      "id": "MovementPattern:squat",
+      "type": "MovementPattern",
+      "label": "squat",
+      "aliases": ["squat"],
+      "properties": {}
+    },
+    {
+      "id": "MovementPattern:hip_hinge",
+      "type": "MovementPattern",
+      "label": "hip hinge",
+      "aliases": ["hinge", "hip hinge"],
+      "properties": {}
+    },
+    {
+      "id": "MovementPattern:horizontal_press",
+      "type": "MovementPattern",
+      "label": "horizontal press",
+      "aliases": ["horizontal press", "bench press"],
+      "properties": {}
+    },
+    {
       "id": "Exercise:goblet_squat",
       "type": "Exercise",
       "label": "Goblet Squat",
       "aliases": ["goblet squat"],
       "properties": {
-        "priority_tier": "seed"
+        "priority_tier": "seed",
+        "priority_score": 0.7
       }
     },
     {
@@ -101,7 +151,8 @@
       "label": "Kettlebell Deadlift",
       "aliases": ["kettlebell deadlift", "kb deadlift"],
       "properties": {
-        "priority_tier": "seed"
+        "priority_tier": "seed",
+        "priority_score": 0.7
       }
     },
     {
@@ -110,7 +161,8 @@
       "label": "Barbell Bench Press",
       "aliases": ["barbell bench press"],
       "properties": {
-        "priority_tier": "seed"
+        "priority_tier": "seed",
+        "priority_score": 0.6
       }
     },
     {
@@ -119,7 +171,8 @@
       "label": "Glute Bridge",
       "aliases": ["glute bridge"],
       "properties": {
-        "priority_tier": "seed"
+        "priority_tier": "seed",
+        "priority_score": 0.9
       }
     }
   ],
@@ -177,6 +230,24 @@
       }
     },
     {
+      "source": "Exercise:goblet_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:quadriceps",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:squat",
+      "properties": {}
+    },
+    {
       "source": "Exercise:kettlebell_deadlift",
       "predicate": "REQUIRES",
       "target": "Equipment:kettlebell",
@@ -203,9 +274,39 @@
       "properties": {}
     },
     {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:hamstrings",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:hip_hinge",
+      "properties": {}
+    },
+    {
       "source": "Exercise:barbell_bench_press",
       "predicate": "REQUIRES",
       "target": "Equipment:barbell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_bench_press",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:chest",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_bench_press",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:horizontal_press",
       "properties": {}
     },
     {
@@ -227,10 +328,28 @@
         "balance_demand": "low",
         "laterality": "neutral"
       }
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:hamstrings",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:hip_hinge",
+      "properties": {}
     }
   ],
   "todo": [
-    "Add MuscleGroup, MovementPattern, TARGETS, HAS_PATTERN, and richer exercise data.",
-    "Expand safety and alternative selection beyond the tiny deterministic M2 candidate set."
+    "Add richer exercise, muscle, movement-pattern, and goal-alignment data.",
+    "Expand safety and alternative selection beyond the tiny deterministic M3 candidate set."
   ]
 }

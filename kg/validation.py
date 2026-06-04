@@ -11,7 +11,7 @@ from typing import Any
 from kg.graph_store import GRAPH_DIR, SeedArtifact, inspect_seed_artifact, load_json
 
 
-GRAPH_VERSION = "fitgraph-kg-m2-safety-v0"
+GRAPH_VERSION = "fitgraph-kg-m3-alternatives-v0"
 RULESET_VERSION = "ruleset-m2-safety-v0"
 REQUIRED_SEED_FILES: tuple[str, ...] = (
     "exercise_kg.seed.json",

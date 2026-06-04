@@ -10,7 +10,7 @@ from kg.validation import REQUIRED_SEED_FILES, health_summary
 def test_health_summary_reports_required_seed_files() -> None:
     summary = health_summary()
 
-    assert summary["graph_version"] == "fitgraph-kg-m2-safety-v0"
+    assert summary["graph_version"] == "fitgraph-kg-m3-alternatives-v0"
     assert summary["ruleset_version"] == "ruleset-m2-safety-v0"
     assert summary["ontology_lock_version"] == "ontology-lock-m0-unverified"
     assert summary["ontology_status"] == "todo_unverified"

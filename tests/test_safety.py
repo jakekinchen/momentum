@@ -42,7 +42,7 @@ def test_missing_equipment_creates_hard_block_receipt() -> None:
     assert receipt.reason_codes == ("MISSING_EQUIPMENT:barbell",)
     assert receipt.graph_paths == ("Exercise:barbell_bench_press -REQUIRES-> Equipment:barbell",)
     assert receipt.constraint_fingerprint
-    assert receipt.graph_version == "fitgraph-kg-m2-safety-v0"
+    assert receipt.graph_version == "fitgraph-kg-m3-alternatives-v0"
     assert receipt.ruleset_version == "ruleset-m2-safety-v0"
     assert receipt.ontology_lock_version == "ontology-lock-m0-unverified"
 
