@@ -68,6 +68,11 @@ section "Next Manager Log"
 printf 'template: %s\n' "$template"
 printf 'latest numbered manager log: %s\n' "$latest_num"
 printf 'latest manager log: %s\n' "$latest_file"
+if [ "$latest_file" = "none" ]; then
+  printf 'review latest command: latest manager log unavailable\n'
+else
+  printf "review latest command: sed -n '1,160p' %s\n" "$latest_file"
+fi
 printf 'next manager log: %s\n' "$target"
 
 if [ "$SLUG" = "<support-slug>" ]; then

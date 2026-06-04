@@ -43,6 +43,15 @@ def _next_manager_log_for_slug(slug: str) -> str:
     raise AssertionError("manager log planner did not print next manager log")
 
 
+def _latest_manager_log() -> str:
+    logs = [
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in (REPO_ROOT / "docs/manager-log").glob("[0-9][0-9][0-9]-*.md")
+        if not path.name.startswith("000-template-")
+    ]
+    return sorted(logs)[-1]
+
+
 def _valid_resume_brief(
     brief_path: str = "docs/briefs/007-verified-ontology-lock.md",
 ) -> str:
@@ -232,6 +241,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "#!/usr/bin/env bash\n"
             "printf 'mode: dry-run (no files written)\\n'\n"
             "printf 'docs/manager-log/000-template-manager-support.md\\n'\n"
+            "printf 'review latest command:\\n'\n"
             "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n"
         ),
         "scripts/plan_next_resume_brief.sh": "#!/usr/bin/env bash\n",
@@ -484,6 +494,7 @@ def test_resume_plan_script_reports_next_brief_without_mutating() -> None:
 
 
 def test_manager_log_plan_with_slug_prints_exact_candidate_paths() -> None:
+    expected_latest = _latest_manager_log()
     expected_target = _next_manager_log_for_slug("manager-log-planner")
     target_path = REPO_ROOT / expected_target
 
@@ -492,7 +503,11 @@ def test_manager_log_plan_with_slug_prints_exact_candidate_paths() -> None:
     assert "mode: dry-run (no files written)" in result.stdout
     assert "stop sentinel: present" in result.stdout
     assert "support mode: manager process support only" in result.stdout
-    assert "latest manager log: docs/manager-log/" in result.stdout
+    assert f"latest manager log: {expected_latest}" in result.stdout
+    assert (
+        f"review latest command: sed -n '1,160p' {expected_latest}"
+        in result.stdout
+    )
     assert f"next manager log: {expected_target}" in result.stdout
     assert (
         "copy command: cp docs/manager-log/000-template-manager-support.md "
@@ -859,6 +874,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log planner is dry run" in result.stdout
     assert "ok   manager log planner uses manager support template" in result.stdout
     assert "ok   manager log planner prints latest manager log path" in result.stdout
+    assert "ok   manager log planner prints latest review command" in result.stdout
     assert "ok   manager log planner avoids no-slug exact git add paths" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
@@ -1111,6 +1127,32 @@ def test_workflow_audit_requires_execution_protocol_stop_guard(
         "MISS execution protocol requires fresh human direction to resume"
         in result.stdout
     )
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_manager_log_planner_review_command(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    planner = tmp_path / "scripts/plan_next_manager_log.sh"
+    planner.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf 'mode: dry-run (no files written)\\n'\n"
+        "printf 'docs/manager-log/000-template-manager-support.md\\n'\n"
+        "printf 'latest manager log: docs/manager-log/050-example.md\\n'\n"
+        "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n",
+        encoding="utf-8",
+    )
+    planner.chmod(0o755)
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "ok   manager log planner prints latest manager log path" in result.stdout
+    assert "MISS manager log planner prints latest review command" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 
