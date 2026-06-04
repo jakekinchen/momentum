@@ -43,6 +43,10 @@ struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            Text(viewModel.mockWorkerPreflightStatus.displayText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             PoseOverlayView(state: viewModel.latestPoseOverlayState)
                 .frame(height: 180)
                 .background(.black.opacity(0.08))
@@ -67,6 +71,10 @@ struct ContentView: View {
 
                 Button("Run Mock Worker") {
                     viewModel.runMockWorkerProvider()
+                }
+
+                Button("Check Mock Worker") {
+                    viewModel.preflightMockWorker()
                 }
             }
 

@@ -44,6 +44,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     @Published public private(set) var state = AppExerciseSessionState()
     @Published public private(set) var lastPoseProviderRunSummary: AppPoseProviderRunSummary?
     @Published public private(set) var poseProviderRunStatus: AppPoseProviderRunStatus = .idle
+    @Published public private(set) var mockWorkerPreflightStatus: AppMockWorkerPreflightStatus = .idle
     @Published public private(set) var latestHUDState: AppHUDState?
     @Published public private(set) var latestPoseOverlayState = AppPoseOverlayState.empty
     public private(set) var resolvedPresetSourceURL: URL?
@@ -261,6 +262,48 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         )
 
         return runConfiguredPoseProvider(mode: .mockWorker(configuration))
+    }
+
+    @discardableResult
+    public func preflightMockWorker(
+        workerScriptURL: URL = AppExerciseSessionViewModel.defaultMockWorkerScriptURL()
+    ) -> AppMockWorkerPreflightStatus {
+        mockWorkerPreflightStatus = .checking(workerScriptURL)
+
+        guard FileManager.default.fileExists(atPath: workerScriptURL.path) else {
+            let status = AppMockWorkerPreflightStatus.failed(
+                AppMockWorkerPreflightFailure(
+                    workerScriptURL: workerScriptURL,
+                    diagnosticText: "mock worker script not found: \(workerScriptURL.path)"
+                )
+            )
+            mockWorkerPreflightStatus = status
+            return status
+        }
+
+        let provider = PoseWorkerSubprocessProvider(workerScriptURL: workerScriptURL)
+        do {
+            let health = try provider.health()
+            let status = AppMockWorkerPreflightStatus.succeeded(
+                AppMockWorkerPreflightSuccess(
+                    workerScriptURL: workerScriptURL,
+                    command: provider.launchCommandDescription,
+                    runningMode: health.runningMode,
+                    message: health.message
+                )
+            )
+            mockWorkerPreflightStatus = status
+            return status
+        } catch {
+            let status = AppMockWorkerPreflightStatus.failed(
+                AppMockWorkerPreflightFailure(
+                    workerScriptURL: workerScriptURL,
+                    diagnosticText: "mock worker preflight failed: \(error)"
+                )
+            )
+            mockWorkerPreflightStatus = status
+            return status
+        }
     }
 
     @discardableResult
