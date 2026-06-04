@@ -251,6 +251,7 @@ def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -
     assert "ok   no template placeholder: Replace this section" in result.stdout
     assert "ok   resume brief self-validation command present" in result.stdout
     assert "ok   resume brief self-validation command targets candidate" in result.stdout
+    assert "ok   resume checklist self-validation command targets candidate" in result.stdout
     assert "stop sentinel: present" in result.stdout
 
 
@@ -335,6 +336,7 @@ def test_resume_brief_validator_requires_self_validation_command(
     assert result.returncode == 1
     assert "MISS resume brief self-validation command present" in result.stdout
     assert "MISS resume brief self-validation command targets candidate" in result.stdout
+    assert "MISS resume checklist self-validation command targets candidate" in result.stdout
     assert "resume brief validation warnings:" in result.stdout
 
 
@@ -360,6 +362,41 @@ def test_resume_brief_validator_rejects_wrong_self_validation_target(
     assert result.returncode == 1
     assert "ok   resume brief self-validation command present" in result.stdout
     assert "MISS resume brief self-validation command targets candidate" in result.stdout
+    assert "MISS resume checklist self-validation command targets candidate" in result.stdout
+    assert "resume brief validation warnings:" in result.stdout
+
+
+def test_resume_brief_validator_requires_self_validation_target_in_checklist(
+    tmp_path: Path,
+) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-checklist-target.md"
+    candidate_path = "docs/briefs/007-checklist-target.md"
+    checklist_missing_target = _valid_resume_brief(candidate_path).replace(
+        f"- Run `bash scripts/validate_resume_brief.sh {candidate_path}`.",
+        "- Run `bash scripts/agent_thread_status.sh`.",
+    )
+    checklist_missing_target = checklist_missing_target.replace(
+        "```bash\nuv run pytest\n",
+        f"```bash\nbash scripts/validate_resume_brief.sh {candidate_path}\nuv run pytest\n",
+    )
+    brief_path.write_text(checklist_missing_target, encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            candidate_path,
+            str(tmp_path),
+        ],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "ok   resume brief self-validation command present" in result.stdout
+    assert "ok   resume brief self-validation command targets candidate" in result.stdout
+    assert "MISS resume checklist self-validation command targets candidate" in result.stdout
     assert "resume brief validation warnings:" in result.stdout
 
 

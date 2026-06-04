@@ -80,6 +80,15 @@ require_self_validation_target() {
   fi
 }
 
+require_self_validation_checklist_target() {
+  expected="bash scripts/validate_resume_brief.sh $BRIEF"
+  if printf '%s\n' "$resume_checklist_text" | grep -Fq "$expected"; then
+    ok "resume checklist self-validation command targets candidate"
+  else
+    miss "resume checklist self-validation command targets candidate"
+  fi
+}
+
 section "Resume Brief Validation"
 printf 'mode: dry-run (no files written)\n'
 printf 'root: %s\n' "$ROOT"
@@ -112,6 +121,15 @@ fi
 ok "brief file exists"
 brief_flat_text="$(
   tr '\n' ' ' < "$BRIEF" |
+    sed 's/[[:space:]][[:space:]]*/ /g'
+)"
+resume_checklist_text="$(
+  awk '
+    /^## Resume Checklist$/ { in_section = 1; next }
+    /^## / && in_section { exit }
+    in_section { print }
+  ' "$BRIEF" |
+    tr '\n' ' ' |
     sed 's/[[:space:]][[:space:]]*/ /g'
 )"
 
@@ -177,6 +195,7 @@ reject_text_i "use vector retrieval for safety enforcement" "no unsafe vector re
 section "Validation Commands"
 require_text "bash scripts/validate_resume_brief.sh" "resume brief self-validation command present"
 require_self_validation_target
+require_self_validation_checklist_target
 require_text "uv run pytest" "pytest command present"
 require_text "uv run python -m kg.validation" "KG validation command present"
 require_text "bash scripts/audit_autonomous_workflow.sh" "workflow audit command present"
