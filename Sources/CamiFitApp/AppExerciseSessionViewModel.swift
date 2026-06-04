@@ -212,6 +212,25 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     }
 
     @discardableResult
+    public func runMockWorkerProvider(
+        workerScriptURL: URL = AppExerciseSessionViewModel.defaultMockWorkerScriptURL(),
+        selectedPresetID: String = "bodyweight_squat",
+        fixture: String = "squat_bottom",
+        frameID: Int = 1,
+        timestampMS: Int64 = 1_000
+    ) -> AppPoseProviderRunSummary {
+        let configuration = AppMockWorkerPoseProviderConfiguration(
+            workerScriptURL: workerScriptURL,
+            selectedPresetID: selectedPresetID,
+            fixture: fixture,
+            frameID: frameID,
+            timestampMS: timestampMS
+        )
+
+        return runConfiguredPoseProvider(mode: .mockWorker(configuration))
+    }
+
+    @discardableResult
     public func process(frames: [PoseFrame]) throws -> AppExerciseSessionState {
         guard let selectedProgram else {
             loadAvailablePresets()
@@ -252,6 +271,12 @@ public final class AppExerciseSessionViewModel: ObservableObject {
 
         candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Presets"))
         return candidates
+    }
+
+    public static func defaultMockWorkerScriptURL(
+        currentDirectory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    ) -> URL {
+        currentDirectory.appendingPathComponent("pose_worker/pose_worker.py")
     }
 
     private static func resolvePresetSummaries(from candidates: [URL]) -> (sourceURL: URL?, presets: [AppPresetSummary]) {

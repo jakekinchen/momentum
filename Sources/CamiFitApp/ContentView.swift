@@ -60,6 +60,10 @@ struct ContentView: View {
                     viewModel.runRecordedRun(id: selectedRecordedRunID)
                 }
                 .disabled(viewModel.selectedRecordedRunID == nil)
+
+                Button("Run Mock Worker") {
+                    viewModel.runMockWorkerProvider()
+                }
             }
 
             Spacer()
