@@ -12,7 +12,7 @@ EOD completion and testing
 
 ## Current Slice
 
-docs/briefs/007-eod-completion-testing.md
+docs/briefs/008-only-db-kb-equipment-resolution.md
 
 ## Stop Conditions
 
