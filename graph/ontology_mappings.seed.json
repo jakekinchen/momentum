@@ -1,11 +1,64 @@
 {
   "schema_version": "0.1.0",
-  "graph_version": "fitgraph-kg-m0-skeleton-v0",
-  "status": "placeholder",
-  "description": "Placeholder SKOS-style mapping seed. No ontology IDs are verified or pinned in M0.",
-  "local_terms": [],
-  "ontology_concepts": [],
-  "mappings": [],
+  "graph_version": "fitgraph-kg-m1-seed-v0",
+  "status": "seed_unverified",
+  "description": "Tiny SKOS-style mapping seed for audit only. No ontology IDs are verified or pinned.",
+  "local_terms": [
+    {
+      "id": "LocalTerm:knee",
+      "type": "LocalTerm",
+      "label": "knee",
+      "maps_runtime_node": "BodyRegion:knee"
+    },
+    {
+      "id": "LocalTerm:kettlebell",
+      "type": "LocalTerm",
+      "label": "kettlebell",
+      "maps_runtime_node": "Equipment:kettlebell"
+    }
+  ],
+  "ontology_concepts": [
+    {
+      "id": "OntologyConcept:unverified_knee_region",
+      "type": "OntologyConcept",
+      "label": "knee region candidate",
+      "external_ontology": "SNOMED_CT",
+      "external_id": null,
+      "verification_status": "unverified"
+    },
+    {
+      "id": "OntologyConcept:unverified_kettlebell",
+      "type": "OntologyConcept",
+      "label": "kettlebell candidate",
+      "external_ontology": "OPE",
+      "external_id": null,
+      "verification_status": "unverified"
+    }
+  ],
+  "mappings": [
+    {
+      "local_term_id": "LocalTerm:knee",
+      "predicate": "MAPS_TO",
+      "ontology_concept_id": "OntologyConcept:unverified_knee_region",
+      "skos_predicate": "closeMatch",
+      "confidence": 0.0,
+      "method": "manual_review",
+      "source": "ontology_mappings.seed.json",
+      "source_version": "ontology-lock-m0-unverified",
+      "review_status": "candidate"
+    },
+    {
+      "local_term_id": "LocalTerm:kettlebell",
+      "predicate": "MAPS_TO",
+      "ontology_concept_id": "OntologyConcept:unverified_kettlebell",
+      "skos_predicate": "closeMatch",
+      "confidence": 0.0,
+      "method": "manual_review",
+      "source": "ontology_mappings.seed.json",
+      "source_version": "ontology-lock-m0-unverified",
+      "review_status": "candidate"
+    }
+  ],
   "runtime_policy": {
     "maps_to_edges_are_safety_edges": false,
     "vector_search_for_safety_enforcement": false

@@ -1,12 +1,112 @@
 {
   "schema_version": "0.1.0",
-  "graph_version": "fitgraph-kg-m0-skeleton-v0",
-  "status": "placeholder",
-  "description": "Placeholder exercise graph seed. Runtime exercise facts are PRD-pending.",
-  "nodes": [],
-  "edges": [],
+  "graph_version": "fitgraph-kg-m1-seed-v0",
+  "status": "seed",
+  "description": "Tiny local runtime taxonomy for M1 resolver and closure tests. Local graph edges, not ontology mappings, drive traversal.",
+  "nodes": [
+    {
+      "id": "BodyRegion:knee",
+      "type": "BodyRegion",
+      "label": "knee",
+      "aliases": ["knee"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "BodyRegion:left_knee",
+      "type": "BodyRegion",
+      "label": "left knee",
+      "aliases": ["left knee"],
+      "properties": {
+        "laterality": "left"
+      }
+    },
+    {
+      "id": "BodyRegion:knee_joint",
+      "type": "BodyRegion",
+      "label": "knee joint",
+      "aliases": ["knee joint"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "BodyRegion:patella",
+      "type": "BodyRegion",
+      "label": "patella",
+      "aliases": ["kneecap", "patella"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "BodyRegion:patellar_tendon",
+      "type": "BodyRegion",
+      "label": "patellar tendon",
+      "aliases": ["patellar tendon"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "Equipment:kettlebell",
+      "type": "Equipment",
+      "label": "Kettlebell",
+      "aliases": ["kettlebell", "kb"],
+      "properties": {}
+    },
+    {
+      "id": "Equipment:barbell",
+      "type": "Equipment",
+      "label": "Barbell",
+      "aliases": ["barbell"],
+      "properties": {}
+    },
+    {
+      "id": "ExerciseFamily:deadlift_family",
+      "type": "ExerciseFamily",
+      "label": "Deadlift Family",
+      "aliases": ["deadlift", "deadlifts"],
+      "properties": {}
+    }
+  ],
+  "edges": [
+    {
+      "source": "BodyRegion:left_knee",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:knee",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
+      "source": "BodyRegion:knee_joint",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:knee",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
+      "source": "BodyRegion:patella",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:knee",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
+      "source": "BodyRegion:patellar_tendon",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:knee",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    }
+  ],
   "todo": [
-    "Add Exercise, ExerciseFamily, MuscleGroup, BodyRegion, MovementPattern, and Equipment nodes.",
-    "Add TARGETS, STRESSES, REQUIRES, HAS_PATTERN, VARIANT_OF, and PART_OF edges."
+    "Add Exercise, MuscleGroup, MovementPattern, and richer Equipment nodes.",
+    "Add TARGETS, STRESSES, REQUIRES, HAS_PATTERN, and VARIANT_OF edges for safety and alternatives slices."
   ]
 }

@@ -15,3 +15,7 @@ class ResolvedConstraint:
     source_text: str
     graph_paths: tuple[str, ...] = field(default_factory=tuple)
     verified: bool = False
+    negated: bool = False
+    laterality: str | None = None
+    resolution_status: str = "resolved"
+    safety_behavior: str | None = None
