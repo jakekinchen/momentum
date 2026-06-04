@@ -40,7 +40,9 @@ exits non-zero if the manager-log planner or either audit fails.
 The status/audit output also prints `docs/manager-log latest:` so stopped-state
 manager-support turns can review the previous support log before writing the
 next one. The manager-log planner prints `review latest command:` with the
-exact read command for that previous support log.
+exact read command for that previous support log. In no-slug mode it prints
+`next manager log template:`; rerun it with a lowercase support slug before
+using exact manager-log paths.
 
 Runtime logs are written under:
 

@@ -55,11 +55,12 @@ The M0-M5 autonomous plan is complete and stopped. `GOAL.md` contains
 human direction removes or replaces the sentinel.
 
 While the stop sentinel is present, manager-only process support may use
-`bash scripts/plan_next_manager_log.sh` to choose the next numbered
-`docs/manager-log/NNN-*.md` path and must leave a manager log for any support
-slice. Before writing a new manager log, review the `docs/manager-log latest:`
-line printed by `bash scripts/agent_thread_status.sh` or
-`bash scripts/audit_autonomous_workflow.sh`, then run the
+`bash scripts/plan_next_manager_log.sh` to preview the latest manager log and
+the `next manager log template:`. Rerun it with a lowercase support slug to get
+the exact `docs/manager-log/NNN-*.md` path, and leave a manager log for any
+support slice. Before writing a new manager log, review the
+`docs/manager-log latest:` line printed by `bash scripts/agent_thread_status.sh`
+or `bash scripts/audit_autonomous_workflow.sh`, then run the
 `review latest command:` printed by the manager-log planner.
 
 ## Safe Checks

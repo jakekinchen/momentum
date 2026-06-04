@@ -130,6 +130,7 @@ def _write_minimal_workflow_root(
 - Read `docs/agent-thread-handoff.md`.
 - Respect `<stop-orchestrator/>`.
 - Review `docs/manager-log latest:` and run `review latest command:`.
+- Use `next manager log template:` until rerunning with a lowercase support slug.
 - Validate drafted resume briefs with `bash scripts/validate_resume_brief.sh`.
 """
     default_readme = """# FitGraph KG
@@ -138,6 +139,7 @@ def _write_minimal_workflow_root(
 - Read `docs/agent-thread-handoff.md`.
 - Respect `<stop-orchestrator/>`.
 - Review `docs/manager-log latest:` and run `review latest command:`.
+- Use `next manager log template:` until rerunning with a lowercase support slug.
 - Validate drafted resume briefs with `bash scripts/validate_resume_brief.sh <planner-next-brief-path>`.
 """
     default_handoff = """# Handoff
@@ -146,6 +148,7 @@ manager-log planner/support-log
 manager support log required: docs/manager-log/NNN-*.md
 docs/manager-log latest:
 review latest command:
+next manager log template:
 
 After drafting a candidate resume brief, validate it:
 
@@ -158,6 +161,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
 manager support log required: docs/manager-log/NNN-*.md
 docs/manager-log latest:
 review latest command:
+next manager log template:
 
 Resume-brief validation requires a drafted candidate brief:
 
@@ -209,6 +213,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "When `GOAL.md` contains `<stop-orchestrator/>`, keep work to manager process support.\n"
             "Review `docs/manager-log latest:` before writing a manager log.\n"
             "Run the printed `review latest command:`.\n"
+            "Use `next manager log template:` until rerunning with a lowercase support slug.\n"
             "Use `bash scripts/plan_next_manager_log.sh`.\n"
         ),
         "docs/autonomous-workflow/03-planning-system.md": "# Planning\n",
@@ -227,6 +232,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "Manager-only support does not need executor session logs or reviewer decisions.\n"
             "Use `docs/manager-log/000-template-manager-support.md`.\n"
             "Review `docs/manager-log latest:` before writing a new support log.\n"
+            "Use `next manager log template:` until rerunning with a lowercase support slug.\n"
             "Use `bash scripts/plan_next_manager_log.sh <support-slug>`.\n"
         ),
         "docs/autonomous-workflow/07-document-and-artifact-map.md": "# Artifacts\n",
@@ -367,6 +373,7 @@ def test_agents_md_points_future_threads_to_status_handoff() -> None:
     assert "bash scripts/plan_next_manager_log.sh" in agents
     assert "docs/manager-log/NNN-*.md" in agents
     assert "docs/manager-log latest:" in agents
+    assert "next manager log template:" in agents
     assert "bash scripts/validate_resume_brief.sh" in agents
 
 
@@ -381,6 +388,7 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "docs/manager-log/NNN-*.md" in readme
     assert "docs/manager-log latest:" in readme
     assert "review latest command:" in readme
+    assert "next manager log template:" in readme
     assert "bash scripts/validate_resume_brief.sh" in readme
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in readme
     assert (
@@ -425,6 +433,7 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "manager support log required: docs/manager-log/NNN-*.md" in handoff
     assert "docs/manager-log latest:" in handoff
     assert "review latest command:" in handoff
+    assert "next manager log template:" in handoff
     assert (
         "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
         not in handoff
@@ -485,6 +494,7 @@ def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
     assert "manager support log required: docs/manager-log/NNN-*.md" in devops
     assert "docs/manager-log latest:" in devops
     assert "review latest command:" in devops
+    assert "next manager log template:" in devops
 
 
 def test_resume_template_preserves_human_approval_guardrails() -> None:
@@ -855,6 +865,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   AGENTS.md points manager turns to latest review command"
         in result.stdout
     )
+    assert "ok   AGENTS.md explains manager log template path" in result.stdout
     assert "ok   AGENTS.md points to resume brief validation" in result.stdout
     assert "ok   README.md points to agent status" in result.stdout
     assert "ok   README.md points to handoff" in result.stdout
@@ -866,6 +877,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   README.md points manager turns to latest review command"
         in result.stdout
     )
+    assert "ok   README.md explains manager log template path" in result.stdout
     assert "ok   README.md points to resume brief validation" in result.stdout
     assert (
         "ok   handoff explains audited manager log entrypoint guidance"
@@ -874,11 +886,13 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   handoff explains status manager support-log line" in result.stdout
     assert "ok   handoff points manager turns to latest manager log" in result.stdout
     assert "ok   handoff points manager turns to latest review command" in result.stdout
+    assert "ok   handoff explains manager log template path" in result.stdout
     assert "ok   handoff keeps pytest expectation count-neutral" in result.stdout
     assert "ok   handoff avoids hardcoded pytest count" in result.stdout
     assert "ok   devops docs explain status manager support-log line" in result.stdout
     assert "ok   devops docs point manager turns to latest manager log" in result.stdout
     assert "ok   devops docs point manager turns to latest review command" in result.stdout
+    assert "ok   devops docs explain manager log template path" in result.stdout
     assert "ok   README.md uses planner resume-validation target" in result.stdout
     assert "ok   README.md avoids stale hardcoded resume-validation target" in result.stdout
     assert "ok   docs/agent-thread-handoff.md uses planner resume-validation target" in result.stdout
@@ -925,6 +939,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     )
     assert "ok   manager protocol points to manager log template" in result.stdout
     assert "ok   manager protocol points to latest manager log" in result.stdout
+    assert "ok   manager protocol explains manager log template path" in result.stdout
     assert "ok   manager log template includes status" in result.stdout
     assert "ok   manager log template includes manager action" in result.stdout
     assert "ok   manager log template includes validation evidence" in result.stdout
@@ -1042,6 +1057,7 @@ def test_workflow_audit_requires_stopped_state_manager_protocol(tmp_path: Path) 
         in result.stdout
     )
     assert "MISS manager protocol points to latest manager log" in result.stdout
+    assert "MISS manager protocol explains manager log template path" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

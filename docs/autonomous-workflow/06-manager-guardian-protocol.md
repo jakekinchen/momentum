@@ -24,9 +24,10 @@ Before writing a new support log, review the previous manager-support entry
 from the `docs/manager-log latest:` status/audit line or the `latest manager
 log:` line printed by `bash scripts/plan_next_manager_log.sh`.
 
-Use `bash scripts/plan_next_manager_log.sh <support-slug>` to preview the next
-numbered manager-log path and exact copy command before writing a new support
-log.
+Use `bash scripts/plan_next_manager_log.sh` to preview the latest manager log
+and `next manager log template:`. Rerun it with
+`bash scripts/plan_next_manager_log.sh <support-slug>` to get the exact next
+manager-log path and copy command before writing a new support log.
 
 ## Manager Checks
 

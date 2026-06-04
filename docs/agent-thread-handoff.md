@@ -101,9 +101,9 @@ and keeps the required stopped-state manager log sections.
 The agent status command points stopped-state manager threads to the no-argument
 manager-log planner, runs that planner dry run, and prints
 `manager support log required: docs/manager-log/NNN-*.md`. The manager-log
-planner prints the latest support log, `review latest command:`, and the next
-numbered support-log path without writing files. It avoids exact placeholder
-`git add` paths until a concrete slug is supplied.
+planner prints the latest support log, `review latest command:`, and
+`next manager log template:` without writing files. Rerun it with a lowercase
+support slug before using exact manager-log paths or `git add` paths.
 Resume-brief validation rejects vector safety enforcement language. The
 workflow audit also verifies that the active brief named in `GOAL.md` exists.
 The agent status command intentionally keeps stopped-state resume validation
@@ -115,8 +115,8 @@ candidate brief being validated, not a stale copied path, and the exact command
 must appear in the brief's `## Resume Checklist`. Static orientation docs use
 `<planner-next-brief-path>` and the workflow audit rejects stale hardcoded
 `007` resume-validation targets. No-slug planner output does not print
-command-shaped placeholder `GOAL.md` or `git add` paths; rerun the planner with
-a concrete slug before using exact paths.
+command-shaped placeholder `GOAL.md`, manager-log, or `git add` paths; rerun
+the relevant planner with a concrete slug before using exact paths.
 
 ## Hard Invariants
 
