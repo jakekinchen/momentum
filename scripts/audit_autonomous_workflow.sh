@@ -172,6 +172,14 @@ require_text_in_file \
   "docs/agent-thread-handoff.md" \
   "manager-log planner/support-log" \
   "handoff explains audited manager log entrypoint guidance"
+require_text_in_file \
+  "docs/agent-thread-handoff.md" \
+  "manager support log required: docs/manager-log/NNN-*.md" \
+  "handoff explains status manager support-log line"
+require_text_in_file \
+  "docs/autonomous-workflow/05-devops-and-session-ops.md" \
+  "manager support log required: docs/manager-log/NNN-*.md" \
+  "devops docs explain status manager support-log line"
 
 section "Static resume targets"
 for file in README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-devops-and-session-ops.md; do

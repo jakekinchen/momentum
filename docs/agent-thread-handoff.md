@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T19:26:37Z
+Last updated: 2026-06-04T19:33:11Z
 
 ## Current State
 
@@ -31,7 +31,9 @@ bash scripts/agent_thread_status.sh
 ```
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
-neutral manager-log and resume-planning guidance, a placeholder
+manager-log planner guidance,
+`manager support log required: docs/manager-log/NNN-*.md`, resume-planning
+guidance, a placeholder
 resume-validation command, the workflow audit, and the Codex pair-state audit,
 then exits with a clean or warning summary. Exact resume paths come from the
 resume planner after a concrete human-approved slug is supplied.
@@ -83,14 +85,17 @@ loop-start stop guard. The workflow audit exits non-zero when required
 artifacts are missing or when either `README.md` or `AGENTS.md` loses the
 agent-status, handoff, stop-sentinel, manager-log planner/support-log, or
 resume-validation entrypoint guidance.
-It also verifies that `scripts/agent_thread_status.sh` keeps neutral stopped
-resume guidance and avoids stale concrete resume-validation targets.
+It also verifies that `scripts/agent_thread_status.sh` keeps stopped-state
+manager-support guidance, neutral stopped resume guidance, and avoids stale
+concrete resume-validation targets.
 The workflow audit verifies that the Manager protocol preserves stopped-state
 support boundaries and durable manager-log guidance.
 It also verifies that `docs/manager-log/000-template-manager-support.md` exists
 and keeps the required stopped-state manager log sections.
 The agent status command points stopped-state manager threads to the no-argument
-manager-log planner. The manager-log planner prints the next numbered
+manager-log planner and prints
+`manager support log required: docs/manager-log/NNN-*.md`. The manager-log
+planner prints the next numbered
 support-log path without writing files and avoids exact placeholder `git add`
 paths until a concrete slug is supplied.
 Resume-brief validation rejects vector safety enforcement language. The
