@@ -53,6 +53,11 @@ The M0-M5 autonomous plan is complete and stopped. `GOAL.md` contains
 `<stop-orchestrator/>`, so do not start a new executor product slice until fresh
 human direction removes or replaces the sentinel.
 
+While the stop sentinel is present, manager-only process support may use
+`bash scripts/plan_next_manager_log.sh` to choose the next numbered
+`docs/manager-log/NNN-*.md` path and must leave a manager log for any support
+slice.
+
 ## Safe Checks
 
 ```bash

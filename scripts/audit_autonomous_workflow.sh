@@ -158,6 +158,14 @@ require_text_in_file \
   "README.md preserves stop sentinel guidance"
 require_text_in_file \
   "README.md" \
+  "bash scripts/plan_next_manager_log.sh" \
+  "README.md points to manager log planner"
+require_text_in_file \
+  "README.md" \
+  "docs/manager-log/NNN-*.md" \
+  "README.md requires manager support logs"
+require_text_in_file \
+  "README.md" \
   "bash scripts/validate_resume_brief.sh" \
   "README.md points to resume brief validation"
 require_text_in_file \
