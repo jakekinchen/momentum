@@ -95,7 +95,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     public func startRoutine(_ routine: WorkoutRoutine) throws {
         activeRoutine = routine
         activeRoutineBlockIndex = 0
-        if case let .preset(id) = routine.blocks.first?.exerciseRef { try? selectPreset(id: id) }
+        if let ref = routine.blocks.first?.exerciseRef { activateBlockExercise(ref) }
     }
 
     public func advanceRoutine() {
@@ -103,7 +103,20 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         let next = activeRoutineBlockIndex + 1
         guard next < routine.blocks.count else { activeRoutine = nil; return }
         activeRoutineBlockIndex = next
-        if case let .preset(id) = routine.blocks[next].exerciseRef { try? selectPreset(id: id) }
+        activateBlockExercise(routine.blocks[next].exerciseRef)
+    }
+
+    /// Selects a routine block's exercise. Inline (coach-authored) programs are dry-run
+    /// validated and saved as a user preset first, so they become trackable.
+    private func activateBlockExercise(_ ref: ExerciseRef, store: RegimenStore = RegimenStore()) {
+        switch ref {
+        case let .preset(id):
+            try? selectPreset(id: id)
+        case let .inline(program):
+            guard RegimenBlockParser.validate(program: program) == nil else { return }
+            try? saveGeneratedExercise(program, store: store)
+            try? selectPreset(id: program.id)
+        }
     }
 
     public func loadAvailablePresets() {

@@ -18,7 +18,7 @@ enum RegimenBlockParser {
         var current: RegimenBlockKind?
         var buffer: [String] = []
         for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if current == nil {
                 if trimmed == "```camifit-exercise" { current = .exercise; buffer = [] }
                 else if trimmed == "```camifit-routine" { current = .routine; buffer = [] }
@@ -49,14 +49,20 @@ extension RegimenBlockParser {
         do { program = try ProgramLoader.load(data: data) }
         catch { return .failure(.decode(String(describing: error))) }
 
-        guard let frame = sampleFrame() else { return .failure(.noSampleFrame) }
+        if let error = validate(program: program) { return .failure(error) }
+        return .success(program)
+    }
+
+    /// Dry-run an already-decoded program; returns nil if it evaluates without error.
+    static func validate(program: ExerciseProgram) -> RegimenValidationError? {
+        guard let frame = sampleFrame() else { return .noSampleFrame }
         do {
             var processor = try FrameSignalProcessor(program: program)
             _ = processor.process(frame: frame)
         } catch {
-            return .failure(.evaluation(String(describing: error)))
+            return .evaluation(String(describing: error))
         }
-        return .success(program)
+        return nil
     }
 
     static func sampleFrame() -> PoseFrame? {

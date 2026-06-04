@@ -19,14 +19,14 @@ struct RegimenCard: View {
             Text("Generated — may need tuning").font(.caption2).foregroundStyle(.orange)
             HStack {
                 Button(saved ? "Added" : "Save & add to exercises") {
-                    try? model.saveGeneratedExercise(program); saved = true
+                    do { try model.saveGeneratedExercise(program); saved = true } catch { saved = false }
                 }.buttonStyle(.borderedProminent).disabled(saved)
             }
         }
     }
 
     private func routineCard(_ routine: WorkoutRoutine) -> some View {
-        card(title: routine.name, subtitle: routine.description, icon: "list.bullet.rectangle") {
+        card(title: routine.name, subtitle: routine.description ?? "", icon: "list.bullet.rectangle") {
             ForEach(Array(routine.blocks.enumerated()), id: \.offset) { _, block in
                 Text("• \(refLabel(block.exerciseRef)) — \(block.sets)×\(block.reps.map(String.init) ?? block.holdSeconds.map { "\(Int($0))s" } ?? "?")")
                     .font(.caption)

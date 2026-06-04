@@ -30,12 +30,38 @@ public struct RoutineBlock: Codable, Equatable {
     public var sets: Int
     public var reps: Int?
     public var holdSeconds: Double?
-    public var restSeconds: Int
+    public var restSeconds: Int?
+
+    public init(
+        exerciseRef: ExerciseRef,
+        sets: Int,
+        reps: Int? = nil,
+        holdSeconds: Double? = nil,
+        restSeconds: Int? = nil
+    ) {
+        self.exerciseRef = exerciseRef
+        self.sets = sets
+        self.reps = reps
+        self.holdSeconds = holdSeconds
+        self.restSeconds = restSeconds
+    }
 }
 
 public struct WorkoutRoutine: Codable, Equatable, Identifiable {
     public var id: String
     public var name: String
-    public var description: String
+    public var description: String?
     public var blocks: [RoutineBlock]
+
+    public init(
+        id: String,
+        name: String,
+        description: String? = nil,
+        blocks: [RoutineBlock]
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.blocks = blocks
+    }
 }
