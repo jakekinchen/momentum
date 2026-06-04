@@ -21,7 +21,13 @@ enum LiveWorkerPaths {
 /// so the camera frame callback captures a stable reference (not a SwiftUI value-type View).
 final class LiveSession: ObservableObject {
     @Published var running = false
+    @Published var isLiveCamera = false
     @Published var errorText: String?
+    @Published var sourceSize: CGSize = .zero
+    @Published var recording = false
+    @Published var availableCameras: [CameraDevice] = []
+    @Published var selectedCameraID: String?
+    let recordDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Developer/camifit/dist/capture")
 
     let camera = LiveCameraController()
     private var worker: LivePoseWorkerClient?
@@ -79,6 +85,7 @@ final class LiveSession: ObservableObject {
         if let shotDir { try? FileManager.default.createDirectory(atPath: shotDir, withIntermediateDirectories: true) }
         errorText = nil
         running = true
+        isLiveCamera = false
         syntheticTimer = Timer.scheduledTimer(withTimeInterval: 0.10, repeats: true) { [weak self] timer in
             guard let self else { timer.invalidate(); return }
             if self.syntheticIndex >= self.syntheticFrames.count {
@@ -110,8 +117,9 @@ final class LiveSession: ObservableObject {
         worker = client
         errorText = nil
 
-        camera.onFrame = { [weak self] path, timestampMS, _ in
+        camera.onFrame = { [weak self] path, timestampMS, size in
             guard let self, let worker = self.worker else { return }
+            DispatchQueue.main.async { self.sourceSize = size }
             do {
                 if let frame = try worker.predict(imagePath: path, frameID: Int(truncatingIfNeeded: timestampMS), timestampMS: timestampMS) {
                     DispatchQueue.main.async { self.viewModel?.ingestLiveFrame(frame) }
@@ -120,8 +128,14 @@ final class LiveSession: ObservableObject {
                 // transient per-frame error — drop this frame, keep going.
             }
         }
+        camera.preferredDeviceID = selectedCameraID
         camera.start()
         running = true
+        isLiveCamera = true
+    }
+
+    func refreshCameras() {
+        availableCameras = LiveCameraController.discoverCameras()
     }
 
     func stop() {
@@ -129,104 +143,25 @@ final class LiveSession: ObservableObject {
         syntheticTimer = nil
         camera.stop()
         camera.onFrame = nil
+        camera.recording = false
+        recording = false
         worker?.stop()
         worker = nil
         running = false
-    }
-}
-
-struct LiveCameraView: View {
-    @ObservedObject var viewModel: AppExerciseSessionViewModel
-    @StateObject private var session = LiveSession()
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("CamiFit — Live").font(.headline)
-                Spacer()
-                Picker("Exercise", selection: exerciseBinding) {
-                    ForEach(viewModel.availablePresets) { preset in
-                        Text(preset.name).tag(Optional(preset.id))
-                    }
-                }
-                .frame(maxWidth: 220)
-                .disabled(session.running)
-                Button(session.running ? "Stop" : "Start") {
-                    session.running ? session.stop() : session.start(viewModel: viewModel)
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-            .padding(12)
-
-            ZStack {
-                CameraPreview(session: session.camera.session)
-                    .background(Color.black)
-                PoseOverlayView(state: viewModel.latestPoseOverlayState)
-                    .allowsHitTesting(false)
-                VStack {
-                    hud
-                    Spacer()
-                    if let errorText = session.errorText {
-                        Text(errorText)
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                            .padding(8)
-                            .background(.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 8))
-                            .padding(.bottom, 10)
-                    }
-                }
-                .padding(.top, 14)
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .frame(minWidth: 720, minHeight: 560)
-        .onAppear { viewModel.loadAvailablePresets() }
-        .onDisappear { session.stop() }
+        isLiveCamera = false
     }
 
-    private var hud: some View {
-        HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text((viewModel.state.selectedExerciseName ?? "Exercise").uppercased())
-                    .font(.caption.bold())
-                    .foregroundStyle(.cyan)
-                if let cue = viewModel.state.cueText {
-                    Text(cue).font(.headline).foregroundStyle(.white)
-                }
-            }
-            Spacer(minLength: 12)
-            VStack(spacing: 0) {
-                Text(primaryMetricValue)
-                    .font(.system(size: 40, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                    .monospacedDigit()
-                Text(primaryMetricLabel)
-                    .font(.caption2.bold())
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-        }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 12)
-        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.cyan.opacity(0.5), lineWidth: 1))
-        .frame(maxWidth: 420)
-    }
-
-    private var isHoldExercise: Bool {
-        viewModel.availablePresets.first { $0.id == viewModel.state.selectedExerciseID }?.kind == .hold
-    }
-
-    private var primaryMetricValue: String {
-        isHoldExercise ? String(format: "%.0f", viewModel.state.holdSeconds) : "\(viewModel.state.repCount)"
-    }
-
-    private var primaryMetricLabel: String { isHoldExercise ? "SEC" : "REPS" }
-
-    private var exerciseBinding: Binding<String?> {
-        Binding {
-            viewModel.state.selectedExerciseID
-        } set: { selectedID in
-            if let selectedID { try? viewModel.selectPreset(id: selectedID) }
+    /// Starts/stops capturing the live camera frames to `recordDir` (for offline analysis).
+    func toggleRecording() {
+        if recording {
+            camera.recording = false
+            recording = false
+        } else {
+            try? FileManager.default.removeItem(at: recordDir)
+            try? FileManager.default.createDirectory(at: recordDir, withIntermediateDirectories: true)
+            camera.recordDir = recordDir
+            camera.recording = true
+            recording = true
         }
     }
 }
@@ -335,5 +270,38 @@ struct CamiFitFrameSnapshot: View {
             }
         }
         .frame(width: 760, height: 600)
+    }
+}
+
+/// Pose overlay that maps normalized landmarks through the SAME resizeAspectFill transform the
+/// camera preview uses, so the skeleton aligns with the body on screen (not stretched to the view).
+struct LivePoseOverlay: View {
+    let state: AppPoseOverlayState
+    let sourceSize: CGSize
+
+    var body: some View {
+        GeometryReader { proxy in
+            let vw = proxy.size.width, vh = proxy.size.height
+            let sw = sourceSize.width > 0 ? sourceSize.width : vw
+            let sh = sourceSize.height > 0 ? sourceSize.height : vh
+            let scale = max(vw / sw, vh / sh)          // aspect-fill: cover the view
+            let dw = sw * scale, dh = sh * scale
+            let ox = (vw - dw) / 2, oy = (vh - dh) / 2  // centered crop, matches AVLayerVideoGravity.resizeAspectFill
+            let byID = Dictionary(uniqueKeysWithValues: state.points.map { ($0.id, $0) })
+            Canvas { ctx, _ in
+                for seg in state.segments {
+                    guard let a = byID[seg.fromID], let b = byID[seg.toID] else { continue }
+                    var path = Path()
+                    path.move(to: CGPoint(x: a.x * dw + ox, y: a.y * dh + oy))
+                    path.addLine(to: CGPoint(x: b.x * dw + ox, y: b.y * dh + oy))
+                    ctx.stroke(path, with: .color(.cyan), lineWidth: 3)
+                }
+                for p in state.points {
+                    let x = p.x * dw + ox, y = p.y * dh + oy
+                    let r = 4.0 + p.confidence * 2.0
+                    ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(.yellow))
+                }
+            }
+        }
     }
 }

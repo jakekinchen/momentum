@@ -3,6 +3,12 @@ import CoreImage
 import Foundation
 import SwiftUI
 
+/// A selectable camera input (built-in, external, or Continuity Camera).
+struct CameraDevice: Identifiable, Equatable {
+    let id: String
+    let name: String
+}
+
 /// Captures webcam frames, throttles + downscales them to JPEG files on disk, and hands each
 /// frame path to `onFrame`. Also vends an `AVCaptureVideoPreviewLayer` for live preview.
 final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -18,6 +24,11 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
     private let minInterval: TimeInterval = 0.08      // ~12 fps to the worker
     private let maxDimension: CGFloat = 640
     private var frameCounter = 0
+    private let diagDir = ProcessInfo.processInfo.environment["CAMIFIT_FRAME_DIR"]
+    var recordDir: URL?
+    var recording = false
+    /// nil = use the system default camera.
+    var preferredDeviceID: String?
 
     /// (imagePath, timestampMS, sourceSize)
     var onFrame: ((String, Int64, CGSize) -> Void)?
@@ -26,6 +37,7 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
         frameDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("camifit-live-frames", isDirectory: true)
         try? FileManager.default.createDirectory(at: frameDir, withIntermediateDirectories: true)
         super.init()
+        if let diagDir { try? FileManager.default.createDirectory(atPath: diagDir, withIntermediateDirectories: true) }
     }
 
     func start() {
@@ -46,6 +58,34 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
         }
     }
 
+    /// Enumerates selectable video cameras (built-in, external, Continuity).
+    static func discoverCameras() -> [CameraDevice] {
+        let types: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera, .external, .continuityCamera]
+        let discovery = AVCaptureDevice.DiscoverySession(deviceTypes: types, mediaType: .video, position: .unspecified)
+        return discovery.devices.map { CameraDevice(id: $0.uniqueID, name: $0.localizedName) }
+    }
+
+    /// Swaps the active camera input while running (takes effect on next start if idle).
+    func setDevice(_ id: String?) {
+        preferredDeviceID = id
+        sessionQueue.async {
+            guard self.session.isRunning,
+                  let device = self.resolveDevice(),
+                  let input = try? AVCaptureDeviceInput(device: device) else { return }
+            self.session.beginConfiguration()
+            for existing in self.session.inputs { self.session.removeInput(existing) }
+            if self.session.canAddInput(input) { self.session.addInput(input) }
+            self.session.commitConfiguration()
+        }
+    }
+
+    private func resolveDevice() -> AVCaptureDevice? {
+        if let preferredDeviceID, let device = AVCaptureDevice(uniqueID: preferredDeviceID) {
+            return device
+        }
+        return AVCaptureDevice.default(for: .video)
+    }
+
     private func configureAndRun() {
         if session.isRunning { return }
         session.beginConfiguration()
@@ -53,7 +93,7 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
         for input in session.inputs { session.removeInput(input) }
         for out in session.outputs { session.removeOutput(out) }
 
-        guard let device = AVCaptureDevice.default(for: .video),
+        guard let device = resolveDevice(),
               let input = try? AVCaptureDeviceInput(device: device),
               session.canAddInput(input) else {
             session.commitConfiguration()
@@ -91,6 +131,12 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
         let tsMS = Int64(now.timeIntervalSince1970 * 1000)
         let size = CGSize(width: cgImage.width, height: cgImage.height)
         onFrame?(url.path, tsMS, size)
+        if let diagDir {
+            try? FileManager.default.copyItem(atPath: url.path, toPath: (diagDir as NSString).appendingPathComponent("live_\(tsMS).jpg"))
+        }
+        if recording, let recordDir {
+            try? FileManager.default.copyItem(atPath: url.path, toPath: recordDir.appendingPathComponent("rec_\(tsMS).jpg").path)
+        }
         cleanupOldFrames()
     }
 
