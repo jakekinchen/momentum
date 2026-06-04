@@ -169,7 +169,13 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
         ),
         "docs/autonomous-workflow/README.md": "# Workflow\n",
         "docs/autonomous-workflow/01-operating-model.md": "# Operating\n",
-        "docs/autonomous-workflow/02-role-contracts.md": "# Roles\n",
+        "docs/autonomous-workflow/02-role-contracts.md": (
+            "# Roles\n\n"
+            "## Manager Contract\n\n"
+            "When `GOAL.md` contains `<stop-orchestrator/>`, keep work to manager process support.\n"
+            "Review `docs/manager-log latest:` before writing a manager log.\n"
+            "Use `bash scripts/plan_next_manager_log.sh`.\n"
+        ),
         "docs/autonomous-workflow/03-planning-system.md": "# Planning\n",
         "docs/autonomous-workflow/04-execution-protocol.md": "# Execution\n",
         "docs/autonomous-workflow/05-devops-and-session-ops.md": default_devops,
@@ -730,6 +736,10 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   executable scripts/plan_next_manager_log.sh" in result.stdout
     assert "ok   executable scripts/plan_next_resume_brief.sh" in result.stdout
     assert "ok   executable scripts/validate_resume_brief.sh" in result.stdout
+    assert "ok   role contracts define manager contract" in result.stdout
+    assert "ok   manager role contract preserves stop sentinel boundary" in result.stdout
+    assert "ok   manager role contract points to latest manager log" in result.stdout
+    assert "ok   manager role contract points to manager log planner" in result.stdout
     assert "ok   AGENTS.md points to agent status" in result.stdout
     assert "ok   AGENTS.md points to handoff" in result.stdout
     assert "ok   AGENTS.md preserves stop sentinel guidance" in result.stdout
@@ -909,6 +919,32 @@ def test_workflow_audit_requires_stopped_state_manager_protocol(tmp_path: Path) 
         in result.stdout
     )
     assert "MISS manager protocol points to latest manager log" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_manager_role_contract_stop_guidance(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    role_contracts = tmp_path / "docs/autonomous-workflow/02-role-contracts.md"
+    role_contracts.write_text(
+        "# Roles\n\n## Manager Contract\n\nGeneral manager guidance only.\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "ok   role contracts define manager contract" in result.stdout
+    assert (
+        "MISS manager role contract preserves stop sentinel boundary"
+        in result.stdout
+    )
+    assert "MISS manager role contract points to latest manager log" in result.stdout
+    assert "MISS manager role contract points to manager log planner" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

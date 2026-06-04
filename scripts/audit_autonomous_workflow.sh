@@ -135,6 +135,24 @@ require_executable "scripts/run_codex_pair_cycle.sh"
 require_executable "scripts/start_codex_goal_loop.sh"
 require_executable "scripts/stop_codex_goal_loop.sh"
 
+section "Role contracts"
+require_text_in_file \
+  "docs/autonomous-workflow/02-role-contracts.md" \
+  "## Manager Contract" \
+  "role contracts define manager contract"
+require_text_in_file \
+  "docs/autonomous-workflow/02-role-contracts.md" \
+  "<stop-orchestrator/>" \
+  "manager role contract preserves stop sentinel boundary"
+require_text_in_file \
+  "docs/autonomous-workflow/02-role-contracts.md" \
+  "docs/manager-log latest:" \
+  "manager role contract points to latest manager log"
+require_text_in_file \
+  "docs/autonomous-workflow/02-role-contracts.md" \
+  "bash scripts/plan_next_manager_log.sh" \
+  "manager role contract points to manager log planner"
+
 section "Entrypoint guidance"
 require_text_in_file \
   "AGENTS.md" \
