@@ -26,15 +26,44 @@ def test_resolves_left_knee_with_laterality() -> None:
 
 def test_resolves_equipment_terms() -> None:
     [kettlebell] = resolve_text("kettlebell")
+    [kb] = resolve_text("kb")
+    [dumbbell] = resolve_text("dumbbell")
+    [dumbbells] = resolve_text("dumbbells")
+    [db] = resolve_text("db")
     [barbell_exclusion] = resolve_text("no barbell")
 
     assert kettlebell.constraint_type == "Equipment"
     assert kettlebell.value == "kettlebell"
     assert kettlebell.negated is False
+    assert kb.constraint_type == "Equipment"
+    assert kb.value == "kettlebell"
+    assert dumbbell.constraint_type == "Equipment"
+    assert dumbbell.value == "dumbbell"
+    assert dumbbells.constraint_type == "Equipment"
+    assert dumbbells.value == "dumbbell"
+    assert db.constraint_type == "Equipment"
+    assert db.value == "dumbbell"
     assert barbell_exclusion.constraint_type == "Equipment"
     assert barbell_exclusion.value == "barbell"
     assert barbell_exclusion.hard is True
     assert barbell_exclusion.negated is True
+
+
+def test_resolves_only_db_kb_as_hard_allowed_equipment_subset() -> None:
+    constraints = resolve_text("only dumbbells and kettlebell")
+
+    assert [(constraint.constraint_type, constraint.value) for constraint in constraints] == [
+        ("Equipment", "dumbbell"),
+        ("Equipment", "kettlebell"),
+    ]
+    assert {f"Equipment:{constraint.value}" for constraint in constraints} == {
+        "Equipment:dumbbell",
+        "Equipment:kettlebell",
+    }
+    assert all(constraint.hard is True for constraint in constraints)
+    assert all(constraint.negated is False for constraint in constraints)
+    assert all(constraint.verified is False for constraint in constraints)
+    assert all(constraint.safety_behavior == "allowed_equipment_only" for constraint in constraints)
 
 
 def test_resolves_deadlift_family_exclusion() -> None:

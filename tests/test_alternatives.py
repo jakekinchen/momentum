@@ -7,6 +7,7 @@ from kg.safety import DecisionReceipt, evaluate_candidates
 
 
 HOME_EQUIPMENT = {"Equipment:kettlebell", "Equipment:yoga_mat"}
+DB_KB_EQUIPMENT = {"Equipment:dumbbell", "Equipment:kettlebell"}
 CANDIDATES = (
     "Exercise:goblet_squat",
     "Exercise:kettlebell_deadlift",
@@ -24,6 +25,18 @@ def _active_knee_restriction() -> ResolvedConstraint:
         source_text="active knee restriction",
         graph_paths=knee.graph_paths,
     )
+
+
+def _equipment_ids_from_allowed_constraints(
+    constraints: list[ResolvedConstraint],
+) -> set[str]:
+    return {
+        f"Equipment:{constraint.value}"
+        for constraint in constraints
+        if constraint.constraint_type == "Equipment"
+        and constraint.hard
+        and constraint.safety_behavior == "allowed_equipment_only"
+    }
 
 
 def _safety_receipts() -> list[DecisionReceipt]:
@@ -101,3 +114,42 @@ def test_workout_candidate_contract_returns_receipts_and_alternatives() -> None:
     assert {record.alternative_exercise_id for record in result.alternatives} == {
         "Exercise:glute_bridge"
     }
+
+
+def test_db_kb_workout_candidates_use_only_selected_safe_pool_for_alternatives() -> None:
+    constraints = resolve_text("only dumbbells and kettlebell")
+    available_equipment = _equipment_ids_from_allowed_constraints(constraints)
+    receipts = evaluate_candidates(
+        [
+            "Exercise:barbell_bench_press",
+            "Exercise:dumbbell_floor_press",
+            "Exercise:kettlebell_deadlift",
+            "Exercise:glute_bridge",
+        ],
+        available_equipment=available_equipment,
+        constraints=constraints,
+    )
+    result = build_workout_candidates(receipts, available_equipment=available_equipment)
+    selected_ids = {receipt.exercise_id for receipt in result.selected_receipts}
+    alternatives_by_filtered = {
+        record.filtered_exercise_id: record for record in result.alternatives
+    }
+
+    assert available_equipment == DB_KB_EQUIPMENT
+    assert selected_ids == {
+        "Exercise:dumbbell_floor_press",
+        "Exercise:kettlebell_deadlift",
+    }
+    assert {receipt.exercise_id for receipt in result.filtered_receipts} == {
+        "Exercise:barbell_bench_press",
+        "Exercise:glute_bridge",
+    }
+    assert all(record.alternative_exercise_id in selected_ids for record in result.alternatives)
+    assert (
+        alternatives_by_filtered["Exercise:barbell_bench_press"].alternative_exercise_id
+        == "Exercise:dumbbell_floor_press"
+    )
+    assert (
+        "Exercise:dumbbell_floor_press -REQUIRES-> Equipment:dumbbell"
+        in alternatives_by_filtered["Exercise:barbell_bench_press"].graph_paths
+    )

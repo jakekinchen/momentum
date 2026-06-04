@@ -57,6 +57,13 @@
       "properties": {}
     },
     {
+      "id": "Equipment:dumbbell",
+      "type": "Equipment",
+      "label": "Dumbbell",
+      "aliases": ["dumbbell", "dumbbells", "db"],
+      "properties": {}
+    },
+    {
       "id": "Equipment:barbell",
       "type": "Equipment",
       "label": "Barbell",
@@ -163,6 +170,16 @@
       "properties": {
         "priority_tier": "seed",
         "priority_score": 0.6
+      }
+    },
+    {
+      "id": "Exercise:dumbbell_floor_press",
+      "type": "Exercise",
+      "label": "Dumbbell Floor Press",
+      "aliases": ["dumbbell floor press", "db floor press"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.65
       }
     },
     {
@@ -305,6 +322,24 @@
     },
     {
       "source": "Exercise:barbell_bench_press",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:horizontal_press",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:dumbbell_floor_press",
+      "predicate": "REQUIRES",
+      "target": "Equipment:dumbbell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:dumbbell_floor_press",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:chest",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:dumbbell_floor_press",
       "predicate": "HAS_PATTERN",
       "target": "MovementPattern:horizontal_press",
       "properties": {}

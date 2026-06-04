@@ -7,6 +7,7 @@ from kg.safety import DecisionReceipt, evaluate_candidates, primary_severity
 
 
 HOME_EQUIPMENT = {"Equipment:kettlebell", "Equipment:yoga_mat"}
+DB_KB_EQUIPMENT = {"Equipment:dumbbell", "Equipment:kettlebell"}
 
 
 def _receipt_for(exercise_id: str, **kwargs: object) -> DecisionReceipt:
@@ -23,6 +24,18 @@ def _active_knee_restriction() -> ResolvedConstraint:
         source_text="active knee restriction",
         graph_paths=knee.graph_paths,
     )
+
+
+def _equipment_ids_from_allowed_constraints(
+    constraints: list[ResolvedConstraint],
+) -> set[str]:
+    return {
+        f"Equipment:{constraint.value}"
+        for constraint in constraints
+        if constraint.constraint_type == "Equipment"
+        and constraint.hard
+        and constraint.safety_behavior == "allowed_equipment_only"
+    }
 
 
 def test_primary_severity_uses_prd_lattice() -> None:
@@ -45,6 +58,36 @@ def test_missing_equipment_creates_hard_block_receipt() -> None:
     assert receipt.graph_version == "fitgraph-kg-m5-validation-v0"
     assert receipt.ruleset_version == "ruleset-m2-safety-v0"
     assert receipt.ontology_lock_version == "ontology-lock-m0-unverified"
+
+
+def test_only_db_kb_prompt_constraints_drive_hard_equipment_subset_filtering() -> None:
+    constraints = resolve_text("only dumbbells and kettlebell")
+    available_equipment = _equipment_ids_from_allowed_constraints(constraints)
+    receipts = evaluate_candidates(
+        [
+            "Exercise:barbell_bench_press",
+            "Exercise:dumbbell_floor_press",
+            "Exercise:goblet_squat",
+            "Exercise:glute_bridge",
+        ],
+        available_equipment=available_equipment,
+        constraints=constraints,
+    )
+    by_id = {receipt.exercise_id: receipt for receipt in receipts}
+
+    assert available_equipment == DB_KB_EQUIPMENT
+    assert by_id["Exercise:barbell_bench_press"].decision == "filtered"
+    assert by_id["Exercise:barbell_bench_press"].primary_severity == "EQUIPMENT_HARD_BLOCK"
+    assert by_id["Exercise:barbell_bench_press"].primary_reason_code == "MISSING_EQUIPMENT:barbell"
+    assert by_id["Exercise:barbell_bench_press"].graph_paths == (
+        "Exercise:barbell_bench_press -REQUIRES-> Equipment:barbell",
+    )
+    assert by_id["Exercise:glute_bridge"].decision == "filtered"
+    assert by_id["Exercise:glute_bridge"].primary_reason_code == "MISSING_EQUIPMENT:yoga_mat"
+    assert by_id["Exercise:dumbbell_floor_press"].decision == "selected"
+    assert by_id["Exercise:dumbbell_floor_press"].primary_reason_code == "PASSED_SAFETY"
+    assert by_id["Exercise:goblet_squat"].decision == "selected"
+    assert by_id["Exercise:goblet_squat"].primary_reason_code == "PASSED_SAFETY"
 
 
 def test_deadlift_family_exclusion_uses_local_variant_edge() -> None:

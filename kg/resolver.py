@@ -35,6 +35,7 @@ def _resolved_node(
     hard: bool = False,
     negated: bool = False,
     laterality: str | None = None,
+    safety_behavior: str | None = None,
     graph_paths: tuple[str, ...] = (),
 ) -> ResolvedConstraint:
     graph.node(node_id)
@@ -47,6 +48,7 @@ def _resolved_node(
         verified=False,
         negated=negated,
         laterality=laterality,
+        safety_behavior=safety_behavior,
     )
 
 
@@ -62,11 +64,55 @@ def _unresolved(source_text: str, normalized_text: str) -> ResolvedConstraint:
     )
 
 
+def _allowed_equipment_subset(
+    *,
+    graph: LocalGraph,
+    source_text: str,
+    normalized: str,
+) -> list[ResolvedConstraint] | None:
+    if not normalized.startswith("only "):
+        return None
+
+    equipment_text = normalized.removeprefix("only ").strip()
+    terms = [term.strip() for term in re.split(r"\s*(?:,| and )\s*", equipment_text)]
+    terms = [term for term in terms if term]
+    if not terms:
+        return None
+
+    constraints: list[ResolvedConstraint] = []
+    seen: set[str] = set()
+    for term in terms:
+        matched_node = _exact_label_or_alias_match(term, graph)
+        if matched_node is None or matched_node.type != "Equipment":
+            return None
+        if matched_node.id in seen:
+            continue
+        seen.add(matched_node.id)
+        constraints.append(
+            _resolved_node(
+                graph=graph,
+                source_text=source_text,
+                constraint_type="Equipment",
+                node_id=matched_node.id,
+                hard=True,
+                safety_behavior="allowed_equipment_only",
+            )
+        )
+    return constraints
+
+
 def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedConstraint]:
     """Return typed constraints from local seed facts, never prose decisions."""
 
     local_graph = graph if graph is not None else load_local_graph()
     normalized = _normalize(text)
+
+    if allowed_equipment := _allowed_equipment_subset(
+        graph=local_graph,
+        source_text=text,
+        normalized=normalized,
+    ):
+        return allowed_equipment
 
     if normalized == "knee":
         return [
