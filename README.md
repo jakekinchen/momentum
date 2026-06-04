@@ -27,10 +27,10 @@ proposes the next numbered brief path and exact copy command without writing
 files or changing `GOAL.md`.
 
 After drafting that brief, validate the candidate file before changing
-`GOAL.md`:
+`GOAL.md`. Use the `next brief:` path printed by the planner:
 
 ```bash
-bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
+bash scripts/validate_resume_brief.sh <planner-next-brief-path>
 ```
 
 Then read:

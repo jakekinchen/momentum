@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:57:33Z
+Last updated: 2026-06-04T18:59:31Z
 
 ## Current State
 
@@ -88,7 +88,9 @@ planner. The resume planner prints the candidate
 candidate resume briefs must carry that self-validation command before the
 `GOAL.md` update. The resume validator also requires that command to target the
 candidate brief being validated, not a stale copied path, and the exact command
-must appear in the brief's `## Resume Checklist`.
+must appear in the brief's `## Resume Checklist`. Static orientation docs use
+`<planner-next-brief-path>` and the workflow audit rejects stale hardcoded
+`007` resume-validation targets.
 
 ## Hard Invariants
 

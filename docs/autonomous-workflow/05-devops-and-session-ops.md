@@ -15,7 +15,7 @@ bash scripts/stop_codex_goal_loop.sh
 Resume-brief validation requires a drafted candidate brief:
 
 ```bash
-bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
+bash scripts/validate_resume_brief.sh <planner-next-brief-path>
 ```
 
 Start/run loop commands require `GOAL.md` to be updated by fresh human

@@ -43,6 +43,18 @@ require_text_in_file() {
   fi
 }
 
+reject_text_in_file() {
+  file="$1"
+  text="$2"
+  label="$3"
+  if [ -f "$file" ] && grep -Fq "$text" "$file"; then
+    printf 'MISS %s\n' "$label"
+    warns=$((warns + 1))
+  else
+    printf 'ok   %s\n' "$label"
+  fi
+}
+
 latest_file() {
   dir="$1"
   if [ -d "$dir" ]; then
@@ -138,6 +150,18 @@ require_text_in_file \
   "README.md" \
   "bash scripts/validate_resume_brief.sh" \
   "README.md points to resume brief validation"
+
+section "Static resume targets"
+for file in README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-devops-and-session-ops.md; do
+  require_text_in_file \
+    "$file" \
+    "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" \
+    "$file uses planner resume-validation target"
+  reject_text_in_file \
+    "$file" \
+    "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md" \
+    "$file avoids stale hardcoded resume-validation target"
+done
 
 section "Goal"
 if [ -f GOAL.md ]; then

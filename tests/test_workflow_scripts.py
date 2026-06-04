@@ -118,7 +118,23 @@ def _write_minimal_workflow_root(
 - Start with `bash scripts/agent_thread_status.sh`.
 - Read `docs/agent-thread-handoff.md`.
 - Respect `<stop-orchestrator/>`.
-- Validate drafted resume briefs with `bash scripts/validate_resume_brief.sh`.
+- Validate drafted resume briefs with `bash scripts/validate_resume_brief.sh <planner-next-brief-path>`.
+"""
+    default_handoff = """# Handoff
+
+After drafting a candidate resume brief, validate it:
+
+```bash
+bash scripts/validate_resume_brief.sh <planner-next-brief-path>
+```
+"""
+    default_devops = """# Devops
+
+Resume-brief validation requires a drafted candidate brief:
+
+```bash
+bash scripts/validate_resume_brief.sh <planner-next-brief-path>
+```
 """
     files = {
         "AGENTS.md": agents if agents is not None else default_agents,
@@ -130,7 +146,7 @@ def _write_minimal_workflow_root(
             "docs/briefs/006-m5-ontology-sidecar-validation.md\n"
         ),
         "docs/kg-module-prd.md": "# PRD\n",
-        "docs/agent-thread-handoff.md": "# Handoff\n",
+        "docs/agent-thread-handoff.md": default_handoff,
         "executor-reviewer-pair-programming.md": "# Pair\n",
         "docs/briefs/000-template-human-approved-resume.md": "# Template\n",
         "docs/briefs/006-m5-ontology-sidecar-validation.md": "# Active brief\n",
@@ -139,7 +155,7 @@ def _write_minimal_workflow_root(
         "docs/autonomous-workflow/02-role-contracts.md": "# Roles\n",
         "docs/autonomous-workflow/03-planning-system.md": "# Planning\n",
         "docs/autonomous-workflow/04-execution-protocol.md": "# Execution\n",
-        "docs/autonomous-workflow/05-devops-and-session-ops.md": "# Devops\n",
+        "docs/autonomous-workflow/05-devops-and-session-ops.md": default_devops,
         "docs/autonomous-workflow/06-manager-guardian-protocol.md": "# Manager\n",
         "docs/autonomous-workflow/07-document-and-artifact-map.md": "# Artifacts\n",
         "docs/autonomous-workflow/08-scaffold-adoption-matrix.md": "# Matrix\n",
@@ -211,6 +227,11 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "<stop-orchestrator/>" in readme
     assert "uv run python -m kg.validation" in readme
     assert "bash scripts/validate_resume_brief.sh" in readme
+    assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in readme
+    assert (
+        "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
+        not in readme
+    )
     assert "final clean/warning summary" in readme
 
 
@@ -252,6 +273,11 @@ def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
 
     assert "bash scripts/agent_thread_status.sh" in safe_commands
     assert "bash scripts/stop_codex_goal_loop.sh" in safe_commands
+    assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in devops
+    assert (
+        "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
+        not in devops
+    )
     assert "bash scripts/run_codex_pair_cycle.sh --once" not in safe_commands
     assert "bash scripts/start_codex_goal_loop.sh --max-cycles 3" in loop_commands
     assert "bash scripts/stop_codex_goal_loop.sh" not in loop_commands
@@ -536,6 +562,21 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   README.md points to handoff" in result.stdout
     assert "ok   README.md preserves stop sentinel guidance" in result.stdout
     assert "ok   README.md points to resume brief validation" in result.stdout
+    assert "ok   README.md uses planner resume-validation target" in result.stdout
+    assert "ok   README.md avoids stale hardcoded resume-validation target" in result.stdout
+    assert "ok   docs/agent-thread-handoff.md uses planner resume-validation target" in result.stdout
+    assert (
+        "ok   docs/agent-thread-handoff.md avoids stale hardcoded resume-validation target"
+        in result.stdout
+    )
+    assert (
+        "ok   docs/autonomous-workflow/05-devops-and-session-ops.md uses planner resume-validation target"
+        in result.stdout
+    )
+    assert (
+        "ok   docs/autonomous-workflow/05-devops-and-session-ops.md avoids stale hardcoded resume-validation target"
+        in result.stdout
+    )
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
@@ -576,6 +617,7 @@ def test_workflow_audit_requires_entrypoint_guidance_content(tmp_path: Path) -> 
     assert "MISS README.md points to handoff" in result.stdout
     assert "MISS README.md preserves stop sentinel guidance" in result.stdout
     assert "MISS README.md points to resume brief validation" in result.stdout
+    assert "MISS README.md uses planner resume-validation target" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 
