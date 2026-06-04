@@ -1,3 +1,4 @@
+import AppKit
 import CamiFitEngine
 import Foundation
 import SwiftUI
@@ -28,13 +29,40 @@ final class LiveSession: ObservableObject {
     private var syntheticTimer: Timer?
     private var syntheticFrames: [PoseFrame] = []
     private var syntheticIndex = 0
+    private let shotDir = ProcessInfo.processInfo.environment["CAMIFIT_SHOT_DIR"]
+    private var shotCounter = 0
+
+    /// Renders the current overlay + HUD to a PNG via ImageRenderer (no screen-recording
+    /// permission needed) when CAMIFIT_SHOT_DIR is set — for deterministic GUI captures.
+    private func captureSnapshotIfNeeded() {
+        guard let shotDir, let viewModel, syntheticIndex % 3 == 0 else { return }
+        let snapshot = CamiFitFrameSnapshot(
+            overlay: viewModel.latestPoseOverlayState,
+            exercise: viewModel.state.selectedExerciseName ?? "Squat",
+            reps: viewModel.state.repCount,
+            cue: viewModel.state.cueText
+        )
+        let index = shotCounter
+        shotCounter += 1
+        Task { @MainActor in
+            let renderer = ImageRenderer(content: snapshot)
+            renderer.scale = 2
+            guard let cgImage = renderer.cgImage,
+                  let data = NSBitmapImageRep(cgImage: cgImage).representation(using: .png, properties: [:]) else { return }
+            let url = URL(fileURLWithPath: shotDir).appendingPathComponent(String(format: "frame_%04d.png", index))
+            try? data.write(to: url)
+        }
+    }
 
     /// Plays a recorded landmark trace frame-by-frame into the engine (no camera) so the GUI
     /// can be exercised + screenshotted deterministically from synthetic data.
     func startSynthetic(viewModel: AppExerciseSessionViewModel, framesURL: URL) {
         self.viewModel = viewModel
-        if viewModel.state.selectedExerciseID == nil, let first = viewModel.availablePresets.first {
-            try? viewModel.selectPreset(id: first.id)
+        // Synthetic trace is a squat; prefer the squat preset (CAMIFIT_SYNTHETIC_EXERCISE overrides).
+        let preferredID = ProcessInfo.processInfo.environment["CAMIFIT_SYNTHETIC_EXERCISE"] ?? "bodyweight_squat"
+        let preset = viewModel.availablePresets.first { $0.id == preferredID } ?? viewModel.availablePresets.first
+        if let preset {
+            try? viewModel.selectPreset(id: preset.id)
         }
         viewModel.resetLiveSession()
         do {
@@ -48,6 +76,7 @@ final class LiveSession: ObservableObject {
             return
         }
         syntheticIndex = 0
+        if let shotDir { try? FileManager.default.createDirectory(atPath: shotDir, withIntermediateDirectories: true) }
         errorText = nil
         running = true
         syntheticTimer = Timer.scheduledTimer(withTimeInterval: 0.10, repeats: true) { [weak self] timer in
@@ -58,6 +87,7 @@ final class LiveSession: ObservableObject {
                 return
             }
             self.viewModel?.ingestLiveFrame(self.syntheticFrames[self.syntheticIndex])
+            self.captureSnapshotIfNeeded()
             self.syntheticIndex += 1
         }
     }
@@ -269,5 +299,41 @@ struct SyntheticDemoView: View {
         .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.cyan.opacity(0.5), lineWidth: 1))
         .frame(maxWidth: 420)
+    }
+}
+
+/// A fixed-size, self-contained render of the live overlay + rep HUD, used by ImageRenderer
+/// to produce deterministic PNG snapshots of the actual SwiftUI surface (no screen capture).
+struct CamiFitFrameSnapshot: View {
+    let overlay: AppPoseOverlayState
+    let exercise: String
+    let reps: Int
+    let cue: String?
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [Color(white: 0.10), Color(white: 0.02)], startPoint: .top, endPoint: .bottom)
+            PoseOverlayView(state: overlay)
+            VStack {
+                HStack(spacing: 18) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(exercise.uppercased()).font(.caption.bold()).foregroundStyle(.cyan)
+                        if let cue { Text(cue).font(.headline).foregroundStyle(.white) }
+                    }
+                    Spacer(minLength: 12)
+                    VStack(spacing: 0) {
+                        Text("\(reps)").font(.system(size: 40, weight: .black, design: .rounded)).foregroundStyle(.white).monospacedDigit()
+                        Text("REPS").font(.caption2.bold()).foregroundStyle(.white.opacity(0.7))
+                    }
+                }
+                .padding(.horizontal, 22).padding(.vertical, 12)
+                .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.cyan.opacity(0.5), lineWidth: 1))
+                .frame(maxWidth: 420)
+                .padding(.top, 16)
+                Spacer()
+            }
+        }
+        .frame(width: 760, height: 600)
     }
 }
