@@ -89,16 +89,17 @@ else
 fi
 
 section "Required Follow-Up"
-printf '1. Replace template placeholders with the actual stopped-state support slice.\n'
-printf '2. Keep the Guardrail section process-only unless the human explicitly changes roles.\n'
-printf '3. Run: uv run pytest\n'
-printf '4. Run: uv run python -m kg.validation\n'
-printf '5. Run: bash scripts/audit_autonomous_workflow.sh\n'
-printf '6. Run: bash scripts/agent_thread_status.sh\n'
-printf '7. Fill the manager log Validation Evidence with the command outcomes.\n'
-printf '8. Run: git diff --check\n'
+printf '1. Review the latest manager log with the printed review latest command.\n'
+printf '2. Replace template placeholders with the actual stopped-state support slice.\n'
+printf '3. Keep the Guardrail section process-only unless the human explicitly changes roles.\n'
+printf '4. Run: uv run pytest\n'
+printf '5. Run: uv run python -m kg.validation\n'
+printf '6. Run: bash scripts/audit_autonomous_workflow.sh\n'
+printf '7. Run: bash scripts/agent_thread_status.sh\n'
+printf '8. Fill the manager log Validation Evidence with the command outcomes.\n'
+printf '9. Run: git diff --check\n'
 if [ "$SLUG" = "<support-slug>" ]; then
-  printf '9. Commit with exact paths after rerunning with a concrete slug: git add <planner-next-manager-log-path> <changed-support-paths>\n'
+  printf '10. Commit with exact paths after rerunning with a concrete slug: git add <planner-next-manager-log-path> <changed-support-paths>\n'
 else
-  printf '9. Commit with exact paths: git add %s <changed-support-paths>\n' "$target"
+  printf '10. Commit with exact paths: git add %s <changed-support-paths>\n' "$target"
 fi

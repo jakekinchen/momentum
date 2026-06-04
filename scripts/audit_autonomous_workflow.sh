@@ -512,6 +512,10 @@ require_text_in_file \
   "manager log planner prints latest review command"
 require_text_in_file \
   "scripts/plan_next_manager_log.sh" \
+  "Review the latest manager log with the printed review latest command" \
+  "manager log planner requires latest log review"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
   "next manager log: rerun with a lowercase slug to print exact path" \
   "manager log planner avoids placeholder next path"
 require_text_in_file \
