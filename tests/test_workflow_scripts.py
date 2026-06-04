@@ -321,7 +321,7 @@ def test_agent_thread_status_reports_current_goal_state_and_audits() -> None:
     assert "stop sentinel: absent" in result.stdout
     assert "executor product slices: follow GOAL.md and active brief" in result.stdout
     assert "current milestone: EOD completion and testing" in result.stdout
-    assert "current slice: docs/briefs/009-copilot-sleep-churn-coach-brief-fact-cards.md" in result.stdout
+    assert "current slice: docs/briefs/010-bad-lower-back-resolver-safety.md" in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
     assert "agent thread status clean" in result.stdout
@@ -1231,8 +1231,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log planner requires evidence fill" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "ok   manager log planner avoids placeholder git add target" in result.stdout
-    assert "active brief: docs/briefs/009-copilot-sleep-churn-coach-brief-fact-cards.md" in result.stdout
-    assert "ok   docs/briefs/009-copilot-sleep-churn-coach-brief-fact-cards.md" in result.stdout
+    assert "active brief: docs/briefs/010-bad-lower-back-resolver-safety.md" in result.stdout
+    assert "ok   docs/briefs/010-bad-lower-back-resolver-safety.md" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
     assert "suggested checks:" in result.stdout
     assert "- uv run pytest" in result.stdout
