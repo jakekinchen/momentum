@@ -95,9 +95,10 @@ printf '3. Run: uv run pytest\n'
 printf '4. Run: uv run python -m kg.validation\n'
 printf '5. Run: bash scripts/audit_autonomous_workflow.sh\n'
 printf '6. Run: bash scripts/agent_thread_status.sh\n'
-printf '7. Run: git diff --check\n'
+printf '7. Fill the manager log Validation Evidence with the command outcomes.\n'
+printf '8. Run: git diff --check\n'
 if [ "$SLUG" = "<support-slug>" ]; then
-  printf '8. Commit with exact paths after rerunning with a concrete slug: git add <planner-next-manager-log-path> <changed-support-paths>\n'
+  printf '9. Commit with exact paths after rerunning with a concrete slug: git add <planner-next-manager-log-path> <changed-support-paths>\n'
 else
-  printf '8. Commit with exact paths: git add %s <changed-support-paths>\n' "$target"
+  printf '9. Commit with exact paths: git add %s <changed-support-paths>\n' "$target"
 fi

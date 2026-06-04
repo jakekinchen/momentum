@@ -526,6 +526,10 @@ require_text_in_file \
   "scripts/plan_next_manager_log.sh" \
   "Run: git diff --check" \
   "manager log planner requires diff check"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
+  "Fill the manager log Validation Evidence with the command outcomes" \
+  "manager log planner requires evidence fill"
 reject_text_in_file \
   "scripts/plan_next_manager_log.sh" \
   "git add docs/manager-log/" \
