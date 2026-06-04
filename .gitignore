@@ -21,3 +21,9 @@ __pycache__/
 *.task
 *.tflite
 models/
+
+# Built app bundle (includes the ~189MB bundled codex binary)
+dist/
+
+# Generated Codex app-server protocol schema (regenerate: codex app-server generate-json-schema)
+docs/research/codex-app-server/
