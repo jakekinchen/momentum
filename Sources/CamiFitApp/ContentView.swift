@@ -688,8 +688,14 @@ private struct ChatPanel: View {
                             .padding(.top, 14)
                     } else {
                         ForEach(chat.messages) { message in
-                            ChatBubble(message: message)
-                                .id(message.id)
+                            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 8) {
+                                ChatBubble(message: message)
+                                ForEach(Array(message.regimen.enumerated()), id: \.offset) { _, result in
+                                    RegimenCard(result: result)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+                            .id(message.id)
                         }
                     }
                 }
