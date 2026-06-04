@@ -38,12 +38,31 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
 
+            HStack {
+                Picker("Recorded Run", selection: selectedRecordedRunBinding) {
+                    ForEach(viewModel.availableRecordedRuns) { run in
+                        Text(run.displayName).tag(Optional(run.id))
+                    }
+                }
+                .frame(maxWidth: 260)
+
+                Button("Run") {
+                    guard let selectedRecordedRunID = viewModel.selectedRecordedRunID else {
+                        return
+                    }
+
+                    viewModel.runRecordedRun(id: selectedRecordedRunID)
+                }
+                .disabled(viewModel.selectedRecordedRunID == nil)
+            }
+
             Spacer()
         }
         .padding(20)
         .frame(minWidth: 560, minHeight: 320)
         .onAppear {
             viewModel.loadAvailablePresets()
+            viewModel.loadRecordedRuns()
         }
     }
 
@@ -56,6 +75,18 @@ struct ContentView: View {
             }
 
             try? viewModel.selectPreset(id: selectedID)
+        }
+    }
+
+    private var selectedRecordedRunBinding: Binding<String?> {
+        Binding {
+            viewModel.selectedRecordedRunID
+        } set: { selectedID in
+            guard let selectedID else {
+                return
+            }
+
+            _ = viewModel.runRecordedRun(id: selectedID)
         }
     }
 

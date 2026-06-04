@@ -39,23 +39,44 @@ public enum AppExerciseSessionError: Error, Equatable {
 
 public final class AppExerciseSessionViewModel: ObservableObject {
     @Published public private(set) var availablePresets: [AppPresetSummary] = []
+    @Published public private(set) var availableRecordedRuns: [AppRecordedRunSummary] = []
+    @Published public private(set) var selectedRecordedRunID: String?
     @Published public private(set) var state = AppExerciseSessionState()
     @Published public private(set) var lastPoseProviderRunSummary: AppPoseProviderRunSummary?
     public private(set) var resolvedPresetSourceURL: URL?
+    public private(set) var resolvedRecordedRunSourceURL: URL?
 
     private let presetSourceCandidates: [URL]
+    private let recordedRunSourceCandidates: [URL]
     private var selectedProgram: ExerciseProgram?
 
     public convenience init(presetsDirectory: URL) {
-        self.init(presetSourceCandidates: [presetsDirectory])
+        self.init(
+            presetSourceCandidates: [presetsDirectory],
+            recordedRunSourceCandidates: AppRecordedRunCatalog.defaultSourceCandidates()
+        )
+    }
+
+    public convenience init(recordedRunsDirectory: URL) {
+        self.init(
+            presetSourceCandidates: AppExerciseSessionViewModel.defaultPresetSourceCandidates(),
+            recordedRunSourceCandidates: [recordedRunsDirectory]
+        )
     }
 
     public convenience init() {
-        self.init(presetSourceCandidates: AppExerciseSessionViewModel.defaultPresetSourceCandidates())
+        self.init(
+            presetSourceCandidates: AppExerciseSessionViewModel.defaultPresetSourceCandidates(),
+            recordedRunSourceCandidates: AppRecordedRunCatalog.defaultSourceCandidates()
+        )
     }
 
-    public init(presetSourceCandidates: [URL]) {
+    public init(
+        presetSourceCandidates: [URL],
+        recordedRunSourceCandidates: [URL] = AppRecordedRunCatalog.defaultSourceCandidates()
+    ) {
         self.presetSourceCandidates = presetSourceCandidates
+        self.recordedRunSourceCandidates = recordedRunSourceCandidates
     }
 
     public func loadAvailablePresets() {
@@ -84,6 +105,46 @@ public final class AppExerciseSessionViewModel: ObservableObject {
             selectedExerciseName: program.name,
             presetSourceDescription: resolvedPresetSourceURL?.path
         )
+    }
+
+    public func loadRecordedRuns() {
+        let resolved = AppRecordedRunCatalog.resolveRecordedRuns(from: recordedRunSourceCandidates)
+        availableRecordedRuns = resolved.runs
+        resolvedRecordedRunSourceURL = resolved.sourceURL
+
+        if availableRecordedRuns.isEmpty {
+            state.diagnosticText = "No recorded runs found"
+            selectedRecordedRunID = nil
+            return
+        }
+
+        if selectedRecordedRunID == nil {
+            selectedRecordedRunID = availableRecordedRuns.first?.id
+        }
+    }
+
+    @discardableResult
+    public func runRecordedRun(id: String) -> AppPoseProviderRunSummary {
+        loadRecordedRuns()
+
+        guard let run = availableRecordedRuns.first(where: { $0.id == id }) else {
+            let summary = AppPoseProviderRunSummary(
+                frameCount: 0,
+                selectedExerciseID: state.selectedExerciseID,
+                selectedExerciseName: state.selectedExerciseName,
+                repCount: state.repCount,
+                holdSeconds: state.holdSeconds,
+                holdTargetReached: state.holdTargetReached,
+                diagnosticText: "Recorded run not found: \(id)",
+                state: state
+            )
+            lastPoseProviderRunSummary = summary
+            return summary
+        }
+
+        selectedRecordedRunID = run.id
+        let provider = MediaPipePoseProvider(jsonlURL: run.url)
+        return runRecordedProvider(provider, selectedPresetID: run.presetID)
     }
 
     @discardableResult

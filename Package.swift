@@ -25,7 +25,8 @@ let package = Package(
             name: "CamiFitApp",
             dependencies: ["CamiFitEngine"],
             resources: [
-                .copy("Resources/Presets")
+                .copy("Resources/Presets"),
+                .copy("Resources/RecordedRuns")
             ]
         ),
         .testTarget(
