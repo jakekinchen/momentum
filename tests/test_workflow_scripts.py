@@ -749,6 +749,34 @@ def test_resume_brief_validator_accepts_wrapped_vector_guardrail(
     assert "ok   vector safety-enforcement guardrail present" in result.stdout
 
 
+def test_resume_brief_validator_accepts_explicit_vector_search_prohibition(
+    tmp_path: Path,
+) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-vector-prohibition.md"
+    safe_brief = _valid_resume_brief(
+        "docs/briefs/007-vector-prohibition.md"
+    ).replace(
+        "Confirmation that Vector search must not enforce safety.",
+        "Do not use vector search for safety enforcement.",
+    )
+    brief_path.write_text(safe_brief, encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            "docs/briefs/007-vector-prohibition.md",
+            str(tmp_path),
+        ]
+    )
+
+    assert "resume brief validation clean" in result.stdout
+    assert "ok   vector safety-enforcement guardrail present" in result.stdout
+    assert "ok   no unsafe vector safety enforcement claim" in result.stdout
+
+
 def test_resume_brief_validator_rejects_raw_template_copy(tmp_path: Path) -> None:
     brief_dir = tmp_path / "docs/briefs"
     brief_dir.mkdir(parents=True)

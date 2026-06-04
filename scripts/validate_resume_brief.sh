@@ -57,6 +57,29 @@ reject_text_i() {
   fi
 }
 
+reject_unsafe_vector_text_i() {
+  text="$1"
+  label="$2"
+  if awk -v text="$text" '
+    BEGIN { text = tolower(text); bad = 0 }
+    {
+      line = tolower($0)
+      if (index(line, text) > 0 &&
+          index(line, "do not " text) == 0 &&
+          index(line, "must not " text) == 0 &&
+          index(line, "never " text) == 0 &&
+          index(line, "should not " text) == 0) {
+        bad = 1
+      }
+    }
+    END { exit bad ? 0 : 1 }
+  ' "$BRIEF"; then
+    miss "$label"
+  else
+    ok "$label"
+  fi
+}
+
 require_any_text() {
   label="$1"
   shift
@@ -186,11 +209,12 @@ require_text "MAPS_TO" "MAPS_TO audit metadata preserved"
 require_any_text \
   "vector safety-enforcement guardrail present" \
   "Vector search must not enforce safety" \
+  "Do not use vector search for safety enforcement" \
   "vector search is not used for safety enforcement" \
   "would replace deterministic safety enforcement with LLM, embedding, or vector retrieval behavior"
-reject_text_i "use vector search for safety enforcement" "no unsafe vector safety enforcement claim"
-reject_text_i "vector search will enforce safety" "no unsafe vector enforcement claim"
-reject_text_i "use vector retrieval for safety enforcement" "no unsafe vector retrieval enforcement claim"
+reject_unsafe_vector_text_i "use vector search for safety enforcement" "no unsafe vector safety enforcement claim"
+reject_unsafe_vector_text_i "vector search will enforce safety" "no unsafe vector enforcement claim"
+reject_unsafe_vector_text_i "use vector retrieval for safety enforcement" "no unsafe vector retrieval enforcement claim"
 
 section "Validation Commands"
 require_text "bash scripts/validate_resume_brief.sh" "resume brief self-validation command present"
