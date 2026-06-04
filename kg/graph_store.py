@@ -188,6 +188,12 @@ def load_local_graph(path: Path = GRAPH_DIR / "exercise_kg.seed.json") -> LocalG
     return LocalGraph(nodes=nodes, edges=edges)
 
 
+def load_member_graph(path: Path = GRAPH_DIR / "member_kg.seed.json") -> LocalGraph:
+    """Load the local member-context graph seed as a typed closed-world snapshot."""
+
+    return load_local_graph(path)
+
+
 def inspect_seed_artifact(name: str, graph_dir: Path = GRAPH_DIR) -> SeedArtifact:
     """Inspect a seed artifact without treating placeholder data as real graph facts."""
 

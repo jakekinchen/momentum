@@ -1,12 +1,136 @@
 {
   "schema_version": "0.1.0",
-  "graph_version": "fitgraph-kg-m0-skeleton-v0",
-  "status": "placeholder",
-  "description": "Placeholder member graph seed. Jordan context and Copilot fact nodes are PRD-pending.",
-  "nodes": [],
-  "edges": [],
+  "graph_version": "fitgraph-kg-m4-member-v0",
+  "status": "seed",
+  "description": "Tiny member-context graph for deterministic Coach Copilot fact-card tests.",
+  "nodes": [
+    {
+      "id": "Member:jordan",
+      "type": "Member",
+      "label": "Jordan",
+      "aliases": ["Jordan"],
+      "properties": {}
+    },
+    {
+      "id": "Goal:jordan_lower_body_strength",
+      "type": "Goal",
+      "label": "Build lower-body strength without aggravating left knee",
+      "aliases": ["lower-body strength"],
+      "properties": {
+        "status": "active"
+      }
+    },
+    {
+      "id": "EquipmentAvailability:jordan_home_equipment",
+      "type": "EquipmentAvailability",
+      "label": "Jordan home equipment",
+      "aliases": ["home equipment"],
+      "properties": {
+        "equipment_ids": [
+          "Equipment:kettlebell",
+          "Equipment:yoga_mat"
+        ]
+      }
+    },
+    {
+      "id": "InjuryEpisode:left_knee_issue_since_2026_05_10",
+      "type": "InjuryEpisode",
+      "label": "Left knee issue since 2026-05-10",
+      "aliases": ["left knee issue"],
+      "properties": {
+        "status": "active",
+        "region_id": "BodyRegion:left_knee",
+        "started_at": "2026-05-10"
+      }
+    },
+    {
+      "id": "AdherenceObservation:jordan_week_2026_05_19",
+      "type": "AdherenceObservation",
+      "label": "Jordan adherence week of 2026-05-19",
+      "aliases": [],
+      "properties": {
+        "week_start": "2026-05-19",
+        "completed_sessions": 4,
+        "planned_sessions": 4
+      }
+    },
+    {
+      "id": "AdherenceObservation:jordan_week_2026_06_02",
+      "type": "AdherenceObservation",
+      "label": "Jordan adherence week of 2026-06-02",
+      "aliases": [],
+      "properties": {
+        "week_start": "2026-06-02",
+        "completed_sessions": 2,
+        "planned_sessions": 4
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_intake_2026_06_04",
+      "type": "SourceSpan",
+      "label": "Jordan intake note 2026-06-04",
+      "aliases": [],
+      "properties": {
+        "source_file": "member_kg.seed.json",
+        "json_path": "$.nodes",
+        "text": "Jordan trains at home with kettlebell and yoga mat, has an active left knee issue, and wants lower-body strength without aggravating the knee.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "m4-jordan-seed"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_GOAL",
+      "target": "Goal:jordan_lower_body_strength",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_EQUIPMENT_AVAILABILITY",
+      "target": "EquipmentAvailability:jordan_home_equipment",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_INJURY",
+      "target": "InjuryEpisode:left_knee_issue_since_2026_05_10",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_ADHERENCE_OBSERVATION",
+      "target": "AdherenceObservation:jordan_week_2026_05_19",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_ADHERENCE_OBSERVATION",
+      "target": "AdherenceObservation:jordan_week_2026_06_02",
+      "properties": {}
+    },
+    {
+      "source": "Goal:jordan_lower_body_strength",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_intake_2026_06_04",
+      "properties": {}
+    },
+    {
+      "source": "EquipmentAvailability:jordan_home_equipment",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_intake_2026_06_04",
+      "properties": {}
+    },
+    {
+      "source": "InjuryEpisode:left_knee_issue_since_2026_05_10",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_intake_2026_06_04",
+      "properties": {}
+    }
+  ],
   "todo": [
-    "Add Member, Goal, Preference, EquipmentAvailability, InjuryEpisode, Restriction, WorkoutSession, observations, messages, and SourceSpan nodes.",
-    "Add member-context edges required for deterministic fact cards."
+    "Add richer Preference, WorkoutSession, BiomarkerObservation, Message, Barrier, ChurnSignal, and CoachBrief nodes.",
+    "Expand member-context retrieval beyond the tiny deterministic M4 fact-card set."
   ]
 }
