@@ -12,7 +12,7 @@ EOD completion and testing
 
 ## Current Slice
 
-docs/briefs/012-eod-prd-acceptance-audit.md
+docs/briefs/013-workflow-active-brief-test-refresh.md
 
 ## Stop Conditions
 
