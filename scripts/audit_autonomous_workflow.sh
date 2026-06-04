@@ -177,6 +177,10 @@ require_text_in_file \
   "manager support log required: docs/manager-log/NNN-*.md" \
   "handoff explains status manager support-log line"
 require_text_in_file \
+  "docs/agent-thread-handoff.md" \
+  "docs/manager-log latest:" \
+  "handoff points manager turns to latest manager log"
+require_text_in_file \
   "docs/autonomous-workflow/05-devops-and-session-ops.md" \
   "manager support log required: docs/manager-log/NNN-*.md" \
   "devops docs explain status manager support-log line"

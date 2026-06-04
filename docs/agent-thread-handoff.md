@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T19:33:11Z
+Last updated: 2026-06-04T19:35:46Z
 
 ## Current State
 
@@ -41,6 +41,10 @@ resume planner after a concrete human-approved slug is supplied.
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while
 `<stop-orchestrator/>` is present.
+
+For manager-support turns, use the `docs/manager-log latest:` line printed by
+the status/audit output to review the latest support log before writing a new
+one.
 
 You can also run the underlying audits directly:
 
