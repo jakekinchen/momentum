@@ -131,7 +131,8 @@ def _write_minimal_workflow_root(
 - Respect `<stop-orchestrator/>`.
 - Review `docs/manager-log latest:` and run `review latest command:`.
 - Use `next manager log template:` until rerunning with a lowercase support slug.
-- Validate drafted resume briefs with `bash scripts/validate_resume_brief.sh`.
+- Plan drafted resume briefs with `bash scripts/plan_next_resume_brief.sh`.
+- Validate drafted resume briefs with `bash scripts/validate_resume_brief.sh <planner-next-brief-path>`.
 """
     default_readme = """# FitGraph KG
 
@@ -371,10 +372,16 @@ def test_agents_md_points_future_threads_to_status_handoff() -> None:
     assert "docs/agent-thread-handoff.md" in agents
     assert "<stop-orchestrator/>" in agents
     assert "bash scripts/plan_next_manager_log.sh" in agents
+    assert "bash scripts/plan_next_resume_brief.sh" in agents
     assert "docs/manager-log/NNN-*.md" in agents
     assert "docs/manager-log latest:" in agents
     assert "next manager log template:" in agents
     assert "bash scripts/validate_resume_brief.sh" in agents
+    assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in agents
+    assert (
+        "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
+        not in agents
+    )
 
 
 def test_readme_points_future_threads_to_status_handoff() -> None:
@@ -917,6 +924,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     )
     assert "ok   README.md explains manager log template path" in result.stdout
     assert "ok   README.md points to resume brief validation" in result.stdout
+    assert "ok   AGENTS.md points to resume brief planner" in result.stdout
     assert (
         "ok   handoff explains audited manager log entrypoint guidance"
         in result.stdout
@@ -937,6 +945,11 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   devops docs point manager turns to latest manager log" in result.stdout
     assert "ok   devops docs point manager turns to latest review command" in result.stdout
     assert "ok   devops docs explain manager log template path" in result.stdout
+    assert "ok   AGENTS.md uses planner resume-validation target" in result.stdout
+    assert (
+        "ok   AGENTS.md avoids stale hardcoded resume-validation target"
+        in result.stdout
+    )
     assert "ok   README.md uses planner resume-validation target" in result.stdout
     assert "ok   README.md avoids stale hardcoded resume-validation target" in result.stdout
     assert "ok   docs/agent-thread-handoff.md uses planner resume-validation target" in result.stdout
@@ -1032,7 +1045,9 @@ def test_workflow_audit_requires_entrypoint_guidance_content(tmp_path: Path) -> 
     assert "MISS AGENTS.md points to agent status" in result.stdout
     assert "MISS AGENTS.md points to handoff" in result.stdout
     assert "MISS AGENTS.md preserves stop sentinel guidance" in result.stdout
+    assert "MISS AGENTS.md points to resume brief planner" in result.stdout
     assert "MISS AGENTS.md points to resume brief validation" in result.stdout
+    assert "MISS AGENTS.md uses planner resume-validation target" in result.stdout
     assert "MISS README.md points to agent status" in result.stdout
     assert "MISS README.md points to handoff" in result.stdout
     assert "MISS README.md preserves stop sentinel guidance" in result.stdout

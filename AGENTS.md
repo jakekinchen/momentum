@@ -21,8 +21,11 @@ support slice. Before writing a new manager log, review the
 or `bash scripts/audit_autonomous_workflow.sh`, then run the
 `review latest command:` printed by the manager-log planner.
 
-When fresh human direction authorizes a resume, draft the new numbered brief
-and run `bash scripts/validate_resume_brief.sh <candidate-brief>` before
+When fresh human direction authorizes a resume, run
+`bash scripts/plan_next_resume_brief.sh` as a dry run, then rerun it with the
+human-approved lowercase slice slug to get the exact candidate brief path and
+copy command. Draft the new numbered brief and run
+`bash scripts/validate_resume_brief.sh <planner-next-brief-path>` before
 updating `GOAL.md`.
 
 ## Source of Truth

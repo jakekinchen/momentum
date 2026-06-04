@@ -276,6 +276,10 @@ require_text_in_file \
   "AGENTS.md points to manager log planner"
 require_text_in_file \
   "AGENTS.md" \
+  "bash scripts/plan_next_resume_brief.sh" \
+  "AGENTS.md points to resume brief planner"
+require_text_in_file \
+  "AGENTS.md" \
   "docs/manager-log/NNN-*.md" \
   "AGENTS.md requires manager support logs"
 require_text_in_file \
@@ -388,7 +392,7 @@ require_text_in_file \
   "devops docs explain manager log template path"
 
 section "Static resume targets"
-for file in README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-devops-and-session-ops.md; do
+for file in AGENTS.md README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-devops-and-session-ops.md; do
   require_text_in_file \
     "$file" \
     "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" \
