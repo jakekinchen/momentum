@@ -1,5 +1,9 @@
 # 04 Execution Protocol
 
+Before starting the executor loop, run `bash scripts/agent_thread_status.sh`.
+If `GOAL.md` contains `<stop-orchestrator/>`, do not implement product work.
+Report that execution is stopped until fresh human direction changes the goal.
+
 Executor loop:
 
 1. Inspect current repo state.
@@ -14,4 +18,3 @@ Executor loop:
 
 Do not claim completion without evidence. If blocked, preserve the blocker in a
 session log and commit the log if it is useful context for the reviewer.
-

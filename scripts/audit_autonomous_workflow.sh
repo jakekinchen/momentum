@@ -157,6 +157,24 @@ require_text_in_file \
   "docs/manager-log/NNN-*.md" \
   "operating model requires manager support logs"
 
+section "Execution protocol"
+require_text_in_file \
+  "docs/autonomous-workflow/04-execution-protocol.md" \
+  "bash scripts/agent_thread_status.sh" \
+  "execution protocol starts with agent status"
+require_text_in_file \
+  "docs/autonomous-workflow/04-execution-protocol.md" \
+  "<stop-orchestrator/>" \
+  "execution protocol preserves stop sentinel boundary"
+require_text_in_file \
+  "docs/autonomous-workflow/04-execution-protocol.md" \
+  "do not implement product work" \
+  "execution protocol blocks product work while stopped"
+require_text_in_file \
+  "docs/autonomous-workflow/04-execution-protocol.md" \
+  "stopped until fresh human direction" \
+  "execution protocol requires fresh human direction to resume"
+
 section "Role contracts"
 require_text_in_file \
   "docs/autonomous-workflow/02-role-contracts.md" \

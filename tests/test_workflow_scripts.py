@@ -191,7 +191,12 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "Use `bash scripts/plan_next_manager_log.sh`.\n"
         ),
         "docs/autonomous-workflow/03-planning-system.md": "# Planning\n",
-        "docs/autonomous-workflow/04-execution-protocol.md": "# Execution\n",
+        "docs/autonomous-workflow/04-execution-protocol.md": (
+            "# Execution\n\n"
+            "Run `bash scripts/agent_thread_status.sh`.\n"
+            "If `GOAL.md` contains `<stop-orchestrator/>`, do not implement product work.\n"
+            "Execution is stopped until fresh human direction changes the goal.\n"
+        ),
         "docs/autonomous-workflow/05-devops-and-session-ops.md": default_devops,
         "docs/autonomous-workflow/06-manager-guardian-protocol.md": (
             "# Manager\n\n"
@@ -761,6 +766,10 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   operating model stops executor product slices" in result.stdout
     assert "ok   operating model points manager turns to latest manager log" in result.stdout
     assert "ok   operating model requires manager support logs" in result.stdout
+    assert "ok   execution protocol starts with agent status" in result.stdout
+    assert "ok   execution protocol preserves stop sentinel boundary" in result.stdout
+    assert "ok   execution protocol blocks product work while stopped" in result.stdout
+    assert "ok   execution protocol requires fresh human direction to resume" in result.stdout
     assert "ok   role contracts define manager contract" in result.stdout
     assert "ok   manager role contract preserves stop sentinel boundary" in result.stdout
     assert "ok   manager role contract points to latest manager log" in result.stdout
@@ -1072,6 +1081,36 @@ def test_workflow_audit_requires_operating_model_stopped_state(
         in result.stdout
     )
     assert "MISS operating model requires manager support logs" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_execution_protocol_stop_guard(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    execution_protocol = tmp_path / "docs/autonomous-workflow/04-execution-protocol.md"
+    execution_protocol.write_text(
+        "# Execution\n\n"
+        "Pick the smallest useful implementation step from the active brief.\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS execution protocol starts with agent status" in result.stdout
+    assert "MISS execution protocol preserves stop sentinel boundary" in result.stdout
+    assert (
+        "MISS execution protocol blocks product work while stopped"
+        in result.stdout
+    )
+    assert (
+        "MISS execution protocol requires fresh human direction to resume"
+        in result.stdout
+    )
     assert "workflow audit warnings:" in result.stdout
 
 
