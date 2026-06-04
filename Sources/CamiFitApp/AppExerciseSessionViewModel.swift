@@ -84,6 +84,11 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         self.recordedRunSourceCandidates = recordedRunSourceCandidates
     }
 
+    public func saveGeneratedExercise(_ program: ExerciseProgram, store: RegimenStore = RegimenStore()) throws {
+        try store.saveExercise(program)
+        loadAvailablePresets()
+    }
+
     public func loadAvailablePresets() {
         let resolved = Self.resolvePresetSummaries(from: presetSourceCandidates)
         availablePresets = resolved.presets
