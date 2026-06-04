@@ -370,6 +370,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         }
 
         candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Presets"))
+        candidates.append(RegimenStore.userPresetsDirectory())
         return candidates
     }
 
@@ -412,14 +413,18 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     }
 
     private static func resolvePresetSummaries(from candidates: [URL]) -> (sourceURL: URL?, presets: [AppPresetSummary]) {
-        for candidate in candidates {
-            let presets = loadPresetSummaries(from: candidate)
-            if !presets.isEmpty {
-                return (candidate, presets)
-            }
-        }
+        let merged = mergedPresetSummaries(from: candidates)
+        let source = candidates.first { !loadPresetSummaries(from: $0).isEmpty }
+        return (source, merged)
+    }
 
-        return (nil, [])
+    /// Merge every candidate directory; later candidates win on id collision.
+    static func mergedPresetSummaries(from candidates: [URL]) -> [AppPresetSummary] {
+        var byID: [String: AppPresetSummary] = [:]
+        for candidate in candidates {
+            for preset in loadPresetSummaries(from: candidate) { byID[preset.id] = preset }
+        }
+        return byID.values.sorted { $0.name < $1.name }
     }
 
     private static func loadPresetSummaries(from directory: URL) -> [AppPresetSummary] {
