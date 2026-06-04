@@ -8,11 +8,11 @@ The full, reviewed design is `docs/design/2026-06-03-camifit-exercise-engine-des
 
 ## Current Milestone
 
-M2 - Bodyweight presets (push-up, lunge, plank). M1 (squat vertical) complete — both gate halves green (manager log 002).
+M3 - Integrated macOS app (productize). M2 (push-up, lunge, plank presets) complete — Swift gate green in reviewer decision 025.
 
 ## Current Slice
 
-docs/briefs/025-plank-preset.md
+docs/briefs/026-macos-app-shell-viewmodel.md
 
 ## Stop Conditions
 
