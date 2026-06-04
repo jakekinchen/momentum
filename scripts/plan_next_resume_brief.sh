@@ -81,7 +81,7 @@ else
   printf '2. Run: bash scripts/validate_resume_brief.sh %s\n' "$target"
   printf '3. Update GOAL.md to point Current Slice at %s.\n' "$target"
 fi
-printf '4. Remove or replace <stop-orchestrator/> only after human approval.\n'
+printf '4. Remove or replace <stop-orchestrator/> only after fresh human direction.\n'
 printf '5. Run: bash scripts/agent_thread_status.sh\n'
 if [ "$SLUG" = "<slice-name>" ]; then
   printf '6. Commit with exact paths after rerunning with a concrete slug: git add <planner-next-brief-path> GOAL.md\n'

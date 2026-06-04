@@ -707,6 +707,11 @@ def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> Non
         not in result.stdout
     )
     assert (
+        "Remove or replace <stop-orchestrator/> only after fresh human direction"
+        in result.stdout
+    )
+    assert "only after human approval" not in result.stdout
+    assert (
         "bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md"
         not in result.stdout
     )

@@ -472,6 +472,14 @@ require_text_in_file \
   "scripts/plan_next_resume_brief.sh" \
   "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" \
   "resume planner uses planner resume-validation placeholder"
+require_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "Remove or replace <stop-orchestrator/> only after fresh human direction" \
+  "resume planner preserves fresh human direction stop guard"
+reject_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "Remove or replace <stop-orchestrator/> only after human approval" \
+  "resume planner avoids approval-only stop guard wording"
 reject_text_in_file \
   "scripts/plan_next_resume_brief.sh" \
   "bash scripts/validate_resume_brief.sh <candidate-brief-path>" \
