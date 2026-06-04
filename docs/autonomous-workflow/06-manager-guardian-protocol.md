@@ -2,6 +2,21 @@
 
 The Manager is the third-party overseer for the pair.
 
+## Stopped-State Manager Support
+
+When `GOAL.md` contains `<stop-orchestrator/>`, the Manager may make
+process-support changes that help future Executor or Reviewer threads orient,
+validate, or resume safely.
+
+Stopped-state support must not start product execution, create a resume brief,
+change runtime graph behavior, or alter `GOAL.md`.
+
+Every stopped-state Manager support turn should leave a durable
+`docs/manager-log/NNN-*.md` entry with the status, manager action, validation
+evidence, and guardrail statement. Manager-only support does not need executor
+session logs or reviewer decisions unless the thread is also acting in one of
+those roles.
+
 ## Manager Checks
 
 - Is the active brief still aligned with `docs/kg-module-prd.md`?
@@ -32,4 +47,3 @@ Concern:
 Suggested steering:
 Evidence to request next:
 ```
-

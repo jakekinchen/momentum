@@ -177,6 +177,24 @@ reject_text_in_file \
   "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md" \
   "scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
 
+section "Manager protocol"
+require_text_in_file \
+  "docs/autonomous-workflow/06-manager-guardian-protocol.md" \
+  "## Stopped-State Manager Support" \
+  "manager protocol defines stopped-state support"
+require_text_in_file \
+  "docs/autonomous-workflow/06-manager-guardian-protocol.md" \
+  "Stopped-state support must not start product execution" \
+  "manager protocol preserves stopped-state product boundary"
+require_text_in_file \
+  "docs/autonomous-workflow/06-manager-guardian-protocol.md" \
+  "docs/manager-log/NNN-*.md" \
+  "manager protocol requires manager support logs"
+require_text_in_file \
+  "docs/autonomous-workflow/06-manager-guardian-protocol.md" \
+  "Manager-only support does not need executor" \
+  "manager protocol separates manager logs from executor/reviewer artifacts"
+
 section "Goal"
 if [ -f GOAL.md ]; then
   sed -n '1,100p' GOAL.md

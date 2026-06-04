@@ -156,7 +156,13 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
         "docs/autonomous-workflow/03-planning-system.md": "# Planning\n",
         "docs/autonomous-workflow/04-execution-protocol.md": "# Execution\n",
         "docs/autonomous-workflow/05-devops-and-session-ops.md": default_devops,
-        "docs/autonomous-workflow/06-manager-guardian-protocol.md": "# Manager\n",
+        "docs/autonomous-workflow/06-manager-guardian-protocol.md": (
+            "# Manager\n\n"
+            "## Stopped-State Manager Support\n\n"
+            "Stopped-state support must not start product execution.\n"
+            "Write `docs/manager-log/NNN-*.md` for support turns.\n"
+            "Manager-only support does not need executor session logs or reviewer decisions.\n"
+        ),
         "docs/autonomous-workflow/07-document-and-artifact-map.md": "# Artifacts\n",
         "docs/autonomous-workflow/08-scaffold-adoption-matrix.md": "# Matrix\n",
         "docs/autonomous-workflow/09-fitgraph-autonomous-plan.md": "## M0 - Test\n",
@@ -636,6 +642,13 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
         in result.stdout
     )
+    assert "ok   manager protocol defines stopped-state support" in result.stdout
+    assert "ok   manager protocol preserves stopped-state product boundary" in result.stdout
+    assert "ok   manager protocol requires manager support logs" in result.stdout
+    assert (
+        "ok   manager protocol separates manager logs from executor/reviewer artifacts"
+        in result.stdout
+    )
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
@@ -710,6 +723,33 @@ def test_workflow_audit_requires_neutral_status_resume_guidance(tmp_path: Path) 
     )
     assert (
         "MISS scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
+        in result.stdout
+    )
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_stopped_state_manager_protocol(tmp_path: Path) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    manager_protocol = tmp_path / "docs/autonomous-workflow/06-manager-guardian-protocol.md"
+    manager_protocol.write_text(
+        "# Manager\n\nGeneral manager guidance only.\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS manager protocol defines stopped-state support" in result.stdout
+    assert (
+        "MISS manager protocol preserves stopped-state product boundary"
+        in result.stdout
+    )
+    assert "MISS manager protocol requires manager support logs" in result.stdout
+    assert (
+        "MISS manager protocol separates manager logs from executor/reviewer artifacts"
         in result.stdout
     )
     assert "workflow audit warnings:" in result.stdout
