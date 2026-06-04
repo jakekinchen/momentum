@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:44:46Z
+Last updated: 2026-06-04T18:47:50Z
 
 ## Current State
 
@@ -65,7 +65,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 54 tests and passed.
+- `uv run pytest` collected 55 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -82,7 +82,8 @@ enforcement language. The workflow audit also verifies that the active brief
 named in `GOAL.md` exists. The resume planner prints the candidate
 `validate_resume_brief.sh` command once a concrete slug is supplied, and
 candidate resume briefs must carry that self-validation command before the
-`GOAL.md` update.
+`GOAL.md` update. The resume validator also requires that command to target the
+candidate brief being validated, not a stale copied path.
 
 ## Hard Invariants
 

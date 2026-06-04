@@ -26,8 +26,10 @@ def _run(command: list[str], *, check: bool = True, cwd: Path = REPO_ROOT) -> su
     )
 
 
-def _valid_resume_brief() -> str:
-    return """# Human-Approved Resume Brief
+def _valid_resume_brief(
+    brief_path: str = "docs/briefs/007-verified-ontology-lock.md",
+) -> str:
+    return f"""# Human-Approved Resume Brief
 
 **Date:** 2026-06-04
 
@@ -52,7 +54,7 @@ This keeps FitGraph moving toward the PRD while preserving deterministic graph b
 ## Expected Files
 
 - `GOAL.md`
-- `docs/briefs/007-verified-ontology-lock.md`
+- `{brief_path}`
 
 ## Validation Commands
 
@@ -85,7 +87,7 @@ Run the workflow audit and KG validation commands.
 ## Resume Checklist
 
 - Update `GOAL.md`.
-- Run `bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md`.
+- Run `bash scripts/validate_resume_brief.sh {brief_path}`.
 - Run `bash scripts/agent_thread_status.sh`.
 """
 
@@ -248,6 +250,7 @@ def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -
     assert "ok   human direction replaced with concrete instruction" in result.stdout
     assert "ok   no template placeholder: Replace this section" in result.stdout
     assert "ok   resume brief self-validation command present" in result.stdout
+    assert "ok   resume brief self-validation command targets candidate" in result.stdout
     assert "stop sentinel: present" in result.stdout
 
 
@@ -257,7 +260,7 @@ def test_resume_brief_validator_accepts_wrapped_vector_guardrail(
     brief_dir = tmp_path / "docs/briefs"
     brief_dir.mkdir(parents=True)
     brief_path = brief_dir / "007-wrapped-vector.md"
-    wrapped_brief = _valid_resume_brief().replace(
+    wrapped_brief = _valid_resume_brief("docs/briefs/007-wrapped-vector.md").replace(
         "Confirmation that Vector search must not enforce safety.",
         (
             "The slice would replace deterministic safety enforcement with LLM, embedding,\n"
@@ -311,8 +314,10 @@ def test_resume_brief_validator_requires_self_validation_command(
     brief_dir = tmp_path / "docs/briefs"
     brief_dir.mkdir(parents=True)
     brief_path = brief_dir / "007-missing-self-validation.md"
-    missing_command = _valid_resume_brief().replace(
-        "- Run `bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md`.\n",
+    missing_command = _valid_resume_brief(
+        "docs/briefs/007-missing-self-validation.md"
+    ).replace(
+        "- Run `bash scripts/validate_resume_brief.sh docs/briefs/007-missing-self-validation.md`.\n",
         "",
     )
     brief_path.write_text(missing_command, encoding="utf-8")
@@ -329,6 +334,32 @@ def test_resume_brief_validator_requires_self_validation_command(
 
     assert result.returncode == 1
     assert "MISS resume brief self-validation command present" in result.stdout
+    assert "MISS resume brief self-validation command targets candidate" in result.stdout
+    assert "resume brief validation warnings:" in result.stdout
+
+
+def test_resume_brief_validator_rejects_wrong_self_validation_target(
+    tmp_path: Path,
+) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-self-validation-target.md"
+    wrong_target = _valid_resume_brief("docs/briefs/008-wrong.md")
+    brief_path.write_text(wrong_target, encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            "docs/briefs/007-self-validation-target.md",
+            str(tmp_path),
+        ],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "ok   resume brief self-validation command present" in result.stdout
+    assert "MISS resume brief self-validation command targets candidate" in result.stdout
     assert "resume brief validation warnings:" in result.stdout
 
 
@@ -338,7 +369,7 @@ def test_resume_brief_validator_rejects_vector_safety_enforcement(
     brief_dir = tmp_path / "docs/briefs"
     brief_dir.mkdir(parents=True)
     brief_path = brief_dir / "007-vector-safety.md"
-    unsafe_brief = _valid_resume_brief().replace(
+    unsafe_brief = _valid_resume_brief("docs/briefs/007-vector-safety.md").replace(
         "Confirmation that Vector search must not enforce safety.",
         "Use vector search for safety enforcement.",
     )
