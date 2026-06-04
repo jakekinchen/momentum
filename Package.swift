@@ -11,11 +11,19 @@ let package = Package(
         .library(
             name: "CamiFitEngine",
             targets: ["CamiFitEngine"]
+        ),
+        .executable(
+            name: "CamiFitApp",
+            targets: ["CamiFitApp"]
         )
     ],
     targets: [
         .target(
             name: "CamiFitEngine"
+        ),
+        .executableTarget(
+            name: "CamiFitApp",
+            dependencies: ["CamiFitEngine"]
         ),
         .testTarget(
             name: "CamiFitEngineTests",
@@ -23,6 +31,10 @@ let package = Package(
             resources: [
                 .copy("Fixtures")
             ]
+        ),
+        .testTarget(
+            name: "CamiFitAppTests",
+            dependencies: ["CamiFitApp", "CamiFitEngine"]
         )
     ]
 )
