@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:55:57Z
+Last updated: 2026-06-04T18:57:33Z
 
 ## Current State
 
@@ -49,10 +49,10 @@ bash scripts/plan_next_resume_brief.sh verified-ontology-lock
 ```
 
 After drafting a candidate resume brief, validate that specific file before
-changing `GOAL.md`:
+changing `GOAL.md`. Use the `next brief:` path printed by the planner:
 
 ```bash
-bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
+bash scripts/validate_resume_brief.sh <planner-next-brief-path>
 ```
 
 ## Safe Checks
@@ -113,8 +113,8 @@ safe resume should:
 - use `bash scripts/plan_next_resume_brief.sh verified-ontology-lock` with a
   slug matching the human-approved slice to preview the next brief path and
   exact copy command before changing files;
-- run `bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md`
-  on the drafted brief before pointing `GOAL.md` at it;
+- run `bash scripts/validate_resume_brief.sh <planner-next-brief-path>` on the
+  drafted brief before pointing `GOAL.md` at it;
 - update `GOAL.md` to point at that brief;
 - preserve the source-of-truth order in `AGENTS.md`;
 - leave a session log for executor work or a reviewer decision for review work;

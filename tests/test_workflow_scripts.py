@@ -229,11 +229,17 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     handoff = (REPO_ROOT / "docs/agent-thread-handoff.md").read_text(encoding="utf-8")
     direct_audits = handoff.split("You can also run the underlying audits directly:", 1)[1]
     direct_audits = direct_audits.split("After drafting a candidate resume brief", 1)[0]
+    after_drafting = handoff.split("After drafting a candidate resume brief", 1)[1]
 
     assert "bash scripts/audit_autonomous_workflow.sh" in direct_audits
     assert "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" in direct_audits
     assert "bash scripts/validate_resume_brief.sh" not in direct_audits
     assert "After drafting a candidate resume brief" in handoff
+    assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in after_drafting
+    assert (
+        "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
+        not in handoff
+    )
 
 
 def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
