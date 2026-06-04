@@ -84,7 +84,7 @@ fi
 printf '4. Remove or replace <stop-orchestrator/> only after fresh human direction.\n'
 printf '5. Run: bash scripts/agent_thread_status.sh\n'
 if [ "$SLUG" = "<slice-name>" ]; then
-  printf '6. Commit with exact paths after rerunning with a concrete slug: git add <planner-next-brief-path> GOAL.md\n'
+  printf '6. Rerun with a lowercase slug before staging; the concrete-slug output prints the exact git add path.\n'
 else
   printf '6. Commit with exact paths: git add %s GOAL.md\n' "$target"
 fi

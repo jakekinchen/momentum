@@ -288,6 +288,8 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "printf 'Rerun with a lowercase slug to print the exact resume-brief validation command\\n'\n"
             "printf 'next brief: rerun with a lowercase slug to print exact path\\n'\n"
             "printf 'next brief template:\\n'\n"
+            "printf 'Rerun with a lowercase slug before staging; "
+            "the concrete-slug output prints the exact git add path\\n'\n"
         ),
         "scripts/validate_resume_brief.sh": "#!/usr/bin/env bash\n",
         "scripts/run_codex_pair_cycle.sh": "#!/usr/bin/env bash\n",
@@ -751,7 +753,12 @@ def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> Non
         "Update GOAL.md to point Current Slice at the drafted candidate brief "
         "after rerunning with a concrete slug"
     ) in result.stdout
-    assert "git add <planner-next-brief-path> GOAL.md" in result.stdout
+    assert (
+        "Rerun with a lowercase slug before staging; "
+        "the concrete-slug output prints the exact git add path"
+        in result.stdout
+    )
+    assert "git add <planner-next-brief-path>" not in result.stdout
 
 
 def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -> None:
@@ -1156,11 +1163,13 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   resume planner avoids no-slug validation target" in result.stdout
     assert "ok   resume planner avoids placeholder next path" in result.stdout
     assert "ok   resume planner shows placeholder path as template" in result.stdout
+    assert "ok   resume planner avoids no-slug exact git add paths" in result.stdout
     assert "ok   resume planner avoids hardcoded resume planner slug" in result.stdout
     assert (
         "ok   resume planner avoids stale hardcoded resume-validation target"
         in result.stdout
     )
+    assert "ok   resume planner avoids placeholder git add target" in result.stdout
     assert "ok   scripts/agent_thread_status.sh points to manager log planner" in result.stdout
     assert "ok   scripts/agent_thread_status.sh runs manager log planner" in result.stdout
     assert (
@@ -1342,7 +1351,8 @@ def test_workflow_audit_requires_neutral_resume_planner_guidance(
     planner.write_text(
         "#!/usr/bin/env bash\n"
         "printf 'choose slug: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\\n'\n"
-        "printf 'bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md\\n'\n",
+        "printf 'bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md\\n'\n"
+        "printf 'git add <planner-next-brief-path> GOAL.md\\n'\n",
         encoding="utf-8",
     )
     planner.chmod(0o755)
@@ -1357,11 +1367,13 @@ def test_workflow_audit_requires_neutral_resume_planner_guidance(
     assert "MISS resume planner avoids no-slug validation target" in result.stdout
     assert "MISS resume planner avoids placeholder next path" in result.stdout
     assert "MISS resume planner shows placeholder path as template" in result.stdout
+    assert "MISS resume planner avoids no-slug exact git add paths" in result.stdout
     assert "MISS resume planner avoids hardcoded resume planner slug" in result.stdout
     assert (
         "MISS resume planner avoids stale hardcoded resume-validation target"
         in result.stdout
     )
+    assert "MISS resume planner avoids placeholder git add target" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

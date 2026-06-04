@@ -538,6 +538,10 @@ require_text_in_file \
   "scripts/plan_next_resume_brief.sh" \
   "next brief template:" \
   "resume planner shows placeholder path as template"
+require_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "Rerun with a lowercase slug before staging; the concrete-slug output prints the exact git add path" \
+  "resume planner avoids no-slug exact git add paths"
 reject_text_in_file \
   "scripts/plan_next_resume_brief.sh" \
   "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" \
@@ -546,6 +550,10 @@ reject_text_in_file \
   "scripts/plan_next_resume_brief.sh" \
   "docs/briefs/007-verified-ontology-lock.md" \
   "resume planner avoids stale hardcoded resume-validation target"
+reject_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "git add <planner-next-brief-path>" \
+  "resume planner avoids placeholder git add target"
 
 section "Manager protocol"
 require_text_in_file \
