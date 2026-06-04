@@ -141,6 +141,19 @@ def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedCon
             )
         ]
 
+    if normalized == "bad lower back":
+        return [
+            _resolved_node(
+                graph=local_graph,
+                source_text=text,
+                constraint_type="BodyRegion",
+                node_id="BodyRegion:lower_back",
+                hard=True,
+                safety_behavior="block_if_safety_critical",
+                graph_paths=local_graph.part_of_closure_paths("BodyRegion:lower_back"),
+            )
+        ]
+
     if normalized == "kettlebell":
         return [
             _resolved_node(

@@ -50,6 +50,26 @@
       }
     },
     {
+      "id": "BodyRegion:lower_back",
+      "type": "BodyRegion",
+      "label": "lower back",
+      "aliases": ["lower back", "low back"],
+      "properties": {
+        "laterality": "neutral",
+        "verification_status": "local_unverified"
+      }
+    },
+    {
+      "id": "BodyRegion:lumbar_spine",
+      "type": "BodyRegion",
+      "label": "lumbar spine",
+      "aliases": ["lumbar spine", "lumbar"],
+      "properties": {
+        "laterality": "neutral",
+        "verification_status": "local_unverified"
+      }
+    },
+    {
       "id": "Equipment:kettlebell",
       "type": "Equipment",
       "label": "Kettlebell",
@@ -227,6 +247,14 @@
       }
     },
     {
+      "source": "BodyRegion:lumbar_spine",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:lower_back",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
       "source": "Exercise:goblet_squat",
       "predicate": "REQUIRES",
       "target": "Equipment:kettlebell",
@@ -280,6 +308,20 @@
         "flexion_depth": "limited",
         "loaded": true,
         "axial_load": "low",
+        "balance_demand": "low",
+        "laterality": "neutral"
+      }
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:lumbar_spine",
+      "properties": {
+        "load_level": "medium",
+        "impact_level": "low",
+        "flexion_depth": "limited",
+        "loaded": true,
+        "axial_load": "medium",
         "balance_demand": "low",
         "laterality": "neutral"
       }

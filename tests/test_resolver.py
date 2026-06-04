@@ -24,6 +24,20 @@ def test_resolves_left_knee_with_laterality() -> None:
     assert constraint.graph_paths == ("BodyRegion:left_knee -PART_OF-> BodyRegion:knee",)
 
 
+def test_resolves_bad_lower_back_as_safety_critical_body_region() -> None:
+    [constraint] = resolve_text("bad lower back")
+
+    assert constraint.constraint_type == "BodyRegion"
+    assert constraint.value == "lower_back"
+    assert constraint.hard is True
+    assert constraint.verified is False
+    assert constraint.safety_behavior == "block_if_safety_critical"
+    assert constraint.graph_paths == (
+        "BodyRegion:lumbar_spine -PART_OF-> BodyRegion:lower_back",
+    )
+    assert all("MAPS_TO" not in path for path in constraint.graph_paths)
+
+
 def test_resolves_equipment_terms() -> None:
     [kettlebell] = resolve_text("kettlebell")
     [kb] = resolve_text("kb")

@@ -18,6 +18,21 @@
           "load_level": ["medium", "high"]
         }
       }
+    },
+    {
+      "id": "SafetyRule:avoid_loaded_lumbar_stress",
+      "severity": "MEDICAL_HARD_BLOCK",
+      "reason_code": "ACTIVE_LOWER_BACK_RESTRICTION",
+      "description": "Block loaded lumbar-spine stress when an active lower-back restriction is present.",
+      "uses_concepts": ["BodyRegion:lower_back"],
+      "match": {
+        "edge_predicate": "STRESSES",
+        "properties": {
+          "loaded": true,
+          "axial_load": ["medium", "high"],
+          "load_level": ["medium", "high"]
+        }
+      }
     }
   ],
   "severity_lattice": [

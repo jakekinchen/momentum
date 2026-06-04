@@ -26,6 +26,11 @@ def _active_knee_restriction() -> ResolvedConstraint:
     )
 
 
+def _active_lower_back_restriction() -> ResolvedConstraint:
+    [lower_back] = resolve_text("bad lower back")
+    return lower_back
+
+
 def _equipment_ids_from_allowed_constraints(
     constraints: list[ResolvedConstraint],
 ) -> set[str]:
@@ -134,6 +139,39 @@ def test_safe_candidate_can_be_selected_under_knee_restriction() -> None:
     assert receipt.reason_codes == ("PASSED_SAFETY",)
     assert receipt.primary_reason_code == "PASSED_SAFETY"
     assert receipt.graph_paths == ()
+
+
+def test_bad_lower_back_restriction_blocks_loaded_lumbar_stress() -> None:
+    receipt = _receipt_for(
+        "Exercise:kettlebell_deadlift",
+        available_equipment=HOME_EQUIPMENT,
+        constraints=[_active_lower_back_restriction()],
+    )
+
+    assert receipt.decision == "filtered"
+    assert receipt.primary_severity == "MEDICAL_HARD_BLOCK"
+    assert receipt.primary_reason_code == "ACTIVE_LOWER_BACK_RESTRICTION"
+    assert receipt.reason_codes == ("ACTIVE_LOWER_BACK_RESTRICTION",)
+    assert "Exercise:kettlebell_deadlift -STRESSES-> BodyRegion:lumbar_spine" in receipt.graph_paths
+    assert "BodyRegion:lumbar_spine -PART_OF-> BodyRegion:lower_back" in receipt.graph_paths
+    assert (
+        "SafetyRule:avoid_loaded_lumbar_stress -USES_CONCEPT-> BodyRegion:lower_back"
+        in receipt.graph_paths
+    )
+
+
+def test_bad_lower_back_restriction_does_not_filter_all_available_exercises() -> None:
+    receipts = evaluate_candidates(
+        ["Exercise:kettlebell_deadlift", "Exercise:glute_bridge"],
+        available_equipment=HOME_EQUIPMENT,
+        constraints=[_active_lower_back_restriction()],
+    )
+    by_id = {receipt.exercise_id: receipt for receipt in receipts}
+
+    assert by_id["Exercise:kettlebell_deadlift"].decision == "filtered"
+    assert by_id["Exercise:glute_bridge"].decision == "selected"
+    assert by_id["Exercise:glute_bridge"].primary_reason_code == "PASSED_SAFETY"
+    assert by_id["Exercise:glute_bridge"].graph_paths == ()
 
 
 def test_multiple_reasons_keep_secondary_and_choose_highest_severity() -> None:
