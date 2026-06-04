@@ -267,6 +267,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "printf 'review latest command:\\n'\n"
             "printf 'next manager log: rerun with a lowercase slug to print exact path\\n'\n"
             "printf 'next manager log template: docs/manager-log/001-<support-slug>.md\\n'\n"
+            "printf 'Run: git diff --check\\n'\n"
             "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n"
         ),
         "scripts/plan_next_resume_brief.sh": "#!/usr/bin/env bash\n",
@@ -615,6 +616,7 @@ def test_manager_log_plan_with_slug_prints_exact_candidate_paths() -> None:
         "copy command: cp docs/manager-log/000-template-manager-support.md "
         f"{expected_target}"
     ) in result.stdout
+    assert "Run: git diff --check" in result.stdout
     assert f"git add {expected_target} <changed-support-paths>" in result.stdout
     assert not target_path.exists()
 
@@ -642,6 +644,7 @@ def test_manager_log_plan_without_slug_avoids_placeholder_exact_paths() -> None:
         not in result.stdout
     )
     assert "git add docs/manager-log/" not in result.stdout
+    assert "Run: git diff --check" in result.stdout
     assert "git add <planner-next-manager-log-path> <changed-support-paths>" in result.stdout
 
 
@@ -1026,6 +1029,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log planner avoids placeholder next path" in result.stdout
     assert "ok   manager log planner shows placeholder path as template" in result.stdout
     assert "ok   manager log planner avoids no-slug exact git add paths" in result.stdout
+    assert "ok   manager log planner requires diff check" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
@@ -1318,6 +1322,7 @@ def test_workflow_audit_requires_manager_log_planner_review_command(
     assert result.returncode == 1
     assert "ok   manager log planner prints latest manager log path" in result.stdout
     assert "MISS manager log planner prints latest review command" in result.stdout
+    assert "MISS manager log planner requires diff check" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

@@ -522,6 +522,10 @@ require_text_in_file \
   "scripts/plan_next_manager_log.sh" \
   "Commit with exact paths after rerunning with a concrete slug" \
   "manager log planner avoids no-slug exact git add paths"
+require_text_in_file \
+  "scripts/plan_next_manager_log.sh" \
+  "Run: git diff --check" \
+  "manager log planner requires diff check"
 reject_text_in_file \
   "scripts/plan_next_manager_log.sh" \
   "git add docs/manager-log/" \
