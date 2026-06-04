@@ -1,0 +1,93 @@
+# FitGraph Agent Thread Handoff
+
+Last updated: 2026-06-04T18:00:36Z
+
+## Current State
+
+- Branch: `main`
+- M5 product commit: `4d23580 feat: add m5 ontology validation sidecar`
+- M5 stop/reviewer commit:
+  `5af36ff chore: review m5 and stop autonomous loop`
+- `GOAL.md` contains `<stop-orchestrator/>`.
+- Latest executor log:
+  `docs/session-logs/006-executor-m5-ontology-sidecar-validation.md`
+- Latest reviewer decision:
+  `docs/reviewer-messages/006-review-m5-ontology-sidecar-validation.md`
+- Reviewer decision: `STOP`
+
+The M0-M5 autonomous plan has been completed and stopped. Do not start another
+executor product slice while the stop sentinel is present.
+
+## Start Here
+
+1. Read `AGENTS.md`.
+2. Read `GOAL.md` and respect the stop sentinel.
+3. Read `docs/reviewer-messages/006-review-m5-ontology-sidecar-validation.md`.
+4. Run the state audits:
+
+```bash
+git status --short --branch
+bash scripts/audit_autonomous_workflow.sh
+node scripts/audit_codex_pair_state.mjs
+```
+
+## Safe Checks
+
+These commands are safe orientation checks for future threads:
+
+```bash
+uv run pytest
+uv run python -m kg.validation
+```
+
+Expected current validation shape:
+
+- `uv run pytest` collected 36 tests and passed.
+- `uv run python -m kg.validation` reports:
+  - `validation_status: pass`
+  - `schema_validation_status: pass`
+  - `ontology_status: todo_unverified`
+  - `verified: false`
+  - `ontology_sidecar_export_status: available_unverified`
+
+## Hard Invariants
+
+- Runtime safety uses deterministic local graph traversal.
+- Member safety and equipment constraints are hard blocks.
+- Member dislikes are soft constraints unless explicitly configured as hard
+  blocks.
+- `MAPS_TO` is ontology audit metadata, not a runtime safety edge.
+- Vector search must not enforce safety.
+- Do not claim ontology IDs, SNOMED codes, release IDs, access dates, or
+  license status are verified unless `graph/ontology-lock.json` contains the
+  verified pinned values.
+
+## Resume Rules
+
+A future thread should resume product work only after fresh human direction. A
+safe resume should:
+
+- remove or intentionally replace `<stop-orchestrator/>` in `GOAL.md`;
+- add a new active brief under `docs/briefs/`;
+- update `GOAL.md` to point at that brief;
+- preserve the source-of-truth order in `AGENTS.md`;
+- leave a session log for executor work or a reviewer decision for review work;
+- commit with exact `git add` paths.
+
+Good next human-approved brief themes include:
+
+- verified ontology lockfile process using supplied source data;
+- production RDF/Turtle export and SHACL validation;
+- richer exercise and member graph coverage;
+- Coach Copilot integration constrained to graph-backed fact cards;
+- production API boundaries for recommendation runs and decision receipts.
+
+## What Not To Do
+
+- Do not run `scripts/run_codex_pair_cycle.sh --once` while the stop sentinel is
+  present.
+- Do not start `scripts/start_codex_goal_loop.sh` while the stop sentinel is
+  present.
+- Do not pin external ontology IDs from memory or unstated assumptions.
+- Do not replace deterministic safety checks with LLM, embedding, or vector
+  retrieval behavior.

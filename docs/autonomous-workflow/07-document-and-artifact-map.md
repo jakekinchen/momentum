@@ -9,6 +9,7 @@
 - `GOAL.md`
 - `executor-reviewer-pair-programming.md`
 - `docs/autonomous-workflow/`
+- `docs/agent-thread-handoff.md`
 
 ## Planning And Evidence
 
@@ -26,4 +27,3 @@
 
 The exact implementation may change, but it must stay aligned with the PRD and
 the active brief.
-
