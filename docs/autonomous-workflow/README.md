@@ -16,3 +16,7 @@ The workflow is intentionally evidence-heavy. A slice is not complete until the
 executor leaves a session log, validation output, and a scoped commit, and the
 reviewer leaves an exact decision.
 
+When `GOAL.md` contains `<stop-orchestrator/>`, manager-support slices are
+process-only: review `docs/manager-log latest:` first, leave a
+`docs/manager-log/NNN-*.md` entry, and do not require executor logs or reviewer
+decisions unless the thread is explicitly acting in those roles.

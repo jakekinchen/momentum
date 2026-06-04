@@ -153,6 +153,32 @@ require_text_in_file \
   "bash scripts/plan_next_manager_log.sh" \
   "manager role contract points to manager log planner"
 
+section "Autonomous workflow README"
+require_text_in_file \
+  "docs/autonomous-workflow/README.md" \
+  "executor leaves a session log" \
+  "workflow README explains executor evidence"
+require_text_in_file \
+  "docs/autonomous-workflow/README.md" \
+  "reviewer leaves an exact decision" \
+  "workflow README explains reviewer evidence"
+require_text_in_file \
+  "docs/autonomous-workflow/README.md" \
+  "<stop-orchestrator/>" \
+  "workflow README preserves stop sentinel manager boundary"
+require_text_in_file \
+  "docs/autonomous-workflow/README.md" \
+  "docs/manager-log latest:" \
+  "workflow README points manager turns to latest manager log"
+require_text_in_file \
+  "docs/autonomous-workflow/README.md" \
+  "docs/manager-log/NNN-*.md" \
+  "workflow README requires manager support logs"
+require_text_in_file \
+  "docs/autonomous-workflow/README.md" \
+  "do not require executor logs or reviewer" \
+  "workflow README separates manager support evidence"
+
 section "Scaffold adoption matrix"
 require_text_in_file \
   "docs/autonomous-workflow/08-scaffold-adoption-matrix.md" \

@@ -167,7 +167,15 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "## Guardrail\n\n"
             "This is process support only.\n"
         ),
-        "docs/autonomous-workflow/README.md": "# Workflow\n",
+        "docs/autonomous-workflow/README.md": (
+            "# Workflow\n\n"
+            "The executor leaves a session log.\n"
+            "The reviewer leaves an exact decision.\n"
+            "When `GOAL.md` contains `<stop-orchestrator/>`, manager-support slices are process-only.\n"
+            "Review `docs/manager-log latest:` first.\n"
+            "Leave `docs/manager-log/NNN-*.md`.\n"
+            "They do not require executor logs or reviewer decisions.\n"
+        ),
         "docs/autonomous-workflow/01-operating-model.md": "# Operating\n",
         "docs/autonomous-workflow/02-role-contracts.md": (
             "# Roles\n\n"
@@ -746,6 +754,12 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager role contract preserves stop sentinel boundary" in result.stdout
     assert "ok   manager role contract points to latest manager log" in result.stdout
     assert "ok   manager role contract points to manager log planner" in result.stdout
+    assert "ok   workflow README explains executor evidence" in result.stdout
+    assert "ok   workflow README explains reviewer evidence" in result.stdout
+    assert "ok   workflow README preserves stop sentinel manager boundary" in result.stdout
+    assert "ok   workflow README points manager turns to latest manager log" in result.stdout
+    assert "ok   workflow README requires manager support logs" in result.stdout
+    assert "ok   workflow README separates manager support evidence" in result.stdout
     assert "ok   scaffold matrix names current active brief" in result.stdout
     assert "ok   scaffold matrix preserves stop sentinel state" in result.stdout
     assert "ok   scaffold matrix points to latest manager log" in result.stdout
@@ -986,6 +1000,39 @@ def test_workflow_audit_rejects_stale_scaffold_matrix_state(
     assert "MISS scaffold matrix captures completed autonomous plan" in result.stdout
     assert "MISS scaffold matrix avoids stale M0 active brief" in result.stdout
     assert "MISS scaffold matrix avoids stale first-slice pending note" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_workflow_readme_manager_support_guidance(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    workflow_readme = tmp_path / "docs/autonomous-workflow/README.md"
+    workflow_readme.write_text(
+        "# Workflow\n\n"
+        "The workflow is complete when the executor leaves a session log and "
+        "the reviewer leaves an exact decision.\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "ok   workflow README explains executor evidence" in result.stdout
+    assert "ok   workflow README explains reviewer evidence" in result.stdout
+    assert (
+        "MISS workflow README preserves stop sentinel manager boundary"
+        in result.stdout
+    )
+    assert (
+        "MISS workflow README points manager turns to latest manager log"
+        in result.stdout
+    )
+    assert "MISS workflow README requires manager support logs" in result.stdout
+    assert "MISS workflow README separates manager support evidence" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 
