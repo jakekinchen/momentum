@@ -12,9 +12,10 @@ bash scripts/agent_thread_status.sh
 ```
 
 That command prints the current git state, stop-sentinel state, neutral
-manager-log and resume-planning guidance, workflow audit, and Codex pair-state
-audit. It also prints a final clean/warning summary. It exits non-zero if the
-workflow audit or pair-state audit fails.
+manager-log and resume-planning guidance, the manager-log planner dry run,
+workflow audit, and Codex pair-state audit.
+It also prints a final clean/warning summary. It exits non-zero if the
+manager-log planner, workflow audit, or pair-state audit fails.
 
 If fresh human direction arrives and a future thread needs to draft the next
 active brief, first run the dry-run planner:
@@ -58,7 +59,8 @@ While the stop sentinel is present, manager-only process support may use
 `docs/manager-log/NNN-*.md` path and must leave a manager log for any support
 slice. Before writing a new manager log, review the `docs/manager-log latest:`
 line printed by `bash scripts/agent_thread_status.sh` or
-`bash scripts/audit_autonomous_workflow.sh`.
+`bash scripts/audit_autonomous_workflow.sh`, then run the
+`review latest command:` printed by the manager-log planner.
 
 ## Safe Checks
 

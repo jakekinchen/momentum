@@ -31,12 +31,13 @@ bash scripts/agent_thread_status.sh
 ```
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
-manager-log planner guidance,
+manager-log planner guidance, the manager-log planner dry run,
 `manager support log required: docs/manager-log/NNN-*.md`, resume-planning
 guidance, a placeholder
 resume-validation command, the workflow audit, and the Codex pair-state audit,
-then exits with a clean or warning summary. Exact resume paths come from the
-resume planner after a concrete human-approved slug is supplied.
+then exits with a clean or warning summary. It treats manager-log planner
+failures as status warnings. Exact resume paths come from the resume planner
+after a concrete human-approved slug is supplied.
 
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while
@@ -44,7 +45,8 @@ workflow artifacts and should confirm the loop-start stop guard while
 
 For manager-support turns, use the `docs/manager-log latest:` line printed by
 the status/audit output to review the latest support log before writing a new
-one.
+one. The manager-log planner also prints `review latest command:` with the
+exact read command for that latest support log.
 
 You can also run the underlying audits directly:
 
@@ -97,11 +99,11 @@ support boundaries and durable manager-log guidance.
 It also verifies that `docs/manager-log/000-template-manager-support.md` exists
 and keeps the required stopped-state manager log sections.
 The agent status command points stopped-state manager threads to the no-argument
-manager-log planner and prints
+manager-log planner, runs that planner dry run, and prints
 `manager support log required: docs/manager-log/NNN-*.md`. The manager-log
-planner prints the next numbered
-support-log path without writing files and avoids exact placeholder `git add`
-paths until a concrete slug is supplied.
+planner prints the latest support log, `review latest command:`, and the next
+numbered support-log path without writing files. It avoids exact placeholder
+`git add` paths until a concrete slug is supplied.
 Resume-brief validation rejects vector safety enforcement language. The
 workflow audit also verifies that the active brief named in `GOAL.md` exists.
 The agent status command intentionally keeps stopped-state resume validation

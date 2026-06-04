@@ -272,6 +272,10 @@ require_text_in_file \
   "AGENTS.md points manager turns to latest manager log"
 require_text_in_file \
   "AGENTS.md" \
+  "review latest command:" \
+  "AGENTS.md points manager turns to latest review command"
+require_text_in_file \
+  "AGENTS.md" \
   "bash scripts/validate_resume_brief.sh" \
   "AGENTS.md points to resume brief validation"
 require_text_in_file \
@@ -300,6 +304,10 @@ require_text_in_file \
   "README.md points manager turns to latest manager log"
 require_text_in_file \
   "README.md" \
+  "review latest command:" \
+  "README.md points manager turns to latest review command"
+require_text_in_file \
+  "README.md" \
   "bash scripts/validate_resume_brief.sh" \
   "README.md points to resume brief validation"
 require_text_in_file \
@@ -316,6 +324,10 @@ require_text_in_file \
   "handoff points manager turns to latest manager log"
 require_text_in_file \
   "docs/agent-thread-handoff.md" \
+  "review latest command:" \
+  "handoff points manager turns to latest review command"
+require_text_in_file \
+  "docs/agent-thread-handoff.md" \
   "passes the current collected test suite" \
   "handoff keeps pytest expectation count-neutral"
 reject_regex_in_file \
@@ -330,6 +342,10 @@ require_text_in_file \
   "docs/autonomous-workflow/05-devops-and-session-ops.md" \
   "docs/manager-log latest:" \
   "devops docs point manager turns to latest manager log"
+require_text_in_file \
+  "docs/autonomous-workflow/05-devops-and-session-ops.md" \
+  "review latest command:" \
+  "devops docs point manager turns to latest review command"
 
 section "Static resume targets"
 for file in README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-devops-and-session-ops.md; do

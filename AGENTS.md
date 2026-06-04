@@ -17,7 +17,8 @@ While the stop sentinel is present, manager-only process support may use
 `docs/manager-log/NNN-*.md` path and must leave a manager log for any
 support slice. Before writing a new manager log, review the
 `docs/manager-log latest:` line printed by `bash scripts/agent_thread_status.sh`
-or `bash scripts/audit_autonomous_workflow.sh`.
+or `bash scripts/audit_autonomous_workflow.sh`, then run the
+`review latest command:` printed by the manager-log planner.
 
 When fresh human direction authorizes a resume, draft the new numbered brief
 and run `bash scripts/validate_resume_brief.sh <candidate-brief>` before
