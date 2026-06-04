@@ -441,6 +441,24 @@ for file in AGENTS.md README.md docs/agent-thread-handoff.md docs/autonomous-wor
     "$file avoids hardcoded resume planner slug"
 done
 
+section "Resume template"
+require_text_in_file \
+  "docs/briefs/000-template-human-approved-resume.md" \
+  "bash scripts/plan_next_resume_brief.sh" \
+  "resume template uses resume brief planner"
+require_text_in_file \
+  "docs/briefs/000-template-human-approved-resume.md" \
+  "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" \
+  "resume template uses planner resume-validation target"
+reject_text_in_file \
+  "docs/briefs/000-template-human-approved-resume.md" \
+  "docs/briefs/007-<slice-name>.md" \
+  "resume template avoids hardcoded template candidate path"
+reject_text_in_file \
+  "docs/briefs/000-template-human-approved-resume.md" \
+  "bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md" \
+  "resume template avoids hardcoded template validation target"
+
 section "Status stopped-state guidance"
 require_text_in_file \
   "scripts/agent_thread_status.sh" \

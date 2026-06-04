@@ -197,6 +197,7 @@ reject_text "List exact files expected to change" "no template placeholder: Expe
 reject_text "Name the command, API, test, or demo path" "no template placeholder: Reachability"
 reject_text "List work that must not be done" "no template placeholder: Out of scope"
 reject_text "docs/briefs/007-<slice-name>.md" "no template placeholder: example brief path"
+reject_text "<planner-next-brief-path>" "no template placeholder: planner next brief path"
 
 section "Guardrails"
 require_any_text \

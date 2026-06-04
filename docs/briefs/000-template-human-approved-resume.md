@@ -72,10 +72,12 @@ Name the command, API, test, or demo path that proves the slice is reachable.
 Before an executor starts:
 
 - Remove or intentionally replace `<stop-orchestrator/>` in `GOAL.md`.
-- Copy this template into a new numbered brief, such as
-  `docs/briefs/007-<slice-name>.md`.
-- Run `bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md`
-  on the drafted brief before updating `GOAL.md`.
+- Run `bash scripts/plan_next_resume_brief.sh`, then rerun it with the
+  human-approved lowercase slice slug.
+- Copy this template into the exact `next brief:` path printed by the planner.
+- Run `bash scripts/validate_resume_brief.sh <planner-next-brief-path>` on the
+  drafted brief before updating `GOAL.md`; replace `<planner-next-brief-path>`
+  with the exact path printed by the planner.
 - Update `GOAL.md` to point at the new active brief.
 - Run `bash scripts/agent_thread_status.sh`.
 - Commit the brief and `GOAL.md` update with exact `git add` paths.

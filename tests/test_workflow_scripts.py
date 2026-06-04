@@ -182,7 +182,12 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
         "docs/kg-module-prd.md": "# PRD\n",
         "docs/agent-thread-handoff.md": default_handoff,
         "executor-reviewer-pair-programming.md": "# Pair\n",
-        "docs/briefs/000-template-human-approved-resume.md": "# Template\n",
+        "docs/briefs/000-template-human-approved-resume.md": (
+            "# Template\n\n"
+            "Run `bash scripts/plan_next_resume_brief.sh` before drafting.\n"
+            "Validate the drafted brief with "
+            "`bash scripts/validate_resume_brief.sh <planner-next-brief-path>`.\n"
+        ),
         "docs/briefs/006-m5-ontology-sidecar-validation.md": "# Active brief\n",
         "docs/manager-log/000-template-manager-support.md": (
             "# Manager Log NNN - Short Title\n\n"
@@ -593,8 +598,10 @@ def test_resume_template_preserves_human_approval_guardrails() -> None:
     assert "## Human Direction" in template
     assert "fresh human direction" in template
     assert "<stop-orchestrator/>" in template
-    assert "docs/briefs/007-<slice-name>.md" in template
-    assert "bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md" in template
+    assert "bash scripts/plan_next_resume_brief.sh" in template
+    assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in template
+    assert "docs/briefs/007-<slice-name>.md" not in template
+    assert "bash scripts/validate_resume_brief.sh docs/briefs/007-<slice-name>.md" not in template
     assert "uv run python -m kg.validation" in template
 
 
@@ -760,6 +767,7 @@ def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -
     assert "resume brief validation clean" in result.stdout
     assert "ok   human direction replaced with concrete instruction" in result.stdout
     assert "ok   no template placeholder: Replace this section" in result.stdout
+    assert "ok   no template placeholder: planner next brief path" in result.stdout
     assert "ok   resume brief self-validation command present" in result.stdout
     assert "ok   resume brief self-validation command targets candidate" in result.stdout
     assert "ok   resume checklist self-validation command targets candidate" in result.stdout
@@ -845,6 +853,37 @@ def test_resume_brief_validator_rejects_raw_template_copy(tmp_path: Path) -> Non
     assert "MISS human direction replaced with concrete instruction" in result.stdout
     assert "MISS no template placeholder: YYYY-MM-DD" in result.stdout
     assert "MISS no template placeholder: Replace this section" in result.stdout
+    assert "MISS no template placeholder: planner next brief path" in result.stdout
+    assert "resume brief validation warnings:" in result.stdout
+
+
+def test_resume_brief_validator_rejects_planner_path_placeholder(
+    tmp_path: Path,
+) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-placeholder-path.md"
+    placeholder_brief = _valid_resume_brief(
+        "docs/briefs/007-placeholder-path.md"
+    ).replace(
+        "docs/briefs/007-placeholder-path.md",
+        "<planner-next-brief-path>",
+    )
+    brief_path.write_text(placeholder_brief, encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            "docs/briefs/007-placeholder-path.md",
+            str(tmp_path),
+        ],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS no template placeholder: planner next brief path" in result.stdout
+    assert "MISS resume brief self-validation command targets candidate" in result.stdout
     assert "resume brief validation warnings:" in result.stdout
 
 
@@ -1074,6 +1113,19 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   docs/autonomous-workflow/05-devops-and-session-ops.md avoids stale hardcoded resume-validation target"
         in result.stdout
     )
+    assert "ok   resume template uses resume brief planner" in result.stdout
+    assert (
+        "ok   resume template uses planner resume-validation target"
+        in result.stdout
+    )
+    assert (
+        "ok   resume template avoids hardcoded template candidate path"
+        in result.stdout
+    )
+    assert (
+        "ok   resume template avoids hardcoded template validation target"
+        in result.stdout
+    )
     assert (
         "ok   scripts/agent_thread_status.sh uses neutral resume planner dry run"
         in result.stdout
@@ -1194,6 +1246,41 @@ def test_workflow_audit_requires_entrypoint_guidance_content(tmp_path: Path) -> 
     assert "MISS README.md preserves stop sentinel guidance" in result.stdout
     assert "MISS README.md points to resume brief validation" in result.stdout
     assert "MISS README.md uses planner resume-validation target" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_planner_driven_resume_template(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    template = tmp_path / "docs/briefs/000-template-human-approved-resume.md"
+    template.write_text(
+        "# Template\n\n"
+        "- Copy into `docs/briefs/007-<slice-name>.md`.\n"
+        "- Run `bash scripts/validate_resume_brief.sh "
+        "docs/briefs/007-<slice-name>.md`.\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS resume template uses resume brief planner" in result.stdout
+    assert (
+        "MISS resume template uses planner resume-validation target"
+        in result.stdout
+    )
+    assert (
+        "MISS resume template avoids hardcoded template candidate path"
+        in result.stdout
+    )
+    assert (
+        "MISS resume template avoids hardcoded template validation target"
+        in result.stdout
+    )
     assert "workflow audit warnings:" in result.stdout
 
 
