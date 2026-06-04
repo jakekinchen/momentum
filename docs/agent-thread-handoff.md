@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T19:19:03Z
+Last updated: 2026-06-04T19:21:23Z
 
 ## Current State
 
@@ -31,10 +31,10 @@ bash scripts/agent_thread_status.sh
 ```
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
-neutral resume-planning guidance, a placeholder resume-validation command, the
-workflow audit, and the Codex pair-state audit, then exits with a clean or
-warning summary. Exact resume paths come from the resume planner after a
-concrete human-approved slug is supplied.
+neutral manager-log and resume-planning guidance, a placeholder
+resume-validation command, the workflow audit, and the Codex pair-state audit,
+then exits with a clean or warning summary. Exact resume paths come from the
+resume planner after a concrete human-approved slug is supplied.
 
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while
@@ -46,6 +46,7 @@ You can also run the underlying audits directly:
 git status --short --branch
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
+bash scripts/plan_next_manager_log.sh
 bash scripts/plan_next_resume_brief.sh
 ```
 
@@ -87,9 +88,10 @@ The workflow audit verifies that the Manager protocol preserves stopped-state
 support boundaries and durable manager-log guidance.
 It also verifies that `docs/manager-log/000-template-manager-support.md` exists
 and keeps the required stopped-state manager log sections.
-The manager-log planner prints the next numbered support-log path without
-writing files and avoids exact placeholder `git add` paths until a concrete
-slug is supplied.
+The agent status command points stopped-state manager threads to the no-argument
+manager-log planner. The manager-log planner prints the next numbered
+support-log path without writing files and avoids exact placeholder `git add`
+paths until a concrete slug is supplied.
 Resume-brief validation rejects vector safety enforcement language. The
 workflow audit also verifies that the active brief named in `GOAL.md` exists.
 The agent status command intentionally keeps stopped-state resume validation

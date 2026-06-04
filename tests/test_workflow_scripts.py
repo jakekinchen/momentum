@@ -231,6 +231,7 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "handoff: docs/agent-thread-handoff.md" in result.stdout
     assert "stop sentinel: present" in result.stdout
     assert "executor product slices: stopped until fresh human direction" in result.stdout
+    assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
     assert "resume plan dry run: bash scripts/plan_next_resume_brief.sh" in result.stdout
     assert (
         "resume plan slug example: "
@@ -256,6 +257,7 @@ def test_agent_thread_status_minimal_root_uses_neutral_resume_target(
 
     result = _run(["bash", "scripts/agent_thread_status.sh", str(tmp_path)])
 
+    assert "manager log plan dry run: bash scripts/plan_next_manager_log.sh" in result.stdout
     assert (
         "resume brief validation: "
         "bash scripts/validate_resume_brief.sh <planner-next-brief-path>"
@@ -283,6 +285,7 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "docs/agent-thread-handoff.md" in readme
     assert "<stop-orchestrator/>" in readme
     assert "uv run python -m kg.validation" in readme
+    assert "bash scripts/plan_next_manager_log.sh" in readme
     assert "bash scripts/validate_resume_brief.sh" in readme
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in readme
     assert (
@@ -298,6 +301,7 @@ def test_readme_safe_checks_do_not_require_candidate_resume_brief() -> None:
 
     assert "uv run pytest" in safe_checks
     assert "bash scripts/audit_autonomous_workflow.sh" in safe_checks
+    assert "bash scripts/plan_next_manager_log.sh" in safe_checks
     assert "bash scripts/plan_next_resume_brief.sh" in safe_checks
     assert "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" not in safe_checks
     assert "bash scripts/validate_resume_brief.sh" not in safe_checks
@@ -311,6 +315,7 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     after_drafting = handoff.split("After drafting a candidate resume brief", 1)[1]
 
     assert "bash scripts/audit_autonomous_workflow.sh" in direct_audits
+    assert "bash scripts/plan_next_manager_log.sh" in direct_audits
     assert "bash scripts/plan_next_resume_brief.sh" in direct_audits
     assert (
         "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
@@ -335,6 +340,7 @@ def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
 
     assert "bash scripts/agent_thread_status.sh" in safe_commands
     assert "bash scripts/stop_codex_goal_loop.sh" in safe_commands
+    assert "bash scripts/plan_next_manager_log.sh" in safe_commands
     assert "bash scripts/plan_next_resume_brief.sh" in safe_commands
     assert (
         "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
@@ -706,6 +712,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
         in result.stdout
     )
+    assert "ok   scripts/agent_thread_status.sh points to manager log planner" in result.stdout
     assert "ok   manager protocol defines stopped-state support" in result.stdout
     assert "ok   manager protocol preserves stopped-state product boundary" in result.stdout
     assert "ok   manager protocol requires manager support logs" in result.stdout

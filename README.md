@@ -12,9 +12,9 @@ bash scripts/agent_thread_status.sh
 ```
 
 That command prints the current git state, stop-sentinel state, neutral
-resume-planning guidance, workflow audit, and Codex pair-state audit. It also
-prints a final clean/warning summary. It exits non-zero if the workflow audit
-or pair-state audit fails.
+manager-log and resume-planning guidance, workflow audit, and Codex pair-state
+audit. It also prints a final clean/warning summary. It exits non-zero if the
+workflow audit or pair-state audit fails.
 
 If fresh human direction arrives and a future thread needs to draft the next
 active brief, first run the dry-run planner:
@@ -60,6 +60,7 @@ uv run pytest
 uv run python -m kg.validation
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
+bash scripts/plan_next_manager_log.sh
 bash scripts/plan_next_resume_brief.sh
 ```
 

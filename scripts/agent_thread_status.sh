@@ -27,6 +27,7 @@ if [ -f GOAL.md ]; then
   if grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' GOAL.md; then
     printf 'stop sentinel: present\n'
     printf 'executor product slices: stopped until fresh human direction\n'
+    printf 'manager log plan dry run: bash scripts/plan_next_manager_log.sh\n'
     printf 'resume plan dry run: bash scripts/plan_next_resume_brief.sh\n'
     printf 'resume plan slug example: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\n'
     printf 'resume brief validation: bash scripts/validate_resume_brief.sh <planner-next-brief-path>\n'

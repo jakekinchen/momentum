@@ -168,6 +168,10 @@ done
 section "Status resume guidance"
 require_text_in_file \
   "scripts/agent_thread_status.sh" \
+  "manager log plan dry run: bash scripts/plan_next_manager_log.sh" \
+  "scripts/agent_thread_status.sh points to manager log planner"
+require_text_in_file \
+  "scripts/agent_thread_status.sh" \
   "resume plan dry run: bash scripts/plan_next_resume_brief.sh" \
   "scripts/agent_thread_status.sh uses neutral resume planner dry run"
 require_text_in_file \
