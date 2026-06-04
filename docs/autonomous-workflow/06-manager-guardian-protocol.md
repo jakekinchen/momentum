@@ -20,6 +20,10 @@ those roles.
 Use `docs/manager-log/000-template-manager-support.md` as the starting shape
 for stopped-state manager support logs.
 
+Before writing a new support log, review the previous manager-support entry
+from the `docs/manager-log latest:` status/audit line or the `latest manager
+log:` line printed by `bash scripts/plan_next_manager_log.sh`.
+
 Use `bash scripts/plan_next_manager_log.sh <support-slug>` to preview the next
 numbered manager-log path and exact copy command before writing a new support
 log.

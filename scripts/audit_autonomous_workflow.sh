@@ -276,6 +276,10 @@ require_text_in_file \
   "docs/autonomous-workflow/06-manager-guardian-protocol.md" \
   "docs/manager-log/000-template-manager-support.md" \
   "manager protocol points to manager log template"
+require_text_in_file \
+  "docs/autonomous-workflow/06-manager-guardian-protocol.md" \
+  "docs/manager-log latest:" \
+  "manager protocol points to latest manager log"
 
 section "Manager log template"
 require_text_in_file \

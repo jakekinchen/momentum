@@ -180,6 +180,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "Write `docs/manager-log/NNN-*.md` for support turns.\n"
             "Manager-only support does not need executor session logs or reviewer decisions.\n"
             "Use `docs/manager-log/000-template-manager-support.md`.\n"
+            "Review `docs/manager-log latest:` before writing a new support log.\n"
             "Use `bash scripts/plan_next_manager_log.sh <support-slug>`.\n"
         ),
         "docs/autonomous-workflow/07-document-and-artifact-map.md": "# Artifacts\n",
@@ -793,6 +794,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         in result.stdout
     )
     assert "ok   manager protocol points to manager log template" in result.stdout
+    assert "ok   manager protocol points to latest manager log" in result.stdout
     assert "ok   manager log template includes status" in result.stdout
     assert "ok   manager log template includes manager action" in result.stdout
     assert "ok   manager log template includes validation evidence" in result.stdout
@@ -906,6 +908,7 @@ def test_workflow_audit_requires_stopped_state_manager_protocol(tmp_path: Path) 
         "MISS manager protocol separates manager logs from executor/reviewer artifacts"
         in result.stdout
     )
+    assert "MISS manager protocol points to latest manager log" in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 
