@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:07:31Z
+Last updated: 2026-06-04T18:09:31Z
 
 ## Current State
 
@@ -55,13 +55,16 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 36 tests and passed.
+- `uv run pytest` collected 39 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
   - `ontology_status: todo_unverified`
   - `verified: false`
   - `ontology_sidecar_export_status: available_unverified`
+
+The pytest suite includes workflow-script coverage for the agent status command,
+the workflow audit's handoff checks, and the loop-start stop guard.
 
 ## Hard Invariants
 
