@@ -7,6 +7,15 @@ import subprocess
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _markdown_section(text: str, heading: str) -> str:
+    start_marker = f"## {heading}\n"
+    start = text.index(start_marker) + len(start_marker)
+    end = text.find("\n## ", start)
+    if end == -1:
+        end = len(text)
+    return text[start:end]
+
+
 def _run(command: list[str], *, check: bool = True, cwd: Path = REPO_ROOT) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
@@ -115,6 +124,44 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "<stop-orchestrator/>" in readme
     assert "uv run python -m kg.validation" in readme
     assert "bash scripts/validate_resume_brief.sh" in readme
+
+
+def test_readme_safe_checks_do_not_require_candidate_resume_brief() -> None:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    safe_checks = _markdown_section(readme, "Safe Checks")
+
+    assert "uv run pytest" in safe_checks
+    assert "bash scripts/audit_autonomous_workflow.sh" in safe_checks
+    assert "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" in safe_checks
+    assert "bash scripts/validate_resume_brief.sh" not in safe_checks
+    assert "requires a drafted candidate brief path" in safe_checks
+
+
+def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
+    handoff = (REPO_ROOT / "docs/agent-thread-handoff.md").read_text(encoding="utf-8")
+    direct_audits = handoff.split("You can also run the underlying audits directly:", 1)[1]
+    direct_audits = direct_audits.split("After drafting a candidate resume brief", 1)[0]
+
+    assert "bash scripts/audit_autonomous_workflow.sh" in direct_audits
+    assert "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" in direct_audits
+    assert "bash scripts/validate_resume_brief.sh" not in direct_audits
+    assert "After drafting a candidate resume brief" in handoff
+
+
+def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
+    devops = (
+        REPO_ROOT / "docs/autonomous-workflow/05-devops-and-session-ops.md"
+    ).read_text(encoding="utf-8")
+    safe_commands = devops.split("Stopped-state safe commands:", 1)[1]
+    safe_commands = safe_commands.split("Resume-brief validation requires", 1)[0]
+    loop_commands = devops.split("Start/run loop commands require", 1)[1]
+
+    assert "bash scripts/agent_thread_status.sh" in safe_commands
+    assert "bash scripts/stop_codex_goal_loop.sh" in safe_commands
+    assert "bash scripts/run_codex_pair_cycle.sh --once" not in safe_commands
+    assert "bash scripts/start_codex_goal_loop.sh --max-cycles 3" in loop_commands
+    assert "bash scripts/stop_codex_goal_loop.sh" not in loop_commands
+    assert "stop sentinel is absent" in devops
 
 
 def test_resume_template_preserves_human_approval_guardrails() -> None:

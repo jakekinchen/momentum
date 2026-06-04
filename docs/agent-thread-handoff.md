@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:23:47Z
+Last updated: 2026-06-04T18:32:22Z
 
 ## Current State
 
@@ -45,6 +45,12 @@ git status --short --branch
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
 bash scripts/plan_next_resume_brief.sh verified-ontology-lock
+```
+
+After drafting a candidate resume brief, validate that specific file before
+changing `GOAL.md`:
+
+```bash
 bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
 ```
 
@@ -59,7 +65,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 45 tests and passed.
+- `uv run pytest` collected 48 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`

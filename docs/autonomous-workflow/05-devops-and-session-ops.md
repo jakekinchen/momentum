@@ -1,6 +1,6 @@
 # 05 DevOps And Session Ops
 
-Useful commands:
+Stopped-state safe commands:
 
 ```bash
 git status --short --branch
@@ -8,10 +8,23 @@ git log --oneline -5
 bash scripts/agent_thread_status.sh
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
+bash scripts/plan_next_resume_brief.sh verified-ontology-lock
+bash scripts/stop_codex_goal_loop.sh
+```
+
+Resume-brief validation requires a drafted candidate brief:
+
+```bash
+bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
+```
+
+Start/run loop commands require `GOAL.md` to be updated by fresh human
+direction so the stop sentinel is absent:
+
+```bash
 bash scripts/run_codex_pair_cycle.sh --once --dry-run
 bash scripts/run_codex_pair_cycle.sh --once
 bash scripts/start_codex_goal_loop.sh --max-cycles 3
-bash scripts/stop_codex_goal_loop.sh
 ```
 
 `scripts/start_codex_goal_loop.sh` refuses to start while `GOAL.md` contains

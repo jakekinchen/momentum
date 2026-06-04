@@ -25,8 +25,8 @@ Replace the example slug with the human-approved slice name. The command
 proposes the next numbered brief path and exact copy command without writing
 files or changing `GOAL.md`.
 
-After drafting that brief, validate that the template placeholders are gone and
-the guardrails remain:
+After drafting that brief, validate the candidate file before changing
+`GOAL.md`:
 
 ```bash
 bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
@@ -53,8 +53,10 @@ uv run python -m kg.validation
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
 bash scripts/plan_next_resume_brief.sh verified-ontology-lock
-bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
 ```
+
+The resume-brief validator is intentionally not part of the always-safe check
+block because it requires a drafted candidate brief path.
 
 ## Guardrails
 
