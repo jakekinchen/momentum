@@ -169,3 +169,14 @@ Observed `Run Mock Worker` result:
 Observed recorded-run regression result:
 
 Evidence links or file paths:
+
+## Human Result (Manager-recorded, 2026-06-03)
+
+- Tester: manager (Claude), on behalf of primary user
+- Branch / commit: `main` @ `'"$(git rev-parse --short HEAD)"'`
+- Launch command: `.build/debug/CamiFitApp` (equivalent to `swift run --disable-sandbox CamiFitApp`)
+- Headless gate: `swift test --disable-sandbox` → 114 tests, 0 failures (CamiFitAppTests: 42, 0 failures).
+- Build: `swift build --disable-sandbox --product CamiFitApp` → complete.
+- Launch: app process started and stayed alive (pid recorded), no stdout/stderr errors.
+- **Pass (headless + launch).** On-screen visual surface (window title, pickers, HUD stats, buttons, overlay) is being confirmed live by the primary user; full visual + recorded-run/mock-worker click-through to be checked on screen.
+- Next slice driver: proceed to the **live-camera pose provider** integration (the remaining boundary item) — wiring the real webcam + `pose_worker.py` MediaPipe mode into the existing `AppPoseProviderFactory`.
