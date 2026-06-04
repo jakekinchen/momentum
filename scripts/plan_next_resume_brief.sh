@@ -14,7 +14,7 @@ if [ "$SLUG" != "<slice-name>" ]; then
   case "$SLUG" in
     "" | -* | *- | *[!a-z0-9-]*)
       printf 'Usage: bash scripts/plan_next_resume_brief.sh [lowercase-slice-slug]\n' >&2
-      printf 'Example: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\n' >&2
+      printf 'Example: bash scripts/plan_next_resume_brief.sh next-slice-slug\n' >&2
       exit 2
       ;;
   esac
@@ -60,7 +60,7 @@ printf 'latest numbered brief: %s\n' "$latest_num"
 printf 'next brief: %s\n' "$target"
 
 if [ "$SLUG" = "<slice-name>" ]; then
-  printf 'choose slug: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\n'
+  printf 'choose slug: bash scripts/plan_next_resume_brief.sh next-slice-slug\n'
   printf 'copy command: rerun with a lowercase slug to print an exact copy command\n'
 else
   printf 'copy command: cp %s %s\n' "$template" "$target"

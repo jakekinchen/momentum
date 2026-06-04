@@ -455,6 +455,24 @@ reject_text_in_file \
   "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md" \
   "scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
 
+section "Resume planner"
+require_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "choose slug: bash scripts/plan_next_resume_brief.sh next-slice-slug" \
+  "resume planner uses neutral slug example"
+require_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "Rerun with a lowercase slug to print the exact resume-brief validation command" \
+  "resume planner avoids no-slug validation target"
+reject_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "bash scripts/plan_next_resume_brief.sh verified-ontology-lock" \
+  "resume planner avoids hardcoded resume planner slug"
+reject_text_in_file \
+  "scripts/plan_next_resume_brief.sh" \
+  "docs/briefs/007-verified-ontology-lock.md" \
+  "resume planner avoids stale hardcoded resume-validation target"
+
 section "Manager protocol"
 require_text_in_file \
   "docs/autonomous-workflow/06-manager-guardian-protocol.md" \

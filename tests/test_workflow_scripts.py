@@ -273,7 +273,11 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "printf 'Run: git diff --check\\n'\n"
             "printf 'Commit with exact paths after rerunning with a concrete slug\\n'\n"
         ),
-        "scripts/plan_next_resume_brief.sh": "#!/usr/bin/env bash\n",
+        "scripts/plan_next_resume_brief.sh": (
+            "#!/usr/bin/env bash\n"
+            "printf 'choose slug: bash scripts/plan_next_resume_brief.sh next-slice-slug\\n'\n"
+            "printf 'Rerun with a lowercase slug to print the exact resume-brief validation command\\n'\n"
+        ),
         "scripts/validate_resume_brief.sh": "#!/usr/bin/env bash\n",
         "scripts/run_codex_pair_cycle.sh": "#!/usr/bin/env bash\n",
         "scripts/start_codex_goal_loop.sh": (
@@ -666,8 +670,12 @@ def test_resume_plan_without_slug_avoids_placeholder_validation_command() -> Non
 
     assert "mode: dry-run (no files written)" in result.stdout
     assert (
-        "choose slug: bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
+        "choose slug: bash scripts/plan_next_resume_brief.sh next-slice-slug"
         in result.stdout
+    )
+    assert (
+        "choose slug: bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
+        not in result.stdout
     )
     assert (
         "Rerun with a lowercase slug to print the exact resume-brief validation command"
@@ -1010,6 +1018,13 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
         in result.stdout
     )
+    assert "ok   resume planner uses neutral slug example" in result.stdout
+    assert "ok   resume planner avoids no-slug validation target" in result.stdout
+    assert "ok   resume planner avoids hardcoded resume planner slug" in result.stdout
+    assert (
+        "ok   resume planner avoids stale hardcoded resume-validation target"
+        in result.stdout
+    )
     assert "ok   scripts/agent_thread_status.sh points to manager log planner" in result.stdout
     assert "ok   scripts/agent_thread_status.sh runs manager log planner" in result.stdout
     assert (
@@ -1142,6 +1157,35 @@ def test_workflow_audit_requires_neutral_status_resume_guidance(tmp_path: Path) 
     )
     assert (
         "MISS scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
+        in result.stdout
+    )
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_neutral_resume_planner_guidance(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    planner = tmp_path / "scripts/plan_next_resume_brief.sh"
+    planner.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf 'choose slug: bash scripts/plan_next_resume_brief.sh verified-ontology-lock\\n'\n"
+        "printf 'bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md\\n'\n",
+        encoding="utf-8",
+    )
+    planner.chmod(0o755)
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS resume planner uses neutral slug example" in result.stdout
+    assert "MISS resume planner avoids no-slug validation target" in result.stdout
+    assert "MISS resume planner avoids hardcoded resume planner slug" in result.stdout
+    assert (
+        "MISS resume planner avoids stale hardcoded resume-validation target"
         in result.stdout
     )
     assert "workflow audit warnings:" in result.stdout
