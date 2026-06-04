@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T19:21:23Z
+Last updated: 2026-06-04T19:26:37Z
 
 ## Current State
 
@@ -81,7 +81,8 @@ the `README.md` and `AGENTS.md` handoff pointers, the workflow audit's handoff
 checks, the resume brief template, the resume planner and validator, and the
 loop-start stop guard. The workflow audit exits non-zero when required
 artifacts are missing or when either `README.md` or `AGENTS.md` loses the
-agent-status, handoff, stop-sentinel, or resume-validation entrypoint guidance.
+agent-status, handoff, stop-sentinel, manager-log planner/support-log, or
+resume-validation entrypoint guidance.
 It also verifies that `scripts/agent_thread_status.sh` keeps neutral stopped
 resume guidance and avoids stale concrete resume-validation targets.
 The workflow audit verifies that the Manager protocol preserves stopped-state

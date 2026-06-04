@@ -160,6 +160,10 @@ require_text_in_file \
   "README.md" \
   "bash scripts/validate_resume_brief.sh" \
   "README.md points to resume brief validation"
+require_text_in_file \
+  "docs/agent-thread-handoff.md" \
+  "manager-log planner/support-log" \
+  "handoff explains audited manager log entrypoint guidance"
 
 section "Static resume targets"
 for file in README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-devops-and-session-ops.md; do

@@ -326,6 +326,7 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "bash scripts/validate_resume_brief.sh" not in direct_audits
     assert "After drafting a candidate resume brief" in handoff
     assert "bash scripts/validate_resume_brief.sh <planner-next-brief-path>" in after_drafting
+    assert "manager-log planner/support-log" in handoff
     assert (
         "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
         not in handoff
@@ -689,6 +690,10 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   README.md points to handoff" in result.stdout
     assert "ok   README.md preserves stop sentinel guidance" in result.stdout
     assert "ok   README.md points to resume brief validation" in result.stdout
+    assert (
+        "ok   handoff explains audited manager log entrypoint guidance"
+        in result.stdout
+    )
     assert "ok   README.md uses planner resume-validation target" in result.stdout
     assert "ok   README.md avoids stale hardcoded resume-validation target" in result.stdout
     assert "ok   docs/agent-thread-handoff.md uses planner resume-validation target" in result.stdout
