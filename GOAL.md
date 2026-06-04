@@ -12,7 +12,7 @@ EOD completion and testing
 
 ## Current Slice
 
-docs/briefs/010-bad-lower-back-resolver-safety.md
+docs/briefs/011-jordan-plyometric-knee-safety.md
 
 ## Stop Conditions
 
