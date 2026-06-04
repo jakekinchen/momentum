@@ -119,6 +119,10 @@ require_text_in_file \
   "<stop-orchestrator/>" \
   "AGENTS.md preserves stop sentinel guidance"
 require_text_in_file \
+  "AGENTS.md" \
+  "bash scripts/validate_resume_brief.sh" \
+  "AGENTS.md points to resume brief validation"
+require_text_in_file \
   "README.md" \
   "bash scripts/agent_thread_status.sh" \
   "README.md points to agent status"

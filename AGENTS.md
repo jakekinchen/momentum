@@ -12,6 +12,10 @@ Use `docs/agent-thread-handoff.md` for the current stop/resume state. If
 `GOAL.md` contains `<stop-orchestrator/>`, do not start a new executor product
 slice until fresh human direction removes or replaces the sentinel.
 
+When fresh human direction authorizes a resume, draft the new numbered brief
+and run `bash scripts/validate_resume_brief.sh <candidate-brief>` before
+updating `GOAL.md`.
+
 ## Source of Truth
 
 For FitGraph KG work, follow these files in order:

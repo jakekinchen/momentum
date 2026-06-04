@@ -103,6 +103,7 @@ def _write_minimal_workflow_root(
 - Run `bash scripts/agent_thread_status.sh`.
 - Read `docs/agent-thread-handoff.md`.
 - Respect `<stop-orchestrator/>`.
+- Validate drafted resume briefs with `bash scripts/validate_resume_brief.sh`.
 """
     default_readme = """# FitGraph KG
 
@@ -191,6 +192,7 @@ def test_agents_md_points_future_threads_to_status_handoff() -> None:
     assert "bash scripts/agent_thread_status.sh" in agents
     assert "docs/agent-thread-handoff.md" in agents
     assert "<stop-orchestrator/>" in agents
+    assert "bash scripts/validate_resume_brief.sh" in agents
 
 
 def test_readme_points_future_threads_to_status_handoff() -> None:
@@ -515,6 +517,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   AGENTS.md points to agent status" in result.stdout
     assert "ok   AGENTS.md points to handoff" in result.stdout
     assert "ok   AGENTS.md preserves stop sentinel guidance" in result.stdout
+    assert "ok   AGENTS.md points to resume brief validation" in result.stdout
     assert "ok   README.md points to agent status" in result.stdout
     assert "ok   README.md points to handoff" in result.stdout
     assert "ok   README.md preserves stop sentinel guidance" in result.stdout
@@ -554,6 +557,7 @@ def test_workflow_audit_requires_entrypoint_guidance_content(tmp_path: Path) -> 
     assert "MISS AGENTS.md points to agent status" in result.stdout
     assert "MISS AGENTS.md points to handoff" in result.stdout
     assert "MISS AGENTS.md preserves stop sentinel guidance" in result.stdout
+    assert "MISS AGENTS.md points to resume brief validation" in result.stdout
     assert "MISS README.md points to agent status" in result.stdout
     assert "MISS README.md points to handoff" in result.stdout
     assert "MISS README.md preserves stop sentinel guidance" in result.stdout
