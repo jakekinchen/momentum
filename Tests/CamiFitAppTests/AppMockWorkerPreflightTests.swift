@@ -51,6 +51,54 @@ final class AppMockWorkerPreflightTests: XCTestCase {
         )
     }
 
+    func testMockWorkerPreflightPreservesCompletedRunState() throws {
+        let viewModel = AppExerciseSessionViewModel()
+        let workerScriptURL = Self.packageRoot.appendingPathComponent("pose_worker/pose_worker.py")
+        let missingWorker = Self.packageRoot.appendingPathComponent("pose_worker/missing_pose_worker.py")
+
+        let completedSummary = viewModel.runMockWorkerProvider(
+            workerScriptURL: workerScriptURL,
+            selectedPresetID: "bodyweight_squat",
+            fixture: "squat_bottom",
+            frameID: 39,
+            timestampMS: 3_900
+        )
+        let capturedSummary = try XCTUnwrap(viewModel.lastPoseProviderRunSummary)
+        let capturedHUD = try XCTUnwrap(viewModel.latestHUDState)
+        let capturedOverlay = viewModel.latestPoseOverlayState
+        let capturedRunStatus = viewModel.poseProviderRunStatus
+
+        XCTAssertEqual(completedSummary, capturedSummary)
+        XCTAssertGreaterThan(capturedOverlay.points.count, 0)
+
+        let successStatus = viewModel.preflightMockWorker(workerScriptURL: workerScriptURL)
+
+        guard case .succeeded = successStatus else {
+            return XCTFail("Expected succeeded preflight, got \(successStatus)")
+        }
+        XCTAssertEqual(viewModel.lastPoseProviderRunSummary, capturedSummary)
+        XCTAssertEqual(viewModel.latestHUDState, capturedHUD)
+        XCTAssertEqual(viewModel.latestPoseOverlayState, capturedOverlay)
+        XCTAssertEqual(viewModel.poseProviderRunStatus, capturedRunStatus)
+
+        let failureStatus = viewModel.preflightMockWorker(workerScriptURL: missingWorker)
+
+        guard case let .failed(failure) = failureStatus else {
+            return XCTFail("Expected failed preflight, got \(failureStatus)")
+        }
+        XCTAssertEqual(failure.diagnosticText, "mock worker script not found: \(missingWorker.path)")
+        XCTAssertEqual(viewModel.lastPoseProviderRunSummary, capturedSummary)
+        XCTAssertEqual(viewModel.latestHUDState, capturedHUD)
+        XCTAssertEqual(viewModel.latestPoseOverlayState, capturedOverlay)
+        XCTAssertEqual(viewModel.poseProviderRunStatus, capturedRunStatus)
+
+        print(
+            "app-mock-worker-preflight-preserves-run frames=\(capturedSummary.frameCount) " +
+            "overlay_points=\(capturedOverlay.points.count) run_status=\(capturedRunStatus.displayText) " +
+            "success_preserved=true failure_preserved=true"
+        )
+    }
+
     private static var packageRoot: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
