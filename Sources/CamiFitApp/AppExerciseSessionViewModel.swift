@@ -181,6 +181,37 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     }
 
     @discardableResult
+    public func runConfiguredPoseProvider(
+        mode: AppPoseProviderMode,
+        factory: AppPoseProviderFactory? = nil
+    ) -> AppPoseProviderRunSummary {
+        let providerFactory = factory ?? AppPoseProviderFactory(recordedRunSourceCandidates: recordedRunSourceCandidates)
+
+        do {
+            let configured = try providerFactory.configuredProvider(for: mode)
+            if let recordedRunID = configured.recordedRunID {
+                selectedRecordedRunID = recordedRunID
+                resolvedRecordedRunSourceURL = configured.recordedRunSourceURL
+            }
+            return runRecordedProvider(configured.provider, selectedPresetID: configured.selectedPresetID)
+        } catch {
+            let summary = AppPoseProviderRunSummary(
+                frameCount: 0,
+                selectedExerciseID: state.selectedExerciseID,
+                selectedExerciseName: state.selectedExerciseName,
+                repCount: state.repCount,
+                holdSeconds: state.holdSeconds,
+                holdTargetReached: state.holdTargetReached,
+                diagnosticText: "Pose provider configuration failed: \(error)",
+                state: state
+            )
+            lastPoseProviderRunSummary = summary
+            updateDisplayState(from: summary)
+            return summary
+        }
+    }
+
+    @discardableResult
     public func process(frames: [PoseFrame]) throws -> AppExerciseSessionState {
         guard let selectedProgram else {
             loadAvailablePresets()
