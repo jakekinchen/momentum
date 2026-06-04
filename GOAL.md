@@ -8,11 +8,11 @@ safety filtering, alternatives, decision receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-M4 - Member context and Copilot fact cards
+M5 - Ontology sidecar and validation
 
 ## Current Slice
 
-docs/briefs/005-m4-member-context-fact-cards.md
+docs/briefs/006-m5-ontology-sidecar-validation.md
 
 ## Stop Conditions
 
