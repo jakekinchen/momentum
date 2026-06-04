@@ -155,7 +155,7 @@ latest_reviewer_decision() {
     return 1
   fi
   sed -n '/^## Decision/,/^## /p' "$file" |
-    grep -E '^[[:space:]]*`(CONTINUE|NUDGE|REDIRECT|STOP|ESCALATE)`[[:space:]]*$' |
+    grep -E '^[[:space:]]*`?(CONTINUE|NUDGE|REDIRECT|STOP|ESCALATE)`?[[:space:]]*$' |
     head -1 |
     tr -d '`[:space:]'
 }
@@ -255,7 +255,8 @@ Read and follow:
 
 Your job:
 1. Audit the Executor's latest slice from repo evidence.
-2. Choose exactly one decision: CONTINUE, NUDGE, REDIRECT, STOP, or ESCALATE.
+2. Choose exactly one decision and write it as a single parseable line under
+   `## Decision`: `CONTINUE`, `NUDGE`, `REDIRECT`, `STOP`, or `ESCALATE`.
 3. Include an evidence anchor for any NUDGE, REDIRECT, STOP, or ESCALATE.
 4. Write docs/reviewer-messages/NNN-*.md.
 5. If the decision is CONTINUE, write the next docs/briefs/NNN-*.md and update GOAL.md Current Slice if needed.

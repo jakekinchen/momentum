@@ -321,7 +321,7 @@ def test_agent_thread_status_reports_current_goal_state_and_audits() -> None:
     assert "stop sentinel: absent" in result.stdout
     assert "executor product slices: follow GOAL.md and active brief" in result.stdout
     assert "current milestone: EOD completion and testing" in result.stdout
-    assert "current slice: docs/briefs/007-eod-completion-testing.md" in result.stdout
+    assert "current slice: docs/briefs/008-only-db-kb-equipment-resolution.md" in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
     assert "agent thread status clean" in result.stdout
@@ -609,6 +609,50 @@ def test_resume_plan_script_reports_next_brief_without_mutating() -> None:
     )
     assert f"git add {expected_target} GOAL.md" in result.stdout
     assert not target_path.exists()
+
+
+def test_pair_loop_parses_bare_reviewer_continue_decision(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_codex = fake_bin / "codex"
+    fake_codex.write_text(
+        "#!/usr/bin/env bash\ncat >/dev/null\nexit 0\n",
+        encoding="utf-8",
+    )
+    fake_codex.chmod(0o755)
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts/record_latest_codex_session_id.mjs").write_text(
+        "process.exit(0);\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "docs/reviewer-messages").mkdir(parents=True)
+    (tmp_path / "GOAL.md").write_text(
+        "# GOAL\n\n## Current Slice\n\ndocs/briefs/001-test.md\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "executor-reviewer-pair-programming.md").write_text(
+        "# Pair\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "docs/reviewer-messages/001-review.md").write_text(
+        "# Review\n\n## Decision\n\nCONTINUE\n",
+        encoding="utf-8",
+    )
+    _run(["git", "init", "--quiet"], cwd=tmp_path)
+
+    result = _run(
+        [
+            "bash",
+            "-lc",
+            "PATH="
+            f"{fake_bin}:$PATH "
+            "bash scripts/run_codex_pair_cycle.sh "
+            f"--loop --root {tmp_path} --max-cycles 1 --interval 0 --allow-dirty",
+        ]
+    )
+
+    assert "latest reviewer decision: CONTINUE" in result.stdout
+    assert "Loop stopping because decision is not CONTINUE." not in result.stdout
 
 
 def test_manager_log_plan_with_slug_prints_exact_candidate_paths() -> None:
@@ -1187,8 +1231,8 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log planner requires evidence fill" in result.stdout
     assert "ok   manager log planner avoids placeholder exact git add target" in result.stdout
     assert "ok   manager log planner avoids placeholder git add target" in result.stdout
-    assert "active brief: docs/briefs/007-eod-completion-testing.md" in result.stdout
-    assert "ok   docs/briefs/007-eod-completion-testing.md" in result.stdout
+    assert "active brief: docs/briefs/008-only-db-kb-equipment-resolution.md" in result.stdout
+    assert "ok   docs/briefs/008-only-db-kb-equipment-resolution.md" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
     assert "suggested checks:" in result.stdout
     assert "- uv run pytest" in result.stdout

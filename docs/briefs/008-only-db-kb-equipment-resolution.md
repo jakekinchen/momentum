@@ -2,6 +2,15 @@
 
 **Date:** 2026-06-04
 
+## Human Direction
+
+The user said: "make sure the coding pair is running still, we need this
+completed and tested before EOD".
+
+Reviewer decision `CONTINUE` in
+`docs/reviewer-messages/007-review-eod-completion-testing.md` selected this
+brief as the next smallest EOD completion/testing slice.
+
 ## Objective
 
 Implement the smallest deterministic golden-case slice for the PRD phrase
@@ -20,7 +29,8 @@ receipt pipeline rather than by LLM prose or vector retrieval.
 - Preserve deterministic graph behavior over LLM-driven eligibility.
 - Do not use vector search for safety enforcement.
 - Do not claim ontology IDs, SNOMED codes, release IDs, access dates, or
-  license status as verified.
+  license status as verified unless `graph/ontology-lock.json` contains
+  verified pinned values.
 - Add or use local runtime graph equipment nodes and aliases needed for
   `dumbbell`, `dumbbells`, `db`, `kettlebell`, and `kb` without broad Jordan
   equipment expansion.
@@ -51,6 +61,7 @@ receipt pipeline rather than by LLM prose or vector retrieval.
 ## Validation Commands
 
 ```bash
+bash scripts/validate_resume_brief.sh docs/briefs/008-only-db-kb-equipment-resolution.md
 UV_CACHE_DIR=/private/tmp/fitgraph-uv-cache uv run pytest tests/test_resolver.py tests/test_safety.py tests/test_alternatives.py
 UV_CACHE_DIR=/private/tmp/fitgraph-uv-cache uv run pytest
 UV_CACHE_DIR=/private/tmp/fitgraph-uv-cache uv run python -m kg.validation
@@ -98,3 +109,14 @@ At minimum, record direct command-backed examples for:
 - The DB/KB phrase cannot be represented without a product decision about how
   prompt-derived equipment availability should override member equipment.
 - A human explicitly redirects the EOD completion/testing scope.
+
+## Resume Checklist
+
+- Human direction is recorded in this brief.
+- Run `bash scripts/validate_resume_brief.sh docs/briefs/008-only-db-kb-equipment-resolution.md`.
+- Confirm `GOAL.md` points at
+  `docs/briefs/008-only-db-kb-equipment-resolution.md`.
+- Confirm `<stop-orchestrator/>` is absent from `GOAL.md`.
+- Run `bash scripts/agent_thread_status.sh`.
+- Commit this brief and `GOAL.md` update with exact `git add` paths before
+  starting an executor turn.
