@@ -33,9 +33,10 @@ bash scripts/start_codex_goal_loop.sh --max-cycles 3
 
 `scripts/audit_autonomous_workflow.sh` exits non-zero when required workflow
 artifacts are missing. `scripts/agent_thread_status.sh` prints the manager-log
-planner dry run, `manager support log required: docs/manager-log/NNN-*.md`,
-neutral resume guidance, both the workflow audit and pair-state audit, then
-exits non-zero if the manager-log planner or either audit fails.
+planner dry run, the resume-brief planner dry run,
+`manager support log required: docs/manager-log/NNN-*.md`, neutral resume
+guidance, both the workflow audit and pair-state audit, then exits non-zero if
+the manager-log planner, resume-brief planner, or either audit fails.
 
 The status/audit output also prints `docs/manager-log latest:` so stopped-state
 manager-support turns can review the previous support log before writing the

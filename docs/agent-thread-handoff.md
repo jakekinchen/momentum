@@ -2,8 +2,9 @@
 
 Product-stop snapshot recorded: 2026-06-04T19:40:06Z
 
-Live git head, latest workflow artifacts, and next manager-log template are
-printed by `bash scripts/agent_thread_status.sh` below.
+Live git head, latest workflow artifacts, next manager-log template, and next
+resume-brief template are printed by `bash scripts/agent_thread_status.sh`
+below.
 Treat that command output as the current operational state.
 
 ## Current State
@@ -35,12 +36,14 @@ bash scripts/agent_thread_status.sh
 ```
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
-manager-log planner guidance, the manager-log planner dry run,
+manager-log planner guidance, the manager-log planner dry run, the
+resume-brief planner dry run,
 `manager support log required: docs/manager-log/NNN-*.md`, resume-planning
 guidance, the neutral
 `bash scripts/validate_resume_brief.sh <planner-next-brief-path>` target, the
 workflow audit, and the Codex pair-state audit, then exits with a clean or
-warning summary. It treats manager-log planner failures as status warnings.
+warning summary. It treats manager-log and resume-brief planner failures as
+status warnings.
 Exact resume paths come from the resume planner after a concrete human-approved
 slug is supplied.
 

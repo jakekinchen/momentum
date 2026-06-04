@@ -12,10 +12,11 @@ bash scripts/agent_thread_status.sh
 ```
 
 That command prints the current git state, stop-sentinel state, neutral
-manager-log and resume-planning guidance, the manager-log planner dry run,
-workflow audit, and Codex pair-state audit.
+manager-log and resume-planning guidance, manager-log and resume-brief planner
+dry runs, workflow audit, and Codex pair-state audit.
 It also prints a final clean/warning summary. It exits non-zero if the
-manager-log planner, workflow audit, or pair-state audit fails.
+manager-log planner, resume-brief planner, workflow audit, or pair-state audit
+fails.
 
 If fresh human direction arrives and a future thread needs to draft the next
 active brief, first run the dry-run planner:

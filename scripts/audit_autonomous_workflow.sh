@@ -354,6 +354,10 @@ require_text_in_file \
   "handoff explains audited manager log entrypoint guidance"
 require_text_in_file \
   "docs/agent-thread-handoff.md" \
+  "resume-brief planner dry run" \
+  "handoff explains status resume planner dry run"
+require_text_in_file \
+  "docs/agent-thread-handoff.md" \
   "Product-stop snapshot recorded:" \
   "handoff labels static product snapshot"
 require_text_in_file \
@@ -404,6 +408,10 @@ require_text_in_file \
   "docs/autonomous-workflow/05-devops-and-session-ops.md" \
   "next manager log template:" \
   "devops docs explain manager log template path"
+require_text_in_file \
+  "docs/autonomous-workflow/05-devops-and-session-ops.md" \
+  "resume-brief planner dry run" \
+  "devops docs explain status resume planner dry run"
 
 section "Static resume targets"
 for file in AGENTS.md README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-devops-and-session-ops.md; do
@@ -434,6 +442,14 @@ require_text_in_file \
   "scripts/agent_thread_status.sh" \
   "manager_log_plan_status" \
   "scripts/agent_thread_status.sh reports manager planner status"
+require_text_in_file \
+  "scripts/agent_thread_status.sh" \
+  "section \"Resume Brief Planner\"" \
+  "scripts/agent_thread_status.sh runs resume planner"
+require_text_in_file \
+  "scripts/agent_thread_status.sh" \
+  "resume_plan_status" \
+  "scripts/agent_thread_status.sh reports resume planner status"
 require_text_in_file \
   "scripts/agent_thread_status.sh" \
   "manager support log required: docs/manager-log/NNN-*.md" \

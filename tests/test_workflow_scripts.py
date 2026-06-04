@@ -255,8 +255,11 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "printf 'resume plan dry run: bash scripts/plan_next_resume_brief.sh\\n'\n"
             "section() { printf '\\n== %s ==\\n' \"$1\"; }\n"
             "manager_log_plan_status=0\n"
+            "resume_plan_status=0\n"
             "section \"Manager Log Planner\"\n"
             "bash scripts/plan_next_manager_log.sh || manager_log_plan_status=$?\n"
+            "section \"Resume Brief Planner\"\n"
+            "bash scripts/plan_next_resume_brief.sh || resume_plan_status=$?\n"
             "printf 'resume brief validation: "
             "bash scripts/validate_resume_brief.sh <planner-next-brief-path>\\n'\n"
         ),
@@ -320,6 +323,9 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert "next manager log: docs/manager-log/" not in result.stdout
     assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
     assert "resume plan dry run: bash scripts/plan_next_resume_brief.sh" in result.stdout
+    assert "== Resume Brief Planner ==" in result.stdout
+    assert "next brief: rerun with a lowercase slug to print exact path" in result.stdout
+    assert "next brief template: docs/briefs/" in result.stdout
     assert (
         "resume plan with slug: "
         "bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>"
@@ -359,6 +365,9 @@ def test_agent_thread_status_minimal_root_uses_neutral_resume_target(
     assert "next manager log template: docs/manager-log/001-<support-slug>.md" in result.stdout
     assert "next manager log: docs/manager-log/001-test.md" not in result.stdout
     assert "manager support log required: docs/manager-log/NNN-*.md" in result.stdout
+    assert "== Resume Brief Planner ==" in result.stdout
+    assert "next brief: rerun with a lowercase slug to print exact path" in result.stdout
+    assert "next brief template:" in result.stdout
     assert (
         "resume plan with slug: "
         "bash scripts/plan_next_resume_brief.sh <lowercase-slice-slug>"
@@ -424,6 +433,7 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
         not in readme
     )
     assert "final clean/warning summary" in readme
+    assert "resume-brief planner" in readme
 
 
 def test_readme_safe_checks_do_not_require_candidate_resume_brief() -> None:
@@ -473,6 +483,7 @@ def test_handoff_direct_audits_do_not_require_candidate_resume_brief() -> None:
     assert "docs/manager-log latest:" in handoff
     assert "review latest command:" in handoff
     assert "next manager log template:" in handoff
+    assert "resume-brief planner dry run" in handoff
     assert (
         "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md"
         not in handoff
