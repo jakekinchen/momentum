@@ -12,7 +12,7 @@ M3 - Integrated macOS app (productize). M2 (push-up, lunge, plank presets) compl
 
 ## Current Slice
 
-docs/briefs/035-app-mock-worker-ui-command.md
+docs/briefs/036-app-provider-status-model.md
 
 ## Stop Conditions
 
