@@ -486,6 +486,10 @@ require_text_in_file \
   "manager log template includes validation evidence"
 require_text_in_file \
   "docs/manager-log/000-template-manager-support.md" \
+  "Replace each placeholder with the exact command outcome before committing" \
+  "manager log template requires validation outcomes"
+require_text_in_file \
+  "docs/manager-log/000-template-manager-support.md" \
   "## Guardrail" \
   "manager log template includes guardrail"
 require_text_in_file \

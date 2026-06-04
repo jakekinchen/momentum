@@ -189,6 +189,7 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
             "## Status\n\n"
             "## Manager Action\n\n"
             "## Validation Evidence\n\n"
+            "Replace each placeholder with the exact command outcome before committing.\n\n"
             "## Guardrail\n\n"
             "This is process support only.\n"
         ),
@@ -1032,6 +1033,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   manager log template includes status" in result.stdout
     assert "ok   manager log template includes manager action" in result.stdout
     assert "ok   manager log template includes validation evidence" in result.stdout
+    assert "ok   manager log template requires validation outcomes" in result.stdout
     assert "ok   manager log template includes guardrail" in result.stdout
     assert "ok   manager log template preserves stopped-state guardrail" in result.stdout
     assert "ok   manager log planner is dry run" in result.stdout
@@ -1424,6 +1426,7 @@ def test_workflow_audit_requires_manager_log_template_shape(tmp_path: Path) -> N
     assert "ok   manager log template includes status" in result.stdout
     assert "MISS manager log template includes manager action" in result.stdout
     assert "MISS manager log template includes validation evidence" in result.stdout
+    assert "MISS manager log template requires validation outcomes" in result.stdout
     assert "MISS manager log template includes guardrail" in result.stdout
     assert "MISS manager log template preserves stopped-state guardrail" in result.stdout
     assert "workflow audit warnings:" in result.stdout
