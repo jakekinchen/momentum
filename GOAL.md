@@ -8,11 +8,11 @@ safety filtering, alternatives, decision receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-M1 - Resolver and seed graph
+M2 - Safety engine and decision receipts
 
 ## Current Slice
 
-docs/briefs/002-m1-resolver-seed-graph.md
+docs/briefs/003-m2-safety-engine-receipts.md
 
 ## Stop Conditions
 
