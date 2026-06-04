@@ -1,5 +1,7 @@
 # GOAL
 
+<stop-orchestrator/>
+
 ## Active Mission
 
 Build the FitGraph Knowledge Graph module described in
