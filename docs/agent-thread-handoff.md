@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T18:20:37Z
+Last updated: 2026-06-04T18:23:47Z
 
 ## Current State
 
@@ -31,7 +31,8 @@ bash scripts/agent_thread_status.sh
 ```
 
 The status script prints this handoff pointer, git state, stop-sentinel state,
-the resume-plan command, the workflow audit, and the Codex pair-state audit.
+the resume-plan and resume-validation commands, the workflow audit, and the
+Codex pair-state audit.
 
 The workflow audit should report the handoff/status scripts as required
 workflow artifacts and should confirm the loop-start stop guard while
@@ -44,6 +45,7 @@ git status --short --branch
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
 bash scripts/plan_next_resume_brief.sh verified-ontology-lock
+bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
 ```
 
 ## Safe Checks
@@ -57,7 +59,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 42 tests and passed.
+- `uv run pytest` collected 45 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -67,7 +69,8 @@ Expected current validation shape:
 
 The pytest suite includes workflow-script coverage for the agent status command,
 the `README.md` and `AGENTS.md` handoff pointers, the workflow audit's handoff
-checks, the resume brief template, and the loop-start stop guard.
+checks, the resume brief template, the resume planner and validator, and the
+loop-start stop guard.
 
 ## Hard Invariants
 
@@ -92,6 +95,8 @@ safe resume should:
 - use `bash scripts/plan_next_resume_brief.sh verified-ontology-lock` with a
   slug matching the human-approved slice to preview the next brief path and
   exact copy command before changing files;
+- run `bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md`
+  on the drafted brief before pointing `GOAL.md` at it;
 - update `GOAL.md` to point at that brief;
 - preserve the source-of-truth order in `AGENTS.md`;
 - leave a session log for executor work or a reviewer decision for review work;

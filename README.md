@@ -25,6 +25,13 @@ Replace the example slug with the human-approved slice name. The command
 proposes the next numbered brief path and exact copy command without writing
 files or changing `GOAL.md`.
 
+After drafting that brief, validate that the template placeholders are gone and
+the guardrails remain:
+
+```bash
+bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
+```
+
 Then read:
 
 - `AGENTS.md`
@@ -46,6 +53,7 @@ uv run python -m kg.validation
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs
 bash scripts/plan_next_resume_brief.sh verified-ontology-lock
+bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md
 ```
 
 ## Guardrails

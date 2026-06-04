@@ -17,6 +17,69 @@ def _run(command: list[str], *, check: bool = True, cwd: Path = REPO_ROOT) -> su
     )
 
 
+def _valid_resume_brief() -> str:
+    return """# Human-Approved Resume Brief
+
+**Date:** 2026-06-04
+
+## Human Direction
+
+User explicitly asked to resume the verified ontology-lock slice.
+
+## Objective
+
+Create the smallest verified ontology-lock planning slice.
+
+## Product / Project Value
+
+This keeps FitGraph moving toward the PRD while preserving deterministic graph behavior.
+
+## Acceptance Criteria
+
+- Preserve deterministic graph behavior over LLM-driven eligibility.
+- Preserve `MAPS_TO` as ontology audit metadata.
+- Do not claim verified ontology metadata unless `graph/ontology-lock.json` contains it.
+
+## Expected Files
+
+- `GOAL.md`
+- `docs/briefs/007-verified-ontology-lock.md`
+
+## Validation Commands
+
+```bash
+uv run pytest
+uv run python -m kg.validation
+bash scripts/audit_autonomous_workflow.sh
+node scripts/audit_codex_pair_state.mjs
+```
+
+## Evidence To Record
+
+- Validation command output.
+- Confirmation that vector search is not used for safety enforcement.
+
+## Reachability / Demo Proof
+
+Run the workflow audit and KG validation commands.
+
+## Out Of Scope
+
+- Runtime graph behavior changes.
+- Ontology ID claims not pinned in `graph/ontology-lock.json`.
+
+## Stop Conditions
+
+- Human direction is missing.
+- The slice would replace deterministic safety enforcement with vector behavior.
+
+## Resume Checklist
+
+- Update `GOAL.md`.
+- Run `bash scripts/agent_thread_status.sh`.
+"""
+
+
 def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     result = _run(["bash", "scripts/agent_thread_status.sh"])
 
@@ -26,6 +89,11 @@ def test_agent_thread_status_reports_stop_state_and_audits() -> None:
     assert (
         "resume plan example: "
         "bash scripts/plan_next_resume_brief.sh verified-ontology-lock"
+    ) in result.stdout
+    assert (
+        "resume brief validation example: "
+        "bash scripts/validate_resume_brief.sh "
+        "docs/briefs/007-verified-ontology-lock.md"
     ) in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
@@ -46,6 +114,7 @@ def test_readme_points_future_threads_to_status_handoff() -> None:
     assert "docs/agent-thread-handoff.md" in readme
     assert "<stop-orchestrator/>" in readme
     assert "uv run python -m kg.validation" in readme
+    assert "bash scripts/validate_resume_brief.sh" in readme
 
 
 def test_resume_template_preserves_human_approval_guardrails() -> None:
@@ -83,6 +152,54 @@ def test_resume_plan_script_reports_next_brief_without_mutating() -> None:
     assert not target_path.exists()
 
 
+def test_resume_brief_validator_accepts_de_templated_candidate(tmp_path: Path) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-verified-ontology-lock.md"
+    brief_path.write_text(_valid_resume_brief(), encoding="utf-8")
+    (tmp_path / "GOAL.md").write_text("# GOAL\n\n<stop-orchestrator/>\n", encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            "docs/briefs/007-verified-ontology-lock.md",
+            str(tmp_path),
+        ]
+    )
+
+    assert "resume brief validation clean" in result.stdout
+    assert "ok   human direction replaced with concrete instruction" in result.stdout
+    assert "ok   no template placeholder: Replace this section" in result.stdout
+    assert "stop sentinel: present" in result.stdout
+
+
+def test_resume_brief_validator_rejects_raw_template_copy(tmp_path: Path) -> None:
+    brief_dir = tmp_path / "docs/briefs"
+    brief_dir.mkdir(parents=True)
+    brief_path = brief_dir / "007-agent-thread-test.md"
+    template = (
+        REPO_ROOT / "docs/briefs/000-template-human-approved-resume.md"
+    ).read_text(encoding="utf-8")
+    brief_path.write_text(template, encoding="utf-8")
+
+    result = _run(
+        [
+            "bash",
+            "scripts/validate_resume_brief.sh",
+            "docs/briefs/007-agent-thread-test.md",
+            str(tmp_path),
+        ],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "MISS human direction replaced with concrete instruction" in result.stdout
+    assert "MISS no template placeholder: YYYY-MM-DD" in result.stdout
+    assert "MISS no template placeholder: Replace this section" in result.stdout
+    assert "resume brief validation warnings:" in result.stdout
+
+
 def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     result = _run(["bash", "scripts/audit_autonomous_workflow.sh"])
 
@@ -92,6 +209,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/plan_next_resume_brief.sh" in result.stdout
+    assert "ok   executable scripts/validate_resume_brief.sh" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
     assert "agent status: bash scripts/agent_thread_status.sh" in result.stdout
     assert "workflow audit clean" in result.stdout
