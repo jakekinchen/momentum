@@ -77,6 +77,9 @@ class LocalGraph:
             if edge.target == node_id and (predicate is None or edge.predicate == predicate)
         )
 
+    def nodes_by_type(self, node_type: str) -> tuple[GraphNode, ...]:
+        return tuple(node for node in self.nodes.values() if node.type == node_type)
+
     def descendants_by_incoming_part_of(self, root_id: str) -> tuple[GraphNode, ...]:
         """Return root plus nodes that recursively point to root through PART_OF."""
 
@@ -108,6 +111,27 @@ class LocalGraph:
                     paths.append(edge.path())
                     stack.append(edge.source)
         return tuple(paths)
+
+    def part_of_path(self, source_id: str, target_id: str) -> tuple[str, ...]:
+        """Return one deterministic PART_OF path from source to target, if present."""
+
+        self.node(source_id)
+        self.node(target_id)
+        if source_id == target_id:
+            return ()
+
+        queue: list[tuple[str, tuple[str, ...]]] = [(source_id, ())]
+        seen = {source_id}
+        while queue:
+            current, path = queue.pop(0)
+            for edge in sorted(self.outgoing(current, "PART_OF"), key=lambda item: item.target):
+                next_path = (*path, edge.path())
+                if edge.target == target_id:
+                    return next_path
+                if edge.target not in seen:
+                    seen.add(edge.target)
+                    queue.append((edge.target, next_path))
+        return ()
 
 
 def load_json(path: Path) -> dict[str, Any]:

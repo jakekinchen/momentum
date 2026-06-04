@@ -1,9 +1,25 @@
 {
   "schema_version": "0.1.0",
-  "ruleset_version": "ruleset-m0-placeholder-v0",
-  "status": "placeholder",
-  "description": "Placeholder safety rules seed. Hard-block traversal is PRD-pending.",
-  "rules": [],
+  "ruleset_version": "ruleset-m2-safety-v0",
+  "status": "seed",
+  "description": "Tiny deterministic safety rule seed for M2 receipt tests. Rules use local graph concepts only.",
+  "rules": [
+    {
+      "id": "SafetyRule:avoid_loaded_knee_flexion",
+      "severity": "MEDICAL_HARD_BLOCK",
+      "reason_code": "ACTIVE_KNEE_RESTRICTION",
+      "description": "Block loaded deep knee-flexion stress when an active knee restriction is present.",
+      "uses_concepts": ["BodyRegion:knee"],
+      "match": {
+        "edge_predicate": "STRESSES",
+        "properties": {
+          "loaded": true,
+          "flexion_depth": ["deep"],
+          "load_level": ["medium", "high"]
+        }
+      }
+    }
+  ],
   "severity_lattice": [
     "MEDICAL_HARD_BLOCK",
     "EQUIPMENT_HARD_BLOCK",
@@ -18,7 +34,7 @@
     "vector_search_for_safety_enforcement": false
   },
   "todo": [
-    "Add hard SafetyRule nodes with reason codes and source evidence.",
-    "Validate every selected, filtered, downranked, or unresolved decision has a receipt."
+    "Add additional SafetyRule nodes with source evidence.",
+    "Expand beyond the tiny active-knee restriction rule once richer exercise data exists."
   ]
 }

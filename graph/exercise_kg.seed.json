@@ -1,8 +1,8 @@
 {
   "schema_version": "0.1.0",
-  "graph_version": "fitgraph-kg-m1-seed-v0",
+  "graph_version": "fitgraph-kg-m2-safety-v0",
   "status": "seed",
-  "description": "Tiny local runtime taxonomy for M1 resolver and closure tests. Local graph edges, not ontology mappings, drive traversal.",
+  "description": "Tiny local runtime taxonomy and exercise graph for M2 safety receipt tests. Local graph edges, not ontology mappings, drive traversal.",
   "nodes": [
     {
       "id": "BodyRegion:knee",
@@ -64,11 +64,63 @@
       "properties": {}
     },
     {
+      "id": "Equipment:yoga_mat",
+      "type": "Equipment",
+      "label": "Yoga Mat",
+      "aliases": ["mat", "yoga mat"],
+      "properties": {}
+    },
+    {
       "id": "ExerciseFamily:deadlift_family",
       "type": "ExerciseFamily",
       "label": "Deadlift Family",
       "aliases": ["deadlift", "deadlifts"],
       "properties": {}
+    },
+    {
+      "id": "BodyRegion:hip",
+      "type": "BodyRegion",
+      "label": "hip",
+      "aliases": ["hip", "hips"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "Exercise:goblet_squat",
+      "type": "Exercise",
+      "label": "Goblet Squat",
+      "aliases": ["goblet squat"],
+      "properties": {
+        "priority_tier": "seed"
+      }
+    },
+    {
+      "id": "Exercise:kettlebell_deadlift",
+      "type": "Exercise",
+      "label": "Kettlebell Deadlift",
+      "aliases": ["kettlebell deadlift", "kb deadlift"],
+      "properties": {
+        "priority_tier": "seed"
+      }
+    },
+    {
+      "id": "Exercise:barbell_bench_press",
+      "type": "Exercise",
+      "label": "Barbell Bench Press",
+      "aliases": ["barbell bench press"],
+      "properties": {
+        "priority_tier": "seed"
+      }
+    },
+    {
+      "id": "Exercise:glute_bridge",
+      "type": "Exercise",
+      "label": "Glute Bridge",
+      "aliases": ["glute bridge"],
+      "properties": {
+        "priority_tier": "seed"
+      }
     }
   ],
   "edges": [
@@ -103,10 +155,82 @@
       "properties": {
         "runtime_safety_edge": true
       }
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "REQUIRES",
+      "target": "Equipment:kettlebell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:left_knee",
+      "properties": {
+        "load_level": "high",
+        "impact_level": "low",
+        "flexion_depth": "deep",
+        "loaded": true,
+        "axial_load": "medium",
+        "balance_demand": "medium",
+        "laterality": "left"
+      }
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "REQUIRES",
+      "target": "Equipment:kettlebell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:hip",
+      "properties": {
+        "load_level": "medium",
+        "impact_level": "low",
+        "flexion_depth": "limited",
+        "loaded": true,
+        "axial_load": "low",
+        "balance_demand": "low",
+        "laterality": "neutral"
+      }
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "VARIANT_OF",
+      "target": "ExerciseFamily:deadlift_family",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_bench_press",
+      "predicate": "REQUIRES",
+      "target": "Equipment:barbell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "REQUIRES",
+      "target": "Equipment:yoga_mat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:hip",
+      "properties": {
+        "load_level": "low",
+        "impact_level": "low",
+        "flexion_depth": "none",
+        "loaded": false,
+        "axial_load": "none",
+        "balance_demand": "low",
+        "laterality": "neutral"
+      }
     }
   ],
   "todo": [
-    "Add Exercise, MuscleGroup, MovementPattern, and richer Equipment nodes.",
-    "Add TARGETS, STRESSES, REQUIRES, HAS_PATTERN, and VARIANT_OF edges for safety and alternatives slices."
+    "Add MuscleGroup, MovementPattern, TARGETS, HAS_PATTERN, and richer exercise data.",
+    "Expand safety and alternative selection beyond the tiny deterministic M2 candidate set."
   ]
 }
