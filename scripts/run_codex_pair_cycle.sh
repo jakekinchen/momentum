@@ -14,7 +14,7 @@ Options:
   --max-cycles <n>      Maximum loop cycles. Default: 1 for --once, 10 for --loop.
   --model <name>        Pass a model to codex exec.
   --sandbox <mode>      Codex sandbox mode. Default: workspace-write.
-  --approval <policy>   Codex approval policy. Default: never.
+  --approval <policy>   Codex approval policy config. Default: never.
   --allow-dirty         Allow starting from a dirty worktree.
   --dangerous           Use --dangerously-bypass-approvals-and-sandbox.
   -h, --help            Show this help.
@@ -192,7 +192,7 @@ run_role() {
   if [ "$DANGEROUS" -eq 1 ]; then
     codex_args+=(--dangerously-bypass-approvals-and-sandbox)
   else
-    codex_args+=(-s "$SANDBOX" -a "$APPROVAL")
+    codex_args+=(-s "$SANDBOX" -c "approval_policy=\"$APPROVAL\"")
   fi
   codex_args+=(-o "$last_msg" -)
 
