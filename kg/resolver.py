@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from kg.constraints import ResolvedConstraint
-from kg.graph_store import LocalGraph, load_local_graph
+from kg.graph_store import GraphNode, LocalGraph, load_local_graph
 
 
 def _normalize(text: str) -> str:
@@ -14,6 +14,16 @@ def _normalize(text: str) -> str:
 
 def _node_value(node_id: str) -> str:
     return node_id.split(":", 1)[1]
+
+
+def _exact_label_or_alias_match(normalized: str, graph: LocalGraph) -> GraphNode | None:
+    """Find a deterministic local graph concept match by label or alias."""
+
+    for node in sorted(graph.nodes.values(), key=lambda item: item.id):
+        terms = {_normalize(node.label), *(_normalize(alias) for alias in node.aliases)}
+        if normalized in terms:
+            return node
+    return None
 
 
 def _resolved_node(
@@ -113,6 +123,16 @@ def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedCon
                 node_id="ExerciseFamily:deadlift_family",
                 hard=True,
                 negated=True,
+            )
+        ]
+
+    if matched_node := _exact_label_or_alias_match(normalized, local_graph):
+        return [
+            _resolved_node(
+                graph=local_graph,
+                source_text=text,
+                constraint_type=matched_node.type,
+                node_id=matched_node.id,
             )
         ]
 

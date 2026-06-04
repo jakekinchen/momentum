@@ -46,6 +46,20 @@ def test_resolves_deadlift_family_exclusion() -> None:
     assert constraint.negated is True
 
 
+def test_resolves_prd_alias_examples_from_local_graph() -> None:
+    [pecs] = resolve_text("pecs")
+    [squats] = resolve_text("squats")
+
+    assert pecs.constraint_type == "MuscleGroup"
+    assert pecs.value == "chest"
+    assert pecs.hard is False
+    assert pecs.verified is False
+    assert squats.constraint_type == "MovementPattern"
+    assert squats.value == "squat"
+    assert squats.hard is False
+    assert squats.verified is False
+
+
 def test_unknown_or_ambiguous_terms_return_unresolved_constraint() -> None:
     [constraint] = resolve_text("press")
 

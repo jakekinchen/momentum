@@ -118,7 +118,7 @@
       "id": "MovementPattern:squat",
       "type": "MovementPattern",
       "label": "squat",
-      "aliases": ["squat"],
+      "aliases": ["squat", "squats"],
       "properties": {}
     },
     {
