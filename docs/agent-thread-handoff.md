@@ -1,6 +1,6 @@
 # FitGraph Agent Thread Handoff
 
-Last updated: 2026-06-04T19:06:24Z
+Last updated: 2026-06-04T19:09:52Z
 
 ## Current State
 
@@ -67,7 +67,7 @@ uv run python -m kg.validation
 
 Expected current validation shape:
 
-- `uv run pytest` collected 58 tests and passed.
+- `uv run pytest` collected 59 tests and passed.
 - `uv run python -m kg.validation` reports:
   - `validation_status: pass`
   - `schema_validation_status: pass`
@@ -81,6 +81,8 @@ checks, the resume brief template, the resume planner and validator, and the
 loop-start stop guard. The workflow audit exits non-zero when required
 artifacts are missing or when either `README.md` or `AGENTS.md` loses the
 agent-status, handoff, stop-sentinel, or resume-validation entrypoint guidance.
+It also verifies that `scripts/agent_thread_status.sh` keeps neutral stopped
+resume guidance and avoids stale concrete resume-validation targets.
 Resume-brief validation rejects vector safety enforcement language. The
 workflow audit also verifies that the active brief named in `GOAL.md` exists.
 The agent status command intentionally keeps stopped-state resume validation

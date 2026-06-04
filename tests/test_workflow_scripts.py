@@ -164,7 +164,12 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
         "pyproject.toml": "[project]\nname = \"fitgraph-test\"\nversion = \"0.0.0\"\n",
     }
     executable_scripts = {
-        "scripts/agent_thread_status.sh": "#!/usr/bin/env bash\n",
+        "scripts/agent_thread_status.sh": (
+            "#!/usr/bin/env bash\n"
+            "printf 'resume plan dry run: bash scripts/plan_next_resume_brief.sh\\n'\n"
+            "printf 'resume brief validation: "
+            "bash scripts/validate_resume_brief.sh <planner-next-brief-path>\\n'\n"
+        ),
         "scripts/audit_autonomous_workflow.sh": "#!/usr/bin/env bash\n",
         "scripts/plan_next_resume_brief.sh": "#!/usr/bin/env bash\n",
         "scripts/validate_resume_brief.sh": "#!/usr/bin/env bash\n",
@@ -619,6 +624,18 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
         "ok   docs/autonomous-workflow/05-devops-and-session-ops.md avoids stale hardcoded resume-validation target"
         in result.stdout
     )
+    assert (
+        "ok   scripts/agent_thread_status.sh uses neutral resume planner dry run"
+        in result.stdout
+    )
+    assert (
+        "ok   scripts/agent_thread_status.sh uses neutral resume-validation target"
+        in result.stdout
+    )
+    assert (
+        "ok   scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
+        in result.stdout
+    )
     assert "active brief: docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   docs/briefs/006-m5-ontology-sidecar-validation.md" in result.stdout
     assert "ok   start loop stop guard present" in result.stdout
@@ -660,6 +677,41 @@ def test_workflow_audit_requires_entrypoint_guidance_content(tmp_path: Path) -> 
     assert "MISS README.md preserves stop sentinel guidance" in result.stdout
     assert "MISS README.md points to resume brief validation" in result.stdout
     assert "MISS README.md uses planner resume-validation target" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_requires_neutral_status_resume_guidance(tmp_path: Path) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    status_script = tmp_path / "scripts/agent_thread_status.sh"
+    status_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf 'resume plan example: "
+        "bash scripts/plan_next_resume_brief.sh verified-ontology-lock\\n'\n"
+        "printf 'resume brief validation example: "
+        "bash scripts/validate_resume_brief.sh "
+        "docs/briefs/007-verified-ontology-lock.md\\n'\n",
+        encoding="utf-8",
+    )
+    status_script.chmod(0o755)
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert (
+        "MISS scripts/agent_thread_status.sh uses neutral resume planner dry run"
+        in result.stdout
+    )
+    assert (
+        "MISS scripts/agent_thread_status.sh uses neutral resume-validation target"
+        in result.stdout
+    )
+    assert (
+        "MISS scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
+        in result.stdout
+    )
     assert "workflow audit warnings:" in result.stdout
 
 

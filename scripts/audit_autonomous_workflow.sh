@@ -163,6 +163,20 @@ for file in README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-d
     "$file avoids stale hardcoded resume-validation target"
 done
 
+section "Status resume guidance"
+require_text_in_file \
+  "scripts/agent_thread_status.sh" \
+  "resume plan dry run: bash scripts/plan_next_resume_brief.sh" \
+  "scripts/agent_thread_status.sh uses neutral resume planner dry run"
+require_text_in_file \
+  "scripts/agent_thread_status.sh" \
+  "resume brief validation: bash scripts/validate_resume_brief.sh <planner-next-brief-path>" \
+  "scripts/agent_thread_status.sh uses neutral resume-validation target"
+reject_text_in_file \
+  "scripts/agent_thread_status.sh" \
+  "bash scripts/validate_resume_brief.sh docs/briefs/007-verified-ontology-lock.md" \
+  "scripts/agent_thread_status.sh avoids stale hardcoded resume-validation target"
+
 section "Goal"
 if [ -f GOAL.md ]; then
   sed -n '1,100p' GOAL.md
