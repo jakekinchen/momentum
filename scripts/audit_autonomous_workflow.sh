@@ -216,6 +216,10 @@ require_text_in_file \
   "docs/autonomous-workflow/05-devops-and-session-ops.md" \
   "manager support log required: docs/manager-log/NNN-*.md" \
   "devops docs explain status manager support-log line"
+require_text_in_file \
+  "docs/autonomous-workflow/05-devops-and-session-ops.md" \
+  "docs/manager-log latest:" \
+  "devops docs point manager turns to latest manager log"
 
 section "Static resume targets"
 for file in README.md docs/agent-thread-handoff.md docs/autonomous-workflow/05-devops-and-session-ops.md; do

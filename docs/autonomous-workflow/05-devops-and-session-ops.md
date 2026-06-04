@@ -37,6 +37,10 @@ planner, `manager support log required: docs/manager-log/NNN-*.md`, neutral
 resume guidance, both the workflow audit and pair-state audit, then exits
 non-zero if either check fails.
 
+The status/audit output also prints `docs/manager-log latest:` so stopped-state
+manager-support turns can review the previous support log before writing the
+next one.
+
 Runtime logs are written under:
 
 ```text

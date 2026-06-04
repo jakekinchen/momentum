@@ -404,6 +404,7 @@ def test_devops_docs_separate_safe_commands_from_loop_commands() -> None:
     assert "bash scripts/stop_codex_goal_loop.sh" not in loop_commands
     assert "stop sentinel is absent" in devops
     assert "manager support log required: docs/manager-log/NNN-*.md" in devops
+    assert "docs/manager-log latest:" in devops
 
 
 def test_resume_template_preserves_human_approval_guardrails() -> None:
@@ -750,6 +751,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   handoff keeps pytest expectation count-neutral" in result.stdout
     assert "ok   handoff avoids hardcoded pytest count" in result.stdout
     assert "ok   devops docs explain status manager support-log line" in result.stdout
+    assert "ok   devops docs point manager turns to latest manager log" in result.stdout
     assert "ok   README.md uses planner resume-validation target" in result.stdout
     assert "ok   README.md avoids stale hardcoded resume-validation target" in result.stdout
     assert "ok   docs/agent-thread-handoff.md uses planner resume-validation target" in result.stdout
