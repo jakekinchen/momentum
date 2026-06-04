@@ -112,6 +112,10 @@ require_file "docs/autonomous-workflow/08-scaffold-adoption-matrix.md"
 require_executable "scripts/agent_thread_status.sh"
 require_executable "scripts/audit_autonomous_workflow.sh"
 require_file "scripts/audit_codex_pair_state.mjs"
+require_text_in_file \
+  "scripts/audit_codex_pair_state.mjs" \
+  "\${dir} latest:" \
+  "pair-state audit labels latest artifacts"
 require_executable "scripts/plan_next_manager_log.sh"
 require_executable "scripts/plan_next_resume_brief.sh"
 require_executable "scripts/validate_resume_brief.sh"

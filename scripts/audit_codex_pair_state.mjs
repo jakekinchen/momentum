@@ -67,7 +67,7 @@ if (existsSync("GOAL.md")) {
 
 section("Latest Artifacts");
 for (const dir of ["docs/briefs", "docs/session-logs", "docs/reviewer-messages", "docs/manager-log"]) {
-  console.log(`${dir}: ${latestFile(dir) || "none"}`);
+  console.log(`${dir} latest: ${latestFile(dir) || "none"}`);
 }
 
 section("Loop Process");

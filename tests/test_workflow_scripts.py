@@ -271,6 +271,16 @@ def test_agent_thread_status_minimal_root_uses_neutral_resume_target(
     assert "agent thread status clean" in result.stdout
 
 
+def test_pair_state_audit_labels_latest_artifacts() -> None:
+    result = _run(["node", "scripts/audit_codex_pair_state.mjs"])
+
+    assert "docs/briefs latest:" in result.stdout
+    assert "docs/session-logs latest:" in result.stdout
+    assert "docs/reviewer-messages latest:" in result.stdout
+    assert "docs/manager-log latest:" in result.stdout
+    assert "docs/manager-log:" not in result.stdout
+
+
 def test_agents_md_points_future_threads_to_status_handoff() -> None:
     agents = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
 
@@ -683,6 +693,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   docs/agent-thread-handoff.md" in result.stdout
     assert "ok   scripts/agent_thread_status.sh" in result.stdout
     assert "ok   executable scripts/agent_thread_status.sh" in result.stdout
+    assert "ok   pair-state audit labels latest artifacts" in result.stdout
     assert "ok   executable scripts/plan_next_manager_log.sh" in result.stdout
     assert "ok   executable scripts/plan_next_resume_brief.sh" in result.stdout
     assert "ok   executable scripts/validate_resume_brief.sh" in result.stdout
