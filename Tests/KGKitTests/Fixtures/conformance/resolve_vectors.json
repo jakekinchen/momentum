@@ -1,0 +1,222 @@
+{
+  "vectors": [
+    {
+      "text": "knee",
+      "expected": [
+        {
+          "constraint_type": "BodyRegion",
+          "value": "knee",
+          "hard": false,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [
+            "BodyRegion:knee_joint -PART_OF-> BodyRegion:knee",
+            "BodyRegion:left_knee -PART_OF-> BodyRegion:knee",
+            "BodyRegion:patella -PART_OF-> BodyRegion:knee",
+            "BodyRegion:patellar_tendon -PART_OF-> BodyRegion:knee"
+          ],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": null
+        }
+      ]
+    },
+    {
+      "text": "left knee",
+      "expected": [
+        {
+          "constraint_type": "BodyRegion",
+          "value": "left_knee",
+          "hard": false,
+          "negated": false,
+          "laterality": "left",
+          "graph_paths": [
+            "BodyRegion:left_knee -PART_OF-> BodyRegion:knee"
+          ],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": null
+        }
+      ]
+    },
+    {
+      "text": "bad lower back",
+      "expected": [
+        {
+          "constraint_type": "BodyRegion",
+          "value": "lower_back",
+          "hard": true,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [
+            "BodyRegion:lumbar_spine -PART_OF-> BodyRegion:lower_back"
+          ],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": "block_if_safety_critical"
+        }
+      ]
+    },
+    {
+      "text": "kettlebell",
+      "expected": [
+        {
+          "constraint_type": "Equipment",
+          "value": "kettlebell",
+          "hard": false,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": null
+        }
+      ]
+    },
+    {
+      "text": "no barbell",
+      "expected": [
+        {
+          "constraint_type": "Equipment",
+          "value": "barbell",
+          "hard": true,
+          "negated": true,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": null
+        }
+      ]
+    },
+    {
+      "text": "exclude deadlifts",
+      "expected": [
+        {
+          "constraint_type": "ExerciseFamily",
+          "value": "deadlift_family",
+          "hard": true,
+          "negated": true,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": null
+        }
+      ]
+    },
+    {
+      "text": "only dumbbells and kettlebell",
+      "expected": [
+        {
+          "constraint_type": "Equipment",
+          "value": "dumbbell",
+          "hard": true,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": "allowed_equipment_only"
+        },
+        {
+          "constraint_type": "Equipment",
+          "value": "kettlebell",
+          "hard": true,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": "allowed_equipment_only"
+        }
+      ]
+    },
+    {
+      "text": "squat",
+      "expected": [
+        {
+          "constraint_type": "MovementPattern",
+          "value": "squat",
+          "hard": false,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": null
+        }
+      ]
+    },
+    {
+      "text": "xyzzy",
+      "expected": [
+        {
+          "constraint_type": "UnresolvedConcept",
+          "value": "xyzzy",
+          "hard": true,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "needs_review",
+          "safety_behavior": "ask_clarification"
+        }
+      ]
+    },
+    {
+      "text": "Build a session. No barbell. Exclude deadlifts.",
+      "expected": [
+        {
+          "constraint_type": "Equipment",
+          "value": "barbell",
+          "hard": true,
+          "negated": true,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": null
+        },
+        {
+          "constraint_type": "ExerciseFamily",
+          "value": "deadlift_family",
+          "hard": true,
+          "negated": true,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "resolved",
+          "safety_behavior": null
+        }
+      ]
+    },
+    {
+      "text": "Frobnicate the wibble. Glorp the snarf.",
+      "expected": [
+        {
+          "constraint_type": "UnresolvedConcept",
+          "value": "frobnicate the wibble",
+          "hard": true,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "needs_review",
+          "safety_behavior": "ask_clarification"
+        },
+        {
+          "constraint_type": "UnresolvedConcept",
+          "value": "glorp the snarf",
+          "hard": true,
+          "negated": false,
+          "laterality": null,
+          "graph_paths": [],
+          "verified": false,
+          "resolution_status": "needs_review",
+          "safety_behavior": "ask_clarification"
+        }
+      ]
+    }
+  ]
+}

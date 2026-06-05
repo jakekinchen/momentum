@@ -103,6 +103,39 @@ def emit_vectors() -> None:
     print(f"wrote {VECTORS.relative_to(REPO)}: {len(vectors)} vectors")
 
 
+from kg.resolver import resolve_text  # noqa: E402
+
+RESOLVE_VECTORS = REPO / "Tests/KGKitTests/Fixtures/conformance/resolve_vectors.json"
+
+RESOLVE_PROMPTS = [
+    "knee", "left knee", "bad lower back", "kettlebell", "no barbell",
+    "exclude deadlifts", "only dumbbells and kettlebell", "squat", "xyzzy",
+    "Build a session. No barbell. Exclude deadlifts.",
+    "Frobnicate the wibble. Glorp the snarf.",
+]
+
+
+def emit_resolve_vectors() -> None:
+    graph = load_local_graph(FITGRAPH / "graph" / "exercise_kg.seed.json")
+    vectors = []
+    for prompt in RESOLVE_PROMPTS:
+        constraints = resolve_text(prompt, graph)
+        vectors.append({
+            "text": prompt,
+            "expected": [
+                {"constraint_type": c.constraint_type, "value": c.value, "hard": c.hard,
+                 "negated": c.negated, "laterality": c.laterality, "graph_paths": list(c.graph_paths),
+                 "verified": c.verified, "resolution_status": c.resolution_status,
+                 "safety_behavior": c.safety_behavior}
+                for c in constraints
+            ],
+        })
+    RESOLVE_VECTORS.parent.mkdir(parents=True, exist_ok=True)
+    RESOLVE_VECTORS.write_text(json.dumps({"vectors": vectors}, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {RESOLVE_VECTORS.relative_to(REPO)}: {len(vectors)} resolve vectors")
+
+
 if __name__ == "__main__":
     freeze_artifact()
     emit_vectors()
+    emit_resolve_vectors()
