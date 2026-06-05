@@ -5,7 +5,8 @@ struct ContentView: View {
     @ObservedObject var codex: CodexAppServerClient
     @StateObject private var liveSession = LiveSession()
     @StateObject private var chat = ChatViewModel()
-    @State private var chatVisible = true
+    @StateObject private var memoryStore = KGMemoryStore()
+    @State private var inspectorState = AppInspectorState()
 
     var body: some View {
         NavigationSplitView {
@@ -26,16 +27,32 @@ struct ContentView: View {
 
                     ToolbarItem {
                         Button {
-                            withAnimation(.smooth) { chatVisible.toggle() }
+                            withAnimation(.smooth) { inspectorState.toggleCoach() }
                         } label: {
-                            Label("Chat", systemImage: chatVisible ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
+                            Label("Chat", systemImage: inspectorState.isActive(.coach) ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
                         }
                         .help("Toggle coach chat")
                     }
+
+                    ToolbarItem {
+                        Button {
+                            withAnimation(.smooth) { inspectorState.showMemory() }
+                        } label: {
+                            Image(systemName: inspectorState.isActive(.memory) ? "brain.head.profile.fill" : "brain.head.profile")
+                        }
+                        .help("Memories")
+                    }
                 }
-                .inspector(isPresented: $chatVisible) {
-                    ChatPanel()
-                        .inspectorColumnWidth(min: 300, ideal: 360, max: 460)
+                .inspector(isPresented: $inspectorState.isPresented) {
+                    Group {
+                        switch inspectorState.mode {
+                        case .coach:
+                            ChatPanel()
+                        case .memory:
+                            KGMemoryPanel(store: memoryStore)
+                        }
+                    }
+                    .inspectorColumnWidth(min: 300, ideal: 360, max: 460)
                 }
         }
         .navigationTitle("CamiFit")
@@ -50,10 +67,43 @@ struct ContentView: View {
             liveSession.refreshCameras()
             chat.codex = codex
             codex.start()
+            memoryStore.load()
         }
         .onDisappear {
             liveSession.stop()
         }
+    }
+}
+
+enum AppInspectorMode: Equatable {
+    case coach
+    case memory
+}
+
+struct AppInspectorState: Equatable {
+    var isPresented = true
+    var mode: AppInspectorMode = .coach
+
+    mutating func toggleCoach() {
+        if isPresented && mode == .coach {
+            isPresented = false
+        } else {
+            showCoach()
+        }
+    }
+
+    mutating func showCoach() {
+        mode = .coach
+        isPresented = true
+    }
+
+    mutating func showMemory() {
+        mode = .memory
+        isPresented = true
+    }
+
+    func isActive(_ candidate: AppInspectorMode) -> Bool {
+        isPresented && mode == candidate
     }
 }
 

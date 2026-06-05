@@ -3,6 +3,30 @@ import KGKit
 @testable import CamiFitApp
 
 final class KGMemoryPanelModelTests: XCTestCase {
+    func testInspectorModeStatePreservesChatModelBoundary() {
+        var state = AppInspectorState()
+
+        XCTAssertTrue(state.isPresented)
+        XCTAssertEqual(state.mode, .coach)
+        XCTAssertTrue(state.isActive(.coach))
+
+        state.toggleCoach()
+        XCTAssertFalse(state.isPresented)
+        XCTAssertEqual(state.mode, .coach)
+
+        state.showMemory()
+        XCTAssertTrue(state.isPresented)
+        XCTAssertEqual(state.mode, .memory)
+        XCTAssertTrue(state.isActive(.memory))
+
+        state.toggleCoach()
+        XCTAssertTrue(state.isPresented)
+        XCTAssertEqual(state.mode, .coach)
+        XCTAssertTrue(state.isActive(.coach))
+
+        print("kg-memory-inspector-mode hidden_to_memory=true memory_to_coach=true state_is_value_only=true")
+    }
+
     func testMedicalProjectionSeparatesActiveAndCorrectedRows() {
         let addKnee = GraphOperation(
             operationID: "op-knee",
