@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FitGraph Coach Dashboard</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">FitGraph Candidate Assessment</p>
+          <h1>Coach Ops Dashboard</h1>
+        </div>
+        <div class="topbar-meta" aria-label="Run metadata">
+          <span id="run-id"></span>
+          <span id="graph-version"></span>
+          <span id="ontology-lock"></span>
+        </div>
+      </header>
+
+      <main class="dashboard-grid">
+        <section class="panel member-panel" aria-labelledby="member-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Member Context</p>
+              <h2 id="member-title"></h2>
+            </div>
+            <span class="status-pill risk">Risk elevated</span>
+          </div>
+          <div id="coach-queue" class="metric-strip"></div>
+          <div class="context-block">
+            <h3>Goals</h3>
+            <ul id="member-goals" class="compact-list"></ul>
+          </div>
+          <div class="context-block">
+            <h3>Equipment</h3>
+            <div id="equipment-list" class="chip-row"></div>
+          </div>
+          <div class="context-block">
+            <h3>Restrictions</h3>
+            <div id="restriction-list"></div>
+          </div>
+          <div class="context-block">
+            <h3>Preferences</h3>
+            <ul id="preference-list" class="compact-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel generator-panel" aria-labelledby="generator-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Workout Generator</p>
+              <h2 id="generator-title">Jordan plan run</h2>
+            </div>
+            <button id="generate-button" class="primary-button" type="button">Generate</button>
+          </div>
+          <label class="field-label" for="coach-prompt">Coach prompt</label>
+          <textarea id="coach-prompt" rows="3"></textarea>
+          <div class="input-grid">
+            <label>
+              <span class="field-label">Minutes</span>
+              <input id="minutes-input" type="number" min="15" max="90" step="5">
+            </label>
+            <label>
+              <span class="field-label">Member</span>
+              <input id="member-input" type="text" readonly>
+            </label>
+          </div>
+          <div>
+            <span class="field-label">Resolved constraints</span>
+            <div id="constraint-list" class="constraint-list"></div>
+          </div>
+        </section>
+
+        <section class="panel summary-panel" aria-labelledby="summary-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Run Summary</p>
+              <h2 id="summary-title">Decision counts</h2>
+            </div>
+            <span id="last-run" class="status-pill ok"></span>
+          </div>
+          <div id="summary-metrics" class="metric-grid"></div>
+        </section>
+
+        <section class="panel plan-panel" aria-labelledby="plan-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Selected Safe Pool</p>
+              <h2 id="plan-title">Generated workout</h2>
+            </div>
+            <span class="status-pill ok">No unresolved concepts</span>
+          </div>
+          <div id="plan-list" class="plan-list"></div>
+        </section>
+
+        <section class="panel decisions-panel" aria-labelledby="decisions-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Provenance Trace</p>
+              <h2 id="decisions-title">Decision receipts</h2>
+            </div>
+            <div class="segmented-control" aria-label="Receipt filter">
+              <button type="button" class="segment active" data-filter="all">All</button>
+              <button type="button" class="segment" data-filter="selected">Kept</button>
+              <button type="button" class="segment" data-filter="filtered">Filtered</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Exercise</th>
+                  <th>Decision</th>
+                  <th>Primary reason</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody id="receipt-table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel alternatives-panel" aria-labelledby="alternatives-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Alternatives</p>
+              <h2 id="alternatives-title">Safe replacements</h2>
+            </div>
+          </div>
+          <div id="alternatives-list" class="alternatives-list"></div>
+        </section>
+
+        <section class="panel copilot-panel" aria-labelledby="copilot-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Coach Copilot</p>
+              <h2 id="copilot-title">Quick prompts</h2>
+            </div>
+          </div>
+          <div id="copilot-prompts" class="prompt-grid"></div>
+          <div id="copilot-answer" class="copilot-answer"></div>
+          <div id="fact-cards" class="fact-card-list"></div>
+        </section>
+
+        <section class="panel charts-panel" aria-labelledby="charts-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Member Signals</p>
+              <h2 id="charts-title">Adherence, sleep, messages</h2>
+            </div>
+          </div>
+          <div class="chart-grid">
+            <div class="chart-block">
+              <div class="chart-title-row">
+                <h3>Adherence</h3>
+                <span>weekly completion</span>
+              </div>
+              <div id="adherence-chart" class="chart"></div>
+            </div>
+            <div class="chart-block">
+              <div class="chart-title-row">
+                <h3>Sleep</h3>
+                <span>hours</span>
+              </div>
+              <div id="sleep-chart" class="chart"></div>
+            </div>
+            <div class="chart-block">
+              <div class="chart-title-row">
+                <h3>Messages</h3>
+                <span>member vs coach</span>
+              </div>
+              <div id="message-chart" class="chart"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel evidence-panel" aria-labelledby="evidence-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Evidence</p>
+              <h2 id="evidence-title">Selected receipt</h2>
+            </div>
+          </div>
+          <div id="evidence-detail" class="evidence-detail"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./fixtures/demo.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

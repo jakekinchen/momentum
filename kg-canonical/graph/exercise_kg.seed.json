@@ -1,0 +1,545 @@
+{
+  "schema_version": "0.1.0",
+  "graph_version": "fitgraph-kg-m3-alternatives-v0",
+  "status": "seed",
+  "description": "Tiny local runtime taxonomy and exercise graph for M3 safety and alternatives tests. Local graph edges, not ontology mappings, drive traversal.",
+  "nodes": [
+    {
+      "id": "BodyRegion:knee",
+      "type": "BodyRegion",
+      "label": "knee",
+      "aliases": ["knee"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "BodyRegion:left_knee",
+      "type": "BodyRegion",
+      "label": "left knee",
+      "aliases": ["left knee"],
+      "properties": {
+        "laterality": "left"
+      }
+    },
+    {
+      "id": "BodyRegion:knee_joint",
+      "type": "BodyRegion",
+      "label": "knee joint",
+      "aliases": ["knee joint"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "BodyRegion:patella",
+      "type": "BodyRegion",
+      "label": "patella",
+      "aliases": ["kneecap", "patella"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "BodyRegion:patellar_tendon",
+      "type": "BodyRegion",
+      "label": "patellar tendon",
+      "aliases": ["patellar tendon"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "BodyRegion:lower_back",
+      "type": "BodyRegion",
+      "label": "lower back",
+      "aliases": ["lower back", "low back"],
+      "properties": {
+        "laterality": "neutral",
+        "verification_status": "local_unverified"
+      }
+    },
+    {
+      "id": "BodyRegion:lumbar_spine",
+      "type": "BodyRegion",
+      "label": "lumbar spine",
+      "aliases": ["lumbar spine", "lumbar"],
+      "properties": {
+        "laterality": "neutral",
+        "verification_status": "local_unverified"
+      }
+    },
+    {
+      "id": "Equipment:kettlebell",
+      "type": "Equipment",
+      "label": "Kettlebell",
+      "aliases": ["kettlebell", "kb"],
+      "properties": {}
+    },
+    {
+      "id": "Equipment:dumbbell",
+      "type": "Equipment",
+      "label": "Dumbbell",
+      "aliases": ["dumbbell", "dumbbells", "db"],
+      "properties": {}
+    },
+    {
+      "id": "Equipment:barbell",
+      "type": "Equipment",
+      "label": "Barbell",
+      "aliases": ["barbell"],
+      "properties": {}
+    },
+    {
+      "id": "Equipment:yoga_mat",
+      "type": "Equipment",
+      "label": "Yoga Mat",
+      "aliases": ["mat", "yoga mat"],
+      "properties": {}
+    },
+    {
+      "id": "ExerciseFamily:deadlift_family",
+      "type": "ExerciseFamily",
+      "label": "Deadlift Family",
+      "aliases": ["deadlift", "deadlifts"],
+      "properties": {}
+    },
+    {
+      "id": "BodyRegion:hip",
+      "type": "BodyRegion",
+      "label": "hip",
+      "aliases": ["hip", "hips"],
+      "properties": {
+        "laterality": "neutral"
+      }
+    },
+    {
+      "id": "MuscleGroup:glutes",
+      "type": "MuscleGroup",
+      "label": "glutes",
+      "aliases": ["glutes", "gluteals"],
+      "properties": {}
+    },
+    {
+      "id": "MuscleGroup:hamstrings",
+      "type": "MuscleGroup",
+      "label": "hamstrings",
+      "aliases": ["hamstrings"],
+      "properties": {}
+    },
+    {
+      "id": "MuscleGroup:quadriceps",
+      "type": "MuscleGroup",
+      "label": "quadriceps",
+      "aliases": ["quads", "quadriceps"],
+      "properties": {}
+    },
+    {
+      "id": "MuscleGroup:chest",
+      "type": "MuscleGroup",
+      "label": "chest",
+      "aliases": ["chest", "pecs"],
+      "properties": {}
+    },
+    {
+      "id": "MovementPattern:squat",
+      "type": "MovementPattern",
+      "label": "squat",
+      "aliases": ["squat", "squats"],
+      "properties": {}
+    },
+    {
+      "id": "MovementPattern:hip_hinge",
+      "type": "MovementPattern",
+      "label": "hip hinge",
+      "aliases": ["hinge", "hip hinge"],
+      "properties": {}
+    },
+    {
+      "id": "MovementPattern:horizontal_press",
+      "type": "MovementPattern",
+      "label": "horizontal press",
+      "aliases": ["horizontal press", "bench press"],
+      "properties": {}
+    },
+    {
+      "id": "MovementPattern:plyometric",
+      "type": "MovementPattern",
+      "label": "plyometric",
+      "aliases": ["plyometric", "plyometrics", "jumping"],
+      "properties": {
+        "verification_status": "local_unverified"
+      }
+    },
+    {
+      "id": "Exercise:jump_squat",
+      "type": "Exercise",
+      "label": "Jump Squat",
+      "aliases": ["jump squat", "plyometric squat"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.4,
+        "verification_status": "local_unverified"
+      }
+    },
+    {
+      "id": "Exercise:goblet_squat",
+      "type": "Exercise",
+      "label": "Goblet Squat",
+      "aliases": ["goblet squat"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.7
+      }
+    },
+    {
+      "id": "Exercise:barbell_back_squat",
+      "type": "Exercise",
+      "label": "Barbell Back Squat",
+      "aliases": ["barbell back squat", "back squat"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.65,
+        "verification_status": "local_unverified"
+      }
+    },
+    {
+      "id": "Exercise:kettlebell_deadlift",
+      "type": "Exercise",
+      "label": "Kettlebell Deadlift",
+      "aliases": ["kettlebell deadlift", "kb deadlift"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.7
+      }
+    },
+    {
+      "id": "Exercise:barbell_bench_press",
+      "type": "Exercise",
+      "label": "Barbell Bench Press",
+      "aliases": ["barbell bench press"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.6
+      }
+    },
+    {
+      "id": "Exercise:dumbbell_floor_press",
+      "type": "Exercise",
+      "label": "Dumbbell Floor Press",
+      "aliases": ["dumbbell floor press", "db floor press"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.65
+      }
+    },
+    {
+      "id": "Exercise:glute_bridge",
+      "type": "Exercise",
+      "label": "Glute Bridge",
+      "aliases": ["glute bridge"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.9
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "BodyRegion:left_knee",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:knee",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
+      "source": "BodyRegion:knee_joint",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:knee",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
+      "source": "BodyRegion:patella",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:knee",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
+      "source": "BodyRegion:patellar_tendon",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:knee",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
+      "source": "BodyRegion:lumbar_spine",
+      "predicate": "PART_OF",
+      "target": "BodyRegion:lower_back",
+      "properties": {
+        "runtime_safety_edge": true
+      }
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "REQUIRES",
+      "target": "Equipment:yoga_mat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:left_knee",
+      "properties": {
+        "load_level": "low",
+        "impact_level": "high",
+        "flexion_depth": "moderate",
+        "loaded": false,
+        "axial_load": "none",
+        "balance_demand": "medium",
+        "laterality": "left"
+      }
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:quadriceps",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:squat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:jump_squat",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:plyometric",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "REQUIRES",
+      "target": "Equipment:kettlebell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:left_knee",
+      "properties": {
+        "load_level": "high",
+        "impact_level": "low",
+        "flexion_depth": "deep",
+        "loaded": true,
+        "axial_load": "medium",
+        "balance_demand": "medium",
+        "laterality": "left"
+      }
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:quadriceps",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:goblet_squat",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:squat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "REQUIRES",
+      "target": "Equipment:barbell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:left_knee",
+      "properties": {
+        "load_level": "high",
+        "impact_level": "low",
+        "flexion_depth": "deep",
+        "loaded": true,
+        "axial_load": "high",
+        "balance_demand": "medium",
+        "laterality": "left"
+      }
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:quadriceps",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:squat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "REQUIRES",
+      "target": "Equipment:kettlebell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:hip",
+      "properties": {
+        "load_level": "medium",
+        "impact_level": "low",
+        "flexion_depth": "limited",
+        "loaded": true,
+        "axial_load": "low",
+        "balance_demand": "low",
+        "laterality": "neutral"
+      }
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:lumbar_spine",
+      "properties": {
+        "load_level": "medium",
+        "impact_level": "low",
+        "flexion_depth": "limited",
+        "loaded": true,
+        "axial_load": "medium",
+        "balance_demand": "low",
+        "laterality": "neutral"
+      }
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "VARIANT_OF",
+      "target": "ExerciseFamily:deadlift_family",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:hamstrings",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:kettlebell_deadlift",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:hip_hinge",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_bench_press",
+      "predicate": "REQUIRES",
+      "target": "Equipment:barbell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_bench_press",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:chest",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_bench_press",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:horizontal_press",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:dumbbell_floor_press",
+      "predicate": "REQUIRES",
+      "target": "Equipment:dumbbell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:dumbbell_floor_press",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:chest",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:dumbbell_floor_press",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:horizontal_press",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "REQUIRES",
+      "target": "Equipment:yoga_mat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:hip",
+      "properties": {
+        "load_level": "low",
+        "impact_level": "low",
+        "flexion_depth": "none",
+        "loaded": false,
+        "axial_load": "none",
+        "balance_demand": "low",
+        "laterality": "neutral"
+      }
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:hamstrings",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:glute_bridge",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:hip_hinge",
+      "properties": {}
+    }
+  ],
+  "todo": [
+    "Add richer exercise, muscle, movement-pattern, and goal-alignment data.",
+    "Expand safety and alternative selection beyond the tiny deterministic M3 candidate set."
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "ontology_lock_version": "ontology-lock-m0-unverified",
+  "status": "todo_unverified",
+  "verified": false,
+  "created_at": "2026-06-04",
+  "description": "M0 placeholder lockfile. No external ontology concept IDs, release IDs, access dates, or license statuses are verified or pinned.",
+  "ontologies": {
+    "OPE": {
+      "status": "unverified",
+      "concept_ids": [],
+      "release_id": null,
+      "license_status": "unverified",
+      "accessed_at": null
+    },
+    "COPPER": {
+      "status": "unverified",
+      "concept_ids": [],
+      "release_id": null,
+      "license_status": "unverified",
+      "accessed_at": null
+    },
+    "SNOMED_CT": {
+      "status": "unverified",
+      "concept_ids": [],
+      "release_id": null,
+      "license_status": "unverified",
+      "accessed_at": null
+    }
+  },
+  "runtime_policy": {
+    "local_taxonomy_authoritative_for_runtime_behavior": true,
+    "maps_to_edges_are_safety_edges": false,
+    "vector_search_for_safety_enforcement": false,
+    "llm_decides_safety": false
+  },
+  "todo": [
+    "Verify exact ontology concept IDs before adding them.",
+    "Pin release IDs, access dates, sources, and license status before claiming any ontology identifier is locked."
+  ]
+}

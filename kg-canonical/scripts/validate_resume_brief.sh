@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BRIEF="${1:-}"
+ROOT="${2:-${FITGRAPH_ROOT:-$PWD}}"
+
+if [ -z "$BRIEF" ]; then
+  printf 'Usage: bash scripts/validate_resume_brief.sh docs/briefs/NNN-slice-name.md [repo-root]\n' >&2
+  exit 2
+fi
+
+ROOT="$(cd "$ROOT" && pwd)"
+cd "$ROOT"
+
+warns=0
+
+section() {
+  printf '\n== %s ==\n' "$1"
+}
+
+ok() {
+  printf 'ok   %s\n' "$1"
+}
+
+miss() {
+  printf 'MISS %s\n' "$1"
+  warns=$((warns + 1))
+}
+
+require_text() {
+  text="$1"
+  label="$2"
+  if grep -Fq "$text" "$BRIEF"; then
+    ok "$label"
+  else
+    miss "$label"
+  fi
+}
+
+reject_text() {
+  text="$1"
+  label="$2"
+  if grep -Fq "$text" "$BRIEF"; then
+    miss "$label"
+  else
+    ok "$label"
+  fi
+}
+
+reject_text_i() {
+  text="$1"
+  label="$2"
+  if grep -Fiq "$text" "$BRIEF"; then
+    miss "$label"
+  else
+    ok "$label"
+  fi
+}
+
+reject_unsafe_vector_text_i() {
+  text="$1"
+  label="$2"
+  if awk -v text="$text" '
+    BEGIN { text = tolower(text); bad = 0 }
+    {
+      line = tolower($0)
+      if (index(line, text) > 0 &&
+          index(line, "do not " text) == 0 &&
+          index(line, "must not " text) == 0 &&
+          index(line, "never " text) == 0 &&
+          index(line, "should not " text) == 0) {
+        bad = 1
+      }
+    }
+    END { exit bad ? 0 : 1 }
+  ' "$BRIEF"; then
+    miss "$label"
+  else
+    ok "$label"
+  fi
+}
+
+require_any_text() {
+  label="$1"
+  shift
+  for text in "$@"; do
+    if grep -Fq "$text" "$BRIEF" ||
+      printf '%s\n' "$brief_flat_text" | grep -Fq "$text"; then
+      ok "$label"
+      return
+    fi
+  done
+  miss "$label"
+}
+
+require_self_validation_target() {
+  expected="bash scripts/validate_resume_brief.sh $BRIEF"
+  if grep -Fq "$expected" "$BRIEF" ||
+    printf '%s\n' "$brief_flat_text" | grep -Fq "$expected"; then
+    ok "resume brief self-validation command targets candidate"
+  else
+    miss "resume brief self-validation command targets candidate"
+  fi
+}
+
+require_self_validation_checklist_target() {
+  expected="bash scripts/validate_resume_brief.sh $BRIEF"
+  if printf '%s\n' "$resume_checklist_text" | grep -Fq "$expected"; then
+    ok "resume checklist self-validation command targets candidate"
+  else
+    miss "resume checklist self-validation command targets candidate"
+  fi
+}
+
+section "Resume Brief Validation"
+printf 'mode: dry-run (no files written)\n'
+printf 'root: %s\n' "$ROOT"
+printf 'brief: %s\n' "$BRIEF"
+
+case "$BRIEF" in
+  docs/briefs/[0-9][0-9][0-9]-*.md)
+    ok "brief path is numbered under docs/briefs"
+    ;;
+  *)
+    miss "brief path is numbered under docs/briefs"
+    ;;
+esac
+
+case "$(basename "$BRIEF")" in
+  000-template-*)
+    miss "brief is not the 000 template"
+    ;;
+  *)
+    ok "brief is not the 000 template"
+    ;;
+esac
+
+if [ ! -f "$BRIEF" ]; then
+  miss "brief file exists"
+  section "Summary"
+  printf 'resume brief validation warnings: %s\n' "$warns"
+  exit 1
+fi
+ok "brief file exists"
+brief_flat_text="$(
+  tr '\n' ' ' < "$BRIEF" |
+    sed 's/[[:space:]][[:space:]]*/ /g'
+)"
+resume_checklist_text="$(
+  awk '
+    /^## Resume Checklist$/ { in_section = 1; next }
+    /^## / && in_section { exit }
+    in_section { print }
+  ' "$BRIEF" |
+    tr '\n' ' ' |
+    sed 's/[[:space:]][[:space:]]*/ /g'
+)"
+
+section "Required Sections"
+for heading in \
+  "## Human Direction" \
+  "## Objective" \
+  "## Product / Project Value" \
+  "## Acceptance Criteria" \
+  "## Expected Files" \
+  "## Validation Commands" \
+  "## Evidence To Record" \
+  "## Reachability / Demo Proof" \
+  "## Out Of Scope" \
+  "## Stop Conditions" \
+  "## Resume Checklist"; do
+  require_text "$heading" "$heading"
+done
+
+section "Human Direction"
+human_direction="$(
+  awk '
+    /^## Human Direction$/ { in_section = 1; next }
+    /^## / && in_section { exit }
+    in_section && NF { print }
+  ' "$BRIEF"
+)"
+
+if [ -n "$human_direction" ] &&
+  ! printf '%s\n' "$human_direction" | grep -Fq "Replace this section"; then
+  ok "human direction replaced with concrete instruction"
+else
+  miss "human direction replaced with concrete instruction"
+fi
+
+section "Template Placeholders"
+reject_text "YYYY-MM-DD" "no template placeholder: YYYY-MM-DD"
+reject_text "Replace this section" "no template placeholder: Replace this section"
+reject_text "Describe the smallest useful" "no template placeholder: Objective"
+reject_text "Explain why this slice matters" "no template placeholder: Product value"
+reject_text "List exact files expected to change" "no template placeholder: Expected files"
+reject_text "Name the command, API, test, or demo path" "no template placeholder: Reachability"
+reject_text "List work that must not be done" "no template placeholder: Out of scope"
+reject_text "docs/briefs/007-<slice-name>.md" "no template placeholder: example brief path"
+reject_text "<planner-next-brief-path>" "no template placeholder: planner next brief path"
+
+section "Guardrails"
+require_any_text \
+  "deterministic graph behavior preserved" \
+  "Preserve deterministic graph behavior over LLM-driven eligibility" \
+  "preserving deterministic graph behavior" \
+  "deterministic graph behavior"
+require_text "graph/ontology-lock.json" "ontology lock truthfulness preserved"
+require_text "MAPS_TO" "MAPS_TO audit metadata preserved"
+require_any_text \
+  "vector safety-enforcement guardrail present" \
+  "Vector search must not enforce safety" \
+  "Do not use vector search for safety enforcement" \
+  "vector search is not used for safety enforcement" \
+  "would replace deterministic safety enforcement with LLM, embedding, or vector retrieval behavior"
+reject_unsafe_vector_text_i "use vector search for safety enforcement" "no unsafe vector safety enforcement claim"
+reject_unsafe_vector_text_i "vector search will enforce safety" "no unsafe vector enforcement claim"
+reject_unsafe_vector_text_i "use vector retrieval for safety enforcement" "no unsafe vector retrieval enforcement claim"
+
+section "Validation Commands"
+require_text "bash scripts/validate_resume_brief.sh" "resume brief self-validation command present"
+require_self_validation_target
+require_self_validation_checklist_target
+require_text "uv run pytest" "pytest command present"
+require_text "uv run python -m kg.validation" "KG validation command present"
+require_text "bash scripts/audit_autonomous_workflow.sh" "workflow audit command present"
+require_text "node scripts/audit_codex_pair_state.mjs" "pair-state audit command present"
+
+section "GOAL State"
+if [ -f GOAL.md ]; then
+  if grep -Fq "$BRIEF" GOAL.md; then
+    printf 'goal current slice: matches candidate brief\n'
+  else
+    printf 'goal current slice: does not match candidate brief\n'
+  fi
+
+  if grep -q '^[[:space:]]*<stop-orchestrator/>[[:space:]]*$' GOAL.md; then
+    printf 'stop sentinel: present\n'
+  else
+    printf 'stop sentinel: absent\n'
+  fi
+else
+  printf 'GOAL.md missing\n'
+fi
+
+section "Summary"
+if [ "$warns" -eq 0 ]; then
+  printf 'resume brief validation clean\n'
+else
+  printf 'resume brief validation warnings: %s\n' "$warns"
+  exit 1
+fi

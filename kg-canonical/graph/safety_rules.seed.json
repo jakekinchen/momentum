@@ -1,0 +1,68 @@
+{
+  "schema_version": "0.1.0",
+  "ruleset_version": "ruleset-m2-safety-v0",
+  "status": "seed",
+  "description": "Tiny deterministic safety rule seed for M2 receipt tests. Rules use local graph concepts only.",
+  "rules": [
+    {
+      "id": "SafetyRule:avoid_loaded_knee_flexion",
+      "severity": "MEDICAL_HARD_BLOCK",
+      "reason_code": "ACTIVE_KNEE_RESTRICTION",
+      "description": "Block loaded deep knee-flexion stress when an active knee restriction is present.",
+      "uses_concepts": ["BodyRegion:knee"],
+      "match": {
+        "edge_predicate": "STRESSES",
+        "properties": {
+          "loaded": true,
+          "flexion_depth": ["deep"],
+          "load_level": ["medium", "high"]
+        }
+      }
+    },
+    {
+      "id": "SafetyRule:avoid_high_impact_knee_stress",
+      "severity": "MEDICAL_HARD_BLOCK",
+      "reason_code": "ACTIVE_KNEE_HIGH_IMPACT_RESTRICTION",
+      "description": "Block high-impact knee stress when an active knee restriction is present.",
+      "uses_concepts": ["BodyRegion:knee"],
+      "match": {
+        "edge_predicate": "STRESSES",
+        "properties": {
+          "impact_level": ["high"]
+        }
+      }
+    },
+    {
+      "id": "SafetyRule:avoid_loaded_lumbar_stress",
+      "severity": "MEDICAL_HARD_BLOCK",
+      "reason_code": "ACTIVE_LOWER_BACK_RESTRICTION",
+      "description": "Block loaded lumbar-spine stress when an active lower-back restriction is present.",
+      "uses_concepts": ["BodyRegion:lower_back"],
+      "match": {
+        "edge_predicate": "STRESSES",
+        "properties": {
+          "loaded": true,
+          "axial_load": ["medium", "high"],
+          "load_level": ["medium", "high"]
+        }
+      }
+    }
+  ],
+  "severity_lattice": [
+    "MEDICAL_HARD_BLOCK",
+    "EQUIPMENT_HARD_BLOCK",
+    "PROMPT_EXCLUSION",
+    "MEMBER_STRONG_DISLIKE",
+    "SOFT_PENALTY",
+    "BOOST"
+  ],
+  "runtime_policy": {
+    "deterministic_graph_traversal_decides_safety": true,
+    "llm_decides_safety": false,
+    "vector_search_for_safety_enforcement": false
+  },
+  "todo": [
+    "Add additional SafetyRule nodes with source evidence.",
+    "Expand beyond the tiny active-knee restriction rule once richer exercise data exists."
+  ]
+}
