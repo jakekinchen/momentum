@@ -117,7 +117,7 @@ public enum KGVersion {
 }
 ```
 
-Create a placeholder so the resource directory exists: `Sources/KGKit/Resources/Artifact/.gitkeep` (empty file). (Task 6 replaces this with the real artifact; `.copy` requires the directory to exist now.)
+Create placeholders so BOTH `.copy` resource directories exist at build time (SwiftPM errors if a `.copy` path is missing): `Sources/KGKit/Resources/Artifact/.gitkeep` AND `Tests/KGKitTests/Fixtures/.gitkeep` (empty files). Task 6 fills the Artifact; Task 12 fills the Fixtures.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -127,7 +127,7 @@ Expected: PASS (1 test).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Package.swift Sources/KGKit/Version.swift Sources/KGKit/Resources/Artifact/.gitkeep Tests/KGKitTests/ModuleSmokeTests.swift
+git add Package.swift Sources/KGKit/Version.swift Sources/KGKit/Resources/Artifact/.gitkeep Tests/KGKitTests/Fixtures/.gitkeep Tests/KGKitTests/ModuleSmokeTests.swift
 git commit -m "feat(kgkit): add KGKit module + version stamps"
 ```
 
@@ -1084,8 +1084,10 @@ final class MedicalReasonsTests: XCTestCase {
     }
 
     func testActiveKneeRestrictionBlocksLoadedDeepStress() throws {
-        let knee = ResolvedConstraint(constraintType: "BodyRegion", value: "left_knee",
-                                      hard: true, sourceText: "left knee")
+        // Closure case: restriction is on the knee region; goblet_squat STRESSES the
+        // left_knee sub-structure, so the PART_OF closure path is surfaced in graphPaths.
+        let knee = ResolvedConstraint(constraintType: "BodyRegion", value: "knee",
+                                      hard: true, sourceText: "knee")
         let reasons = try engine().medicalReasons(exerciseID: "Exercise:goblet_squat", constraints: [knee])
         XCTAssertEqual(reasons.count, 1)
         XCTAssertEqual(reasons[0].severity, "MEDICAL_HARD_BLOCK")
