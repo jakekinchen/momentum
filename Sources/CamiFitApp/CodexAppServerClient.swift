@@ -5,10 +5,10 @@ import Foundation
 /// Drives a bundled (or installed) `codex app-server` over newline-delimited JSON-RPC and
 /// exposes a single-turn streaming chat plus ChatGPT login management.
 ///
-/// Safety posture: the thread runs with `approvalPolicy: "untrusted"` and every approval
-/// request the agent raises is auto-declined, so the coach can answer in text but can never
-/// execute shell commands, edit files, or touch the network without an explicit (and here,
-/// always-denied) prompt. A per-turn watchdog guarantees the UI never hangs on a stalled turn.
+/// Safety posture: the thread runs with `approvalPolicy: "never"` and a read-only sandbox,
+/// and every server-to-client request is rejected, so the coach can answer in text but can
+/// never execute shell commands or edit files. A per-turn watchdog guarantees the UI never
+/// hangs on a stalled turn.
 final class CodexAppServerClient: ObservableObject {
     enum ConnectionState: Equatable {
         case idle

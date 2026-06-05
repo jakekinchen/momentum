@@ -34,6 +34,11 @@ recommends, filters, or substitutes an exercise in chat, the user should be able
 to inspect the `DecisionReceipt` and see which parts came from the immutable base
 KG and which parts came from their mutable on-device overlay.
 
+The Codex app server is a verbalization and proposal surface, not the authority
+that mutates the KG. The app owns the graph workspace, validation, consent, and
+write application. Codex can suggest an operation or summarize approved local
+facts; CamiFit decides whether that proposal becomes a validated overlay write.
+
 The panel also needs to respect the larger decide -> author -> run loop:
 
 - recommendations come from deterministic KG receipts;
@@ -62,6 +67,10 @@ The panel also needs to respect the larger decide -> author -> run loop:
 - The canonical synthesis expects fact cards from member retrieval, session
   write-back into an `ExercisePerformance`/`WorkoutSession` partition, and
   receipt/fact-card schemas validated through `contracts/`.
+- `CodexAppServerClient` currently starts Codex with `approvalPolicy: "never"`,
+  `sandbox: "read-only"`, and a temporary cwd; it also refuses server-to-client
+  requests. The memory plan must preserve that posture unless a future narrow
+  app-owned tool bridge is explicitly designed and tested.
 
 ## UX Shape
 
@@ -94,6 +103,8 @@ Memory panel layout:
 - The panel must have empty, loading, error, and corrupt-log states. Corrupt
   overlay lines should be quarantined and shown as recoverable local-data issues,
   not silently ignored.
+- Sensitive source text should be visibly classified as local-only or shared
+  with coach before it is included in any Codex prompt context.
 
 Chat receipt layout:
 
@@ -211,6 +222,22 @@ Source span ids in `GraphOperation` should point to retrievable local evidence
 when possible: chat turn excerpt, user correction text, session summary, or
 tool invocation receipt.
 
+Add an explicit proposal model for Codex-suggested mutations:
+
+```swift
+struct KGOperationProposal: Identifiable, Equatable {
+    let id: String
+    let proposedOperation: GraphOperation
+    let sourceEvidence: KGSourceEvidenceItem
+    let dryRunResult: String
+    let requiresUserApproval: Bool
+}
+```
+
+`KGOperationProposal` is not active graph state. It becomes active only after
+the app validates and appends it through the same overlay path as a direct user
+correction.
+
 ## Recommendation Receipt Slice
 
 Extend the workout/chat path so every KG-backed recommendation can surface its
@@ -257,14 +284,51 @@ Add the missing bridge between memories and chat grounding:
   sessions, sleep/recovery if present, goals/preferences, and coach brief.
 - Every fact card must carry `source_nodes`/source operation ids and a confidence
   marker such as `deterministic`.
-- Inject fact cards into coach turns as bounded context. The coach may summarize
-  them, but if no fact card supports a claim, it must say the graph has no
-  supporting fact.
+- Inject only user-approved, minimal fact-card summaries into coach turns as
+  bounded context. The coach may summarize them, but if no fact card supports a
+  claim, it must say the graph has no supporting fact.
 - The Memory panel should show fact cards that are derived from active memories
   or session observations, and should deep-link to the supporting operations.
 - Add quick prompts that route to fact-card queries rather than raw LLM answers,
   for example "What does Cami remember about my knee?" and "Why did this plan
   change?".
+
+## Codex App-Server Boundary and Privacy Slice
+
+Preserve the existing runtime safety posture while adding memory behavior:
+
+- Do not let Codex execute shell commands or write Application Support files.
+- Keep Codex turns on `approvalPolicy: "never"` and `sandbox: "read-only"` for
+  the coach surface.
+- Codex may emit a fenced `camifit-kg-operation` proposal or plain-language
+  suggestion; the app parses it, dry-runs validation, and shows it for approval.
+- The app-owned `KGMemoryStore`/overlay tool is the only writer to
+  `KnowledgeGraph/overlays`.
+- If a future app-server tool bridge is added, it must be a narrow allowlist
+  such as `propose_graph_operation` or `read_fact_card_summary`; it must not be
+  a general bash/file-write bridge.
+- Raw member KG, raw source spans, and health notes are local-only by default.
+  Sending fact-card summaries to Codex requires an explicit product decision and
+  a visible user control.
+- Recommendation receipts and safety decisions are rendered locally from KGKit;
+  they do not require sending the member overlay to Codex.
+
+## Health Safety Semantics Slice
+
+Medical memories need special handling:
+
+- `review_after` should create a nudge to re-check a health fact, not silently
+  remove or weaken it.
+- Hard medical constraints never auto-expire into safe-to-use status. The user
+  must explicitly correct the fact, and safety must rerun.
+- The UI should distinguish "I told Cami this", "Cami measured this", and
+  "Cami inferred this". Inferred health constraints should default to proposed,
+  not active.
+- Health-memory correction text should be stored as the source evidence for the
+  retraction.
+- The app should avoid giving medical advice; it can explain graph safety
+  consequences and suggest consulting a professional for persistent or severe
+  pain.
 
 ## Execution Write-Back Slice
 
@@ -291,7 +355,7 @@ needs a safe dynamic-write path:
 
 - The overlay tool should support `--dry-run` and `propose` modes that generate
   a candidate operation plus receipt without appending it.
-- Codex-authored health/safety operations should default to proposed until the
+- Codex-proposed health/safety operations should default to proposed until the
   user confirms in the Memory panel or the initiating chat turn clearly carries
   user consent.
 - Every Codex/tool operation must include the source chat turn or tool transcript
@@ -306,7 +370,8 @@ needs a safe dynamic-write path:
 Add durable contracts around the user-visible KG state:
 
 - Add/validate JSON schemas for persisted recommendation receipts, comparison
-  receipts, fact cards, memory projections, source evidence, and tool receipts.
+  receipts, fact cards, memory projections, source evidence, operation proposals,
+  and tool receipts.
 - Stamp every persisted local record with schema version, base artifact hash,
   overlay revision, and app build/runtime version.
 - Add migration behavior for base artifact upgrades: existing overlay operations
@@ -319,6 +384,10 @@ Add durable contracts around the user-visible KG state:
   - reset all local KG memories after confirmation;
   - compact/redact specific historical source text in a later privacy-grade
     deletion flow while preserving non-sensitive tombstones needed for audit.
+- Add prompt-egress controls for coach grounding:
+  - show which fact-card summaries may be sent to Codex;
+  - keep raw source text local by default;
+  - let the user disable memory-backed coach context while retaining local safety.
 
 ## Codex Overlay Tooling Slice
 
@@ -335,6 +404,7 @@ scripts/kg_overlay_tool.sh compare-plan --prompt "lower body" --minutes 40 --equ
 scripts/kg_overlay_tool.sh propose add-medical-constraint --body-region left_knee --source-text "left knee pain"
 scripts/kg_overlay_tool.sh fact-cards --query adherence_trend
 scripts/kg_overlay_tool.sh export --format json
+scripts/kg_overlay_tool.sh validate-proposal --proposal proposal.json
 ```
 
 The shell wrapper should call a small Swift executable target, for example
@@ -354,6 +424,8 @@ Required tool guarantees:
   from merged member-overlay results;
 - produce schema-valid receipts for every mutation, proposal, fact-card query,
   and plan comparison.
+- never require the Codex process itself to have write access to the graph
+  workspace.
 
 ## User Actions
 
@@ -368,6 +440,8 @@ First implementation should support:
 - Approve or dismiss a Codex/tool-proposed memory.
 - Export local memory/receipt evidence.
 - Reset local KG memories behind a confirmation flow.
+- Toggle whether memory-backed fact-card summaries may be sent into Codex coach
+  context.
 
 Avoid destructive physical deletion in the first slice. Label the primary
 action as "Remove from active profile" or "Correct memory", not "erase
@@ -390,9 +464,13 @@ Unit tests:
 - Recommendation receipt projection preserves graph paths, reason codes, base
   artifact hash, overlay revision, and related memory operation ids.
 - Fact-card projection refuses unsupported claims and preserves source nodes.
+- Fact-card prompt export redacts raw local source text unless explicitly
+  enabled.
 - Workout observation write-back does not change safety receipts unless it
   creates a validated health/preference operation.
 - Codex/tool proposals do not become active memories until approved.
+- Codex proposal parsing rejects malformed or unsupported
+  `camifit-kg-operation` payloads.
 - Corrupt overlay lines are quarantined and surfaced.
 - Base artifact upgrade replay either succeeds with a migration receipt or
   quarantines incompatible operations.
@@ -410,6 +488,8 @@ CLI tests:
   overlay-caused deltas.
 - `kg_overlay_tool propose ...` returns a valid proposed operation without
   appending to the overlay.
+- `kg_overlay_tool validate-proposal` rejects malformed proposals and canonical
+  mutation attempts.
 - `kg_overlay_tool fact-cards` returns deterministic facts with source nodes.
 - `kg_overlay_tool export` returns schema-valid local KG state.
 
@@ -428,6 +508,8 @@ UI/model tests:
   memories.
 - Fact-card-backed chat answers show their source evidence; unsupported claims
   show an explicit no-support state.
+- The UI shows which memory/fact-card summaries are local-only versus shared
+  with the coach.
 - Corrupt/migration-error states are visible and recoverable.
 
 End-to-end behavioral test:
@@ -443,6 +525,8 @@ End-to-end behavioral test:
   while safety receipts remain unchanged.
 - Have Codex/tooling propose a memory, approve it from the panel, and verify it
   then affects recommendations.
+- Verify Codex can suggest a memory correction while the overlay remains
+  unchanged until the app-owned approval path appends it.
 
 ## Acceptance Criteria
 
@@ -459,6 +543,8 @@ End-to-end behavioral test:
   through the mutable member view before an exercise becomes selectable.
 - Chat answers that mention user history or trends are grounded in fact cards
   with source nodes.
+- Raw member KG/source text is not sent to Codex by default; shared coach context
+  is bounded to approved fact-card summaries.
 - Completed-session memories are stored separately from health/safety facts and
   cannot accidentally relax safety.
 - Codex/tool-created memories require an auditable source and either explicit
@@ -485,3 +571,5 @@ End-to-end behavioral test:
   `DecisionReceipt`.
 - Cloud/device sync conflict resolution.
 - Full privacy-grade source-text redaction in the first implementation slice.
+- Giving the Codex app-server process direct file-write or shell-execution
+  authority over Application Support.
