@@ -8,17 +8,25 @@ The full, reviewed design is `docs/design/2026-06-03-camifit-exercise-engine-des
 
 ## Current Milestone
 
-M3 - Integrated macOS app (productize). M2 (push-up, lunge, plank presets) complete — Swift gate green in reviewer decision 025.
+M4 - KG-backed memory inspector in the CamiFit app. The current implementation
+must follow the Phase 1 MVP checklist in brief 044: app-owned KG overlay loading,
+right-inspector memory mode, health/safety memory projection, and correction by
+validated `RetractMedicalConstraint`.
 
 ## Current Slice
 
-docs/briefs/040-human-run-swiftui-verification-handoff.md
+docs/briefs/044-kg-memory-inspector-panel.md
 
 ## Stop Conditions
 
 - Stop or ESCALATE before any network model download (e.g. the MediaPipe model bundle) or `pip install` not explicitly authorized by the active brief. Slice 1 is pure Swift + JSON and must stay offline.
 - Stop coaching-accuracy or performance claims until a golden landmark fixture proves exact rep counts AND no false reps during no-person / low-visibility intervals.
-- Stop scope expansion into Layer 2 (agent / Codex / OpenAI) or Layer 3 (persistence) while M1 is active.
+- Stop scope expansion beyond the Phase 1 MVP checklist in brief 044 unless the
+  Reviewer explicitly writes a follow-on brief and records `CONTINUE`.
+- Do not expose a user-visible CLI or shell tool for KG memories. User actions
+  must route through app-owned UI/store paths.
+- Codex is never the graph write path. It may propose or verbalize in future
+  slices, but only app-owned code may validate and append overlay operations.
 - The engine must reject invalid programs at load (unknown function, signal/filter DAG cycle, missing signal). A slice that weakens load-time validation is out of scope.
 - **Loop↔human boundary:** the autonomous loop validates only what `swift test --disable-sandbox` / `pytest` can prove headlessly. Anything that needs a live camera or a running SwiftUI app (the macOS app target, camera capture, on-screen overlay) must be built as wireable, unit-tested pieces and then **ESCALATE** for human run-verification — never claim a live-app behavior works without that. Decoding/logic (e.g. `MediaPipePoseProvider` JSONL→`PoseFrame`) IS testable headlessly with recorded fixtures and stays in-loop.
 - **pytest gate:** the `pose_worker/` pytest gate is **manager-verified** (the loop's sandbox lacks pytest; do NOT `pip install` in-loop). Slices that do not modify `pose_worker/` validate with `swift test --disable-sandbox` only and must not block on pytest. A slice that DOES modify `pose_worker/` should ESCALATE for a manager pytest run.

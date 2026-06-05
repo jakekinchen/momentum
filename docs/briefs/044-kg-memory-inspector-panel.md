@@ -137,8 +137,9 @@ the graph model:
 - deleting from the active profile appends a retraction/archive operation;
 - privacy-grade hard deletion is a later compaction/redaction flow, not the
   default correction path;
-- every user or Codex/tool action carries actor, timestamp, base artifact hash,
-  precondition revision, source text/source span, and reason.
+- every user action, Codex proposal, or app-owned graph operation carries actor,
+  timestamp, base artifact hash, precondition revision, source text/source span,
+  and reason.
 
 The same transparency model must also apply to recommendations. If CamiFit
 recommends, filters, or substitutes an exercise in chat, the user should be able
@@ -181,7 +182,125 @@ The panel also needs to respect the larger decide -> author -> run loop:
 - `CodexAppServerClient` currently starts Codex with `approvalPolicy: "never"`,
   `sandbox: "read-only"`, and a temporary cwd; it also refuses server-to-client
   requests. The memory plan must preserve that posture unless a future narrow
-  app-owned tool bridge is explicitly designed and tested.
+  app-owned proposal bridge is explicitly designed and tested.
+
+## Phase 1 MVP
+
+The first implementation is the smallest real memory inspector that proves the
+overlay model in the shipped app. It should not attempt the whole product loop
+in one slice.
+
+Build only:
+
+- add `KGKit` as a dependency of `CamiFitApp`;
+- add an app-owned `KGMemoryStore`;
+- prepare/load the Application Support `KGWorkspace`;
+- add a right-inspector mode enum for `coach` and `memory`;
+- add an icon-only brain button that opens the inspector in memory mode;
+- render active and corrected health/safety memories from the overlay;
+- show operation id, source text, actor, date, base artifact short hash, and
+  overlay revision;
+- support one correction action for active health/safety memories:
+  append `RetractMedicalConstraint`;
+- verify correction reruns the merged view and removes the health constraint from
+  active memory state;
+- keep the chat transcript alive when switching inspector modes.
+
+Explicitly defer:
+
+- Codex-proposed memory approval flows;
+- user-visible receipt deep-links;
+- base-vs-member plan comparison UI;
+- fact-card grounding in coach turns;
+- completed-session write-back;
+- export/reset/local data controls;
+- base artifact migration and corrupt-log quarantine;
+- compaction/redaction;
+- any user-visible CLI or shell tool.
+
+The first slice is still real: it must read and write the local overlay through
+`KGKit`, preserve the immutable base artifact, and pass app/model tests. It just
+does not expose every future control surface at once.
+
+## Phase 1 Implementation Checklist
+
+Use this checklist as the executor handoff. If a step cannot be completed without
+inventing behavior outside this list, stop and write the missing contract before
+expanding scope.
+
+1. Package boundary
+   - Edit `Package.swift`.
+   - Add `KGKit` to the `CamiFitApp` executable target dependencies.
+   - Add `KGKit` to `CamiFitAppTests` only if the tests need to construct
+     fixture workspaces directly.
+   - Do not add any Python or canonical KG runtime dependency to `CamiFitApp`.
+
+2. App-facing memory models
+   - Add `Sources/CamiFitApp/KGMemoryModels.swift`.
+   - Define `KGMemoryItem`, `KGMemoryCategory`, `KGMemoryStatus`, and a small
+     `KGMemoryViewState`.
+   - Keep these as SwiftUI-facing projections; do not bind views directly to raw
+     `GraphOperation` JSON.
+
+3. App-owned memory store
+   - Add `Sources/CamiFitApp/KGMemoryStore.swift`.
+   - Own `KGWorkspace.prepare(...)`, `GraphOperationLog`, `OverlayValidator`,
+     and `MemberOverlayState` loading.
+   - Expose published state: loading, loaded, empty, error, and current overlay
+     revision/base short hash.
+   - Implement `correctHealthMemory(operationID:reason:)` by appending
+     `RetractMedicalConstraint` with the current base hash and precondition
+     revision.
+   - Reload after every successful append.
+   - Fail closed on stale revision, base hash mismatch, or canonical mutation
+     validation errors.
+
+4. Inspector mode wiring
+   - Edit `Sources/CamiFitApp/ContentView.swift`.
+   - Add an inspector mode enum: `coach` and `memory`.
+   - Keep the existing chat toggle behavior: if the inspector is hidden, the chat
+     button opens it in `coach` mode and the brain button opens it in `memory`
+     mode.
+   - Preserve the existing `ChatViewModel` instance so switching modes does not
+     clear the transcript.
+
+5. Brain button and memory panel
+   - Add `Sources/CamiFitApp/KGMemoryPanel.swift`.
+   - Use an icon-only SF Symbol button, preferably `brain.head.profile`, with
+     tooltip "Memories".
+   - Render the Phase 1 panel header: "Memories", overlay revision, and base
+     artifact short hash.
+   - Render active/corrected health and safety memory rows from
+     `KGMemoryStore`.
+   - Show operation id, source text, actor, date, status, and a compact reason.
+   - Provide the Phase 1 correction action only for active health/safety memory
+     rows.
+   - Show empty, loading, and error states. Corrupt-log quarantine can remain a
+     follow-on item.
+
+6. Phase 1 tests
+   - Add `Tests/CamiFitAppTests/KGMemoryStoreTests.swift`.
+   - Add `Tests/CamiFitAppTests/KGMemoryPanelModelTests.swift` or extend an
+     existing app model test file if that matches local style better.
+   - Keep tests model/store focused; no screenshot or live camera test is needed
+     for this slice.
+
+7. Required verification commands
+   - Run `swift test --disable-sandbox --filter KGMemoryStoreTests`.
+   - Run `swift test --disable-sandbox --filter KGMemoryPanelModelTests` if a
+     separate model test file is added.
+   - Run `swift test --disable-sandbox --filter KGKitTests`.
+   - Run `swift test --disable-sandbox --filter CamiFitAppTests`.
+
+Phase 1 is ready to close only when the executor can point to passing tests for:
+
+- initial workspace load and projection;
+- add medical constraint -> active memory projection;
+- retract medical constraint -> corrected memory projection;
+- stale revision/base hash failures;
+- base artifact bytes unchanged;
+- inspector mode switches without replacing the chat model;
+- no user-visible CLI or shell command path.
 
 ## UX Shape
 
@@ -413,9 +532,9 @@ Preserve the existing runtime safety posture while adding memory behavior:
   the coach surface.
 - Codex may emit a fenced `camifit-kg-operation` proposal or plain-language
   suggestion; the app parses it, dry-runs validation, and shows it for approval.
-- The app-owned `KGMemoryStore`/overlay tool is the only writer to
+- The app-owned `KGMemoryStore`/overlay writer is the only writer to
   `KnowledgeGraph/overlays`.
-- If a future app-server tool bridge is added, it must be a narrow allowlist
+- If a future app-server proposal bridge is added, it must be a narrow allowlist
   such as `propose_graph_operation` or `read_fact_card_summary`; it must not be
   a general bash/file-write bridge.
 - Raw member KG, raw source spans, and health notes are local-only by default.
@@ -461,20 +580,22 @@ preferences:
 
 ## Codex App-Server Authority and Approval Slice
 
-The runtime write path is the Codex app server plus local overlay tooling. It
-needs a safe dynamic-write path:
+Codex is never the graph write path. It may verbalize approved fact cards or
+propose a structured graph operation, but only app-owned code validates and
+appends overlay operations.
 
-- The overlay tool should support `--dry-run` and `propose` modes that generate
-  a candidate operation plus receipt without appending it.
+- `KGMemoryStore` should be the app-owned writer for Phase 1.
+- Future proposal handling should support dry-run validation that generates a
+  candidate operation plus receipt without appending it.
 - Codex-proposed health/safety operations should default to proposed until the
   user confirms in the Memory panel or the initiating chat turn clearly carries
   user consent.
-- Every Codex/tool operation must include the source chat turn or tool transcript
-  excerpt that justified it.
+- Every Codex proposal must include the source chat turn excerpt that justified
+  it.
 - The app should show proposed operations separately from active memories, with
   approve/dismiss controls.
 - Concurrent writes should fail closed on revision mismatch and surface a
-  reload/retry action rather than overwriting another app/tool or user change.
+  reload/retry action rather than overwriting another app or user change.
 
 ## Contracts, Migration, and Local Data Controls Slice
 
@@ -482,7 +603,7 @@ Add durable contracts around the user-visible KG state:
 
 - Add/validate JSON schemas for persisted recommendation receipts, comparison
   receipts, fact cards, memory projections, source evidence, operation proposals,
-  and tool receipts.
+  and app-owned operation receipts.
 - Stamp every persisted local record with schema version, base artifact hash,
   overlay revision, and app build/runtime version.
 - Add migration behavior for base artifact upgrades: existing overlay operations
@@ -500,66 +621,62 @@ Add durable contracts around the user-visible KG state:
   - keep raw source text local by default;
   - let the user disable memory-backed coach context while retaining local safety.
 
-## Codex Overlay Tooling Slice
+## Internal Overlay Writer And Test Harness
 
-Add a stable command-line tool so the Codex app server and local automation do
-not write overlay JSON by hand:
+Do not expose a user-visible CLI for memories. User actions happen through the
+CamiFit Memory panel and correction flows.
 
-```bash
-scripts/kg_overlay_tool.sh list --format json
-scripts/kg_overlay_tool.sh add-medical-constraint --body-region left_knee --source-text "left knee pain"
-scripts/kg_overlay_tool.sh retract --operation-id op-left-knee-pain-2026-06-05 --reason "It is better now"
-scripts/kg_overlay_tool.sh archive --operation-id op-old-note --reason "No longer useful"
-scripts/kg_overlay_tool.sh explain --exercise Exercise:goblet_squat
-scripts/kg_overlay_tool.sh compare-plan --prompt "lower body" --minutes 40 --equipment dumbbell,kettlebell
-scripts/kg_overlay_tool.sh propose add-medical-constraint --body-region left_knee --source-text "left knee pain"
-scripts/kg_overlay_tool.sh fact-cards --query adherence_trend
-scripts/kg_overlay_tool.sh export --format json
-scripts/kg_overlay_tool.sh validate-proposal --proposal proposal.json
-```
+The implementation should use an app-owned writer surface, such as
+`KGMemoryStore` backed by a small `KGOverlayWriter`, so app code and tests do not
+write overlay JSON by hand. Any auxiliary harness should be debug/test-only, not
+part of product acceptance, not shown to the user, and not available to the
+Codex app-server process.
 
-The shell wrapper should call a small Swift executable target, for example
-`KGOverlayTool`, that depends on `KGKit`. Tool output must be JSON by default so
-Codex/tool actions can be logged, tested, and inspected by the app.
-
-Required tool guarantees:
+Required writer guarantees:
 
 - never edit `base/<sha>.kgart.json`;
 - validate base hash and overlay revision before every append;
 - support dry-run/propose output without mutation;
 - fail closed on stale revisions or canonical mutation attempts;
-- write an action receipt under `receipts/` for every successful Codex/tool
-  action;
+- write an action receipt under `receipts/` for every successful app-owned graph
+  operation;
 - include enough evidence for the user to understand why the memory exists;
 - emit recommendation/comparison receipts that distinguish base-only results
   from merged member-overlay results;
 - produce schema-valid receipts for every mutation, proposal, fact-card query,
-  and plan comparison.
+  and plan comparison;
 - never require the Codex process itself to have write access to the graph
   workspace.
 
 ## User Actions
 
-First implementation should support:
+Phase 1 implementation should support:
 
 - Correct health/safety memory: append `RetractMedicalConstraint`.
-- Archive stale note/observation: append `ArchiveStaleObservation`.
-- Add equipment access from a correction path: append `AddEquipmentAccess`.
-- Copy/export operation evidence for debugging.
-- Open recommendation receipt from chat or a memory detail row.
-- Correct a stale memory from an exclusion receipt, then rerun the plan.
-- Approve or dismiss a Codex/tool-proposed memory.
-- Export local memory/receipt evidence.
-- Reset local KG memories behind a confirmation flow.
-- Toggle whether memory-backed fact-card summaries may be sent into Codex coach
-  context.
+- Copy operation id and evidence summary for debugging.
 
 Avoid destructive physical deletion in the first slice. Label the primary
 action as "Remove from active profile" or "Correct memory", not "erase
 forever". A later privacy slice can add redaction/compaction for true local
 deletion.
 
-## Test Plan
+Follow-on user actions:
+
+- Archive stale note/observation: append `ArchiveStaleObservation`.
+- Add equipment access from a correction path: append `AddEquipmentAccess`.
+- Open recommendation receipt from chat or a memory detail row.
+- Correct a stale memory from an exclusion receipt, then rerun the plan.
+- Approve or dismiss a Codex-proposed memory.
+- Export local memory/receipt evidence.
+- Reset local KG memories behind a confirmation flow.
+- Toggle whether memory-backed fact-card summaries may be sent into Codex coach
+  context.
+
+## Full Test Plan
+
+The Phase 1 close gate is the checklist above. The following test plan preserves
+the broader product intent for follow-on slices after the MVP inspector is
+working.
 
 Unit tests:
 
@@ -579,30 +696,28 @@ Unit tests:
   enabled.
 - Workout observation write-back does not change safety receipts unless it
   creates a validated health/preference operation.
-- Codex/tool proposals do not become active memories until approved.
+- Codex proposals do not become active memories until approved.
 - Codex proposal parsing rejects malformed or unsupported
   `camifit-kg-operation` payloads.
 - Corrupt overlay lines are quarantined and surfaced.
 - Base artifact upgrade replay either succeeds with a migration receipt or
   quarantines incompatible operations.
 
-CLI tests:
+Internal writer tests:
 
-- `kg_overlay_tool list` returns valid JSON with overlay revision and active
+- `KGMemoryStore` loads the workspace and returns overlay revision plus active
   items.
-- `kg_overlay_tool add-medical-constraint` followed by `list` shows the active
-  memory.
-- `kg_overlay_tool retract` followed by `list` shows the item as corrected.
-- Tool attempts to mutate canonical edges are rejected.
-- `kg_overlay_tool explain` returns the same decision reason as `KGKit`.
-- `kg_overlay_tool compare-plan` returns separate base and member results plus
-  overlay-caused deltas.
-- `kg_overlay_tool propose ...` returns a valid proposed operation without
+- Adding a medical constraint through the app-owned writer followed by reload
+  shows the active memory.
+- Retracting a medical constraint through the app-owned writer followed by
+  reload shows the item as corrected.
+- Attempts to mutate canonical edges are rejected.
+- Dry-run/proposal validation returns a valid proposed operation without
   appending to the overlay.
-- `kg_overlay_tool validate-proposal` rejects malformed proposals and canonical
-  mutation attempts.
-- `kg_overlay_tool fact-cards` returns deterministic facts with source nodes.
-- `kg_overlay_tool export` returns schema-valid local KG state.
+- Proposal validation rejects malformed proposals and canonical mutation
+  attempts.
+- Fact-card and export behavior, when added, return schema-valid local KG state.
+- No test requires or exposes a user-visible shell command.
 
 UI/model tests:
 
@@ -615,7 +730,7 @@ UI/model tests:
   policies.
 - Base-only backup options are visually secondary to safe member-plan results
   and cannot bypass medical hard blocks.
-- Proposed Codex/tool memories are visibly separate from approved active
+- Proposed Codex memories are visibly separate from approved active
   memories.
 - Fact-card-backed chat answers show their source evidence; unsupported claims
   show an explicit no-support state.
@@ -625,16 +740,16 @@ UI/model tests:
 
 End-to-end behavioral test:
 
-- Add left-knee pain through the tool/store.
+- Add left-knee pain through the store or Memory panel.
 - Generate a lower-body workout and verify `Exercise:goblet_squat` is filtered.
-- Correct the memory through the store/tool.
+- Correct the memory through the store or Memory panel.
 - Regenerate and verify `Exercise:goblet_squat` is selectable again.
 - Verify the comparison receipt says the base graph would allow the squat while
   the current member overlay filtered it, and that after correction the delta
   disappears.
 - Run a completed-session write-back and verify memory/fact-card surfaces update
   while safety receipts remain unchanged.
-- Have Codex/tooling propose a memory, approve it from the panel, and verify it
+- Have Codex propose a memory, approve it from the panel, and verify it
   then affects recommendations.
 - Verify Codex can suggest a memory correction while the overlay remains
   unchanged until the app-owned approval path appends it.
@@ -646,6 +761,12 @@ End-to-end behavioral test:
 - The list is backed by the KG overlay, not mock state.
 - The user can see why each active memory exists, where it came from, and
   whether it affects safety/recommendations.
+- Correcting/removing a health memory appends a validated operation rather than
+  editing or deleting the base graph.
+- No user-visible CLI or shell tool is required or exposed.
+
+Follow-on acceptance:
+
 - Chat recommendations and regimen cards expose deterministic `DecisionReceipt`
   explanations.
 - The UI can show the original base-KG result and the mutable member-KG result
@@ -658,16 +779,13 @@ End-to-end behavioral test:
   is bounded to approved fact-card summaries.
 - Completed-session memories are stored separately from health/safety facts and
   cannot accidentally relax safety.
-- Codex/tool-created memories require an auditable source and either explicit
-  consent or an approval step before activation.
+- Codex-created memories require an auditable source and either explicit consent
+  or an approval step before activation.
 - Local data export/reset and corrupt-log recovery paths are specified and
   tested.
-- Correcting/removing a memory appends a validated operation rather than editing
-  or deleting the base graph.
-- The Codex app server and local automation have a documented shell tool for the
-  same operation path.
 - Tests cover model projection, operation writes, recommendation receipts,
-  base-vs-member comparison, CLI behavior, and the knee-pain correction loop.
+  base-vs-member comparison, internal writer behavior, and the knee-pain
+  correction loop.
 - `swift test --disable-sandbox --filter KGKitTests` and relevant
   `CamiFitAppTests` pass.
 
