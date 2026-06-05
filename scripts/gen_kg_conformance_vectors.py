@@ -49,5 +49,60 @@ def freeze_artifact() -> None:
           f"{len(artifact['safety_rules'])} rules")
 
 
+from kg.constraints import ResolvedConstraint  # noqa: E402
+from kg.safety import evaluate_candidates  # noqa: E402
+
+VECTORS = REPO / "Tests/KGKitTests/Fixtures/conformance/safety_vectors.json"
+
+
+def _c(**kw) -> ResolvedConstraint:
+    base = dict(constraint_type="", value="", hard=False, source_text="")
+    base.update(kw)
+    return ResolvedConstraint(**base)
+
+
+def emit_vectors() -> None:
+    graph = load_local_graph(FITGRAPH / "graph" / "exercise_kg.seed.json")
+    rules = load_safety_rules(FITGRAPH / "graph")
+    jordan_equipment = ["Dumbbell", "Kettlebell", "Yoga Mat"]
+    scenarios = [
+        {"name": "knee_restriction", "available_equipment": jordan_equipment,
+         "constraints": [_c(constraint_type="BodyRegion", value="left_knee", hard=True, source_text="left knee")]},
+        {"name": "no_barbell", "available_equipment": jordan_equipment,
+         "constraints": [_c(constraint_type="Equipment", value="barbell", hard=True, negated=True, source_text="no barbell")]},
+        {"name": "exclude_deadlifts", "available_equipment": jordan_equipment,
+         "constraints": [_c(constraint_type="ExerciseFamily", value="deadlift_family", hard=True, negated=True, source_text="exclude deadlifts")]},
+        {"name": "clean", "available_equipment": jordan_equipment, "constraints": []},
+    ]
+    vectors = []
+    for sc in scenarios:
+        receipts = evaluate_candidates(
+            available_equipment=sc["available_equipment"],
+            constraints=tuple(sc["constraints"]), graph=graph, safety_rules=rules)
+        for r in receipts:
+            vectors.append({
+                "scenario": sc["name"],
+                "input": {
+                    "available_equipment": sc["available_equipment"],
+                    "constraints": [
+                        {"constraint_type": c.constraint_type, "value": c.value, "hard": c.hard,
+                         "source_text": c.source_text, "negated": c.negated} for c in sc["constraints"]
+                    ],
+                    "exercise_id": r.exercise_id,
+                },
+                "expected": {
+                    "decision": r.decision, "primary_severity": r.primary_severity,
+                    "reason_codes": list(r.reason_codes), "primary_reason_code": r.primary_reason_code,
+                    "graph_paths": list(r.graph_paths), "constraint_fingerprint": r.constraint_fingerprint,
+                    "graph_version": r.graph_version, "ruleset_version": r.ruleset_version,
+                    "ontology_lock_version": r.ontology_lock_version,
+                },
+            })
+    VECTORS.parent.mkdir(parents=True, exist_ok=True)
+    VECTORS.write_text(json.dumps({"vectors": vectors}, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {VECTORS.relative_to(REPO)}: {len(vectors)} vectors")
+
+
 if __name__ == "__main__":
     freeze_artifact()
+    emit_vectors()
