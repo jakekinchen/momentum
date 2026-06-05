@@ -8,6 +8,14 @@ from kg.safety import DecisionReceipt, evaluate_candidates, primary_severity
 
 HOME_EQUIPMENT = {"Equipment:kettlebell", "Equipment:yoga_mat"}
 DB_KB_EQUIPMENT = {"Equipment:dumbbell", "Equipment:kettlebell"}
+FULL_PRD_PROMPT = "Build a 50-minute lower-body session. Exclude deadlifts. Only DB and KB."
+LOWER_BODY_CANDIDATES = (
+    "Exercise:barbell_back_squat",
+    "Exercise:goblet_squat",
+    "Exercise:kettlebell_deadlift",
+    "Exercise:glute_bridge",
+    "Exercise:jump_squat",
+)
 
 
 def _receipt_for(exercise_id: str, **kwargs: object) -> DecisionReceipt:
@@ -109,6 +117,43 @@ def test_deadlift_family_exclusion_uses_local_variant_edge() -> None:
     assert receipt.graph_paths == (
         "Exercise:kettlebell_deadlift -VARIANT_OF-> ExerciseFamily:deadlift_family",
     )
+
+
+def test_full_prd_prompt_drives_family_exclusion_and_equipment_filtering() -> None:
+    constraints = resolve_text(FULL_PRD_PROMPT)
+    available_equipment = _equipment_ids_from_allowed_constraints(constraints)
+    receipts = evaluate_candidates(
+        LOWER_BODY_CANDIDATES,
+        available_equipment=available_equipment,
+        constraints=constraints,
+    )
+    by_id = {receipt.exercise_id: receipt for receipt in receipts}
+
+    assert available_equipment == DB_KB_EQUIPMENT
+    assert all(constraint.constraint_type != "UnresolvedConcept" for constraint in constraints)
+    assert by_id["Exercise:barbell_back_squat"].decision == "filtered"
+    assert by_id["Exercise:barbell_back_squat"].primary_severity == "EQUIPMENT_HARD_BLOCK"
+    assert (
+        by_id["Exercise:barbell_back_squat"].primary_reason_code
+        == "MISSING_EQUIPMENT:barbell"
+    )
+    assert by_id["Exercise:barbell_back_squat"].graph_paths == (
+        "Exercise:barbell_back_squat -REQUIRES-> Equipment:barbell",
+    )
+    assert by_id["Exercise:kettlebell_deadlift"].decision == "filtered"
+    assert by_id["Exercise:kettlebell_deadlift"].primary_severity == "PROMPT_EXCLUSION"
+    assert (
+        by_id["Exercise:kettlebell_deadlift"].primary_reason_code
+        == "PROMPT_EXCLUDED_FAMILY:deadlift_family"
+    )
+    assert by_id["Exercise:kettlebell_deadlift"].graph_paths == (
+        "Exercise:kettlebell_deadlift -VARIANT_OF-> ExerciseFamily:deadlift_family",
+    )
+    assert by_id["Exercise:glute_bridge"].decision == "filtered"
+    assert by_id["Exercise:glute_bridge"].primary_reason_code == "MISSING_EQUIPMENT:yoga_mat"
+    assert by_id["Exercise:jump_squat"].decision == "filtered"
+    assert by_id["Exercise:jump_squat"].primary_reason_code == "MISSING_EQUIPMENT:yoga_mat"
+    assert by_id["Exercise:goblet_squat"].decision == "selected"
 
 
 def test_active_knee_restriction_blocks_loaded_knee_stress() -> None:

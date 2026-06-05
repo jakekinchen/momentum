@@ -53,8 +53,17 @@ def _latest_manager_log() -> str:
 
 
 def _current_active_brief() -> str:
+    return _current_goal_line("Current Slice")
+
+
+def _current_goal_line(heading: str) -> str:
     goal = (REPO_ROOT / "GOAL.md").read_text(encoding="utf-8")
-    return _markdown_section(goal, "Current Slice").strip().splitlines()[0]
+    return _markdown_section(goal, heading).strip().splitlines()[0]
+
+
+def _current_stop_sentinel_present() -> bool:
+    goal = (REPO_ROOT / "GOAL.md").read_text(encoding="utf-8")
+    return re.search(r"(?m)^[ \t]*<stop-orchestrator/>[ \t]*$", goal) is not None
 
 
 def _valid_resume_brief(
@@ -322,11 +331,27 @@ bash scripts/validate_resume_brief.sh <planner-next-brief-path>
 def test_agent_thread_status_reports_current_goal_state_and_audits() -> None:
     result = _run(["bash", "scripts/agent_thread_status.sh"])
     active_brief = _current_active_brief()
+    current_milestone = _current_goal_line("Current Milestone")
 
     assert "handoff: docs/agent-thread-handoff.md" in result.stdout
-    assert "stop sentinel: absent" in result.stdout
-    assert "executor product slices: follow GOAL.md and active brief" in result.stdout
-    assert "current milestone: EOD completion and testing" in result.stdout
+    if _current_stop_sentinel_present():
+        assert "stop sentinel: present" in result.stdout
+        assert (
+            "executor product slices: stopped until fresh human direction"
+            in result.stdout
+        )
+        assert (
+            "manager log plan dry run: bash scripts/plan_next_manager_log.sh"
+            in result.stdout
+        )
+        assert (
+            "resume plan dry run: bash scripts/plan_next_resume_brief.sh"
+            in result.stdout
+        )
+    else:
+        assert "stop sentinel: absent" in result.stdout
+        assert "executor product slices: follow GOAL.md and active brief" in result.stdout
+    assert f"current milestone: {current_milestone}" in result.stdout
     assert f"current slice: {active_brief}" in result.stdout
     assert "workflow audit clean" in result.stdout
     assert "== Pair State Audit ==" in result.stdout
@@ -598,8 +623,12 @@ def test_resume_plan_script_reports_next_brief_without_mutating() -> None:
     result = _run(["bash", "scripts/plan_next_resume_brief.sh", "agent-thread-test"])
 
     assert "mode: dry-run (no files written)" in result.stdout
-    assert "stop sentinel: absent" in result.stdout
-    assert "product work: follow GOAL.md and the active brief" in result.stdout
+    if _current_stop_sentinel_present():
+        assert "stop sentinel: present" in result.stdout
+        assert "product work: stopped until fresh human direction updates GOAL.md" in result.stdout
+    else:
+        assert "stop sentinel: absent" in result.stdout
+        assert "product work: follow GOAL.md and the active brief" in result.stdout
     assert f"next brief: {expected_target}" in result.stdout
     assert (
         "copy command: cp docs/briefs/000-template-human-approved-resume.md "
@@ -669,8 +698,12 @@ def test_manager_log_plan_with_slug_prints_exact_candidate_paths() -> None:
     result = _run(["bash", "scripts/plan_next_manager_log.sh", "manager-log-planner"])
 
     assert "mode: dry-run (no files written)" in result.stdout
-    assert "stop sentinel: absent" in result.stdout
-    assert "support mode: verify GOAL.md and active role before writing manager logs" in result.stdout
+    if _current_stop_sentinel_present():
+        assert "stop sentinel: present" in result.stdout
+        assert "support mode: manager process support only" in result.stdout
+    else:
+        assert "stop sentinel: absent" in result.stdout
+        assert "support mode: verify GOAL.md and active role before writing manager logs" in result.stdout
     assert f"latest manager log: {expected_latest}" in result.stdout
     assert (
         f"review latest command: sed -n '1,160p' {expected_latest}"
@@ -1045,6 +1078,11 @@ def test_resume_brief_validator_rejects_vector_safety_enforcement(
 def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     result = _run(["bash", "scripts/audit_autonomous_workflow.sh"])
     active_brief = _current_active_brief()
+    stop_state_label = (
+        "scaffold matrix preserves stop sentinel state"
+        if _current_stop_sentinel_present()
+        else "scaffold matrix captures resumed stop state"
+    )
 
     assert "ok   README.md" in result.stdout
     assert "ok   docs/briefs/000-template-human-approved-resume.md" in result.stdout
@@ -1076,7 +1114,7 @@ def test_workflow_audit_requires_handoff_artifacts_and_stop_guard() -> None:
     assert "ok   workflow README requires manager support logs" in result.stdout
     assert "ok   workflow README separates manager support evidence" in result.stdout
     assert "ok   scaffold matrix names current active brief" in result.stdout
-    assert "ok   scaffold matrix captures resumed stop state" in result.stdout
+    assert f"ok   {stop_state_label}" in result.stdout
     assert "ok   scaffold matrix points to latest manager log" in result.stdout
     assert "ok   scaffold matrix captures completed autonomous plan" in result.stdout
     assert "ok   scaffold matrix avoids stale M0 active brief" in result.stdout
@@ -1480,6 +1518,29 @@ def test_workflow_audit_rejects_stale_scaffold_matrix_state(
     assert "MISS scaffold matrix captures completed autonomous plan" in result.stdout
     assert "MISS scaffold matrix avoids stale M0 active brief" in result.stdout
     assert "MISS scaffold matrix avoids stale first-slice pending note" in result.stdout
+    assert "workflow audit warnings:" in result.stdout
+
+
+def test_workflow_audit_rejects_stale_resumed_scaffold_matrix_state(
+    tmp_path: Path,
+) -> None:
+    _write_minimal_workflow_root(tmp_path)
+    (tmp_path / "GOAL.md").write_text(
+        "# GOAL\n\n"
+        "## Current Slice\n\n"
+        "docs/briefs/006-m5-ontology-sidecar-validation.md\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        ["bash", "scripts/audit_autonomous_workflow.sh", str(tmp_path)],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "ok   scaffold matrix names current active brief" in result.stdout
+    assert "MISS scaffold matrix captures resumed stop state" in result.stdout
+    assert "MISS scaffold matrix preserves stop sentinel state" not in result.stdout
     assert "workflow audit warnings:" in result.stdout
 
 

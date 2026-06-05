@@ -3,6 +3,9 @@ from __future__ import annotations
 from kg.resolver import resolve_text
 
 
+FULL_PRD_PROMPT = "Build a 50-minute lower-body session. Exclude deadlifts. Only DB and KB."
+
+
 def test_resolves_knee_with_anatomy_closure_paths() -> None:
     [constraint] = resolve_text("knee")
 
@@ -99,6 +102,41 @@ def test_resolves_deadlift_family_exclusion() -> None:
     assert constraint.value == "deadlift_family"
     assert constraint.hard is True
     assert constraint.negated is True
+
+
+def test_resolves_full_prd_prompt_into_typed_constraints() -> None:
+    constraints = resolve_text(FULL_PRD_PROMPT)
+
+    assert [
+        (
+            constraint.constraint_type,
+            constraint.value,
+            constraint.hard,
+            constraint.negated,
+            constraint.safety_behavior,
+            constraint.source_text,
+        )
+        for constraint in constraints
+    ] == [
+        ("ExerciseFamily", "deadlift_family", True, True, None, "Exclude deadlifts."),
+        (
+            "Equipment",
+            "dumbbell",
+            True,
+            False,
+            "allowed_equipment_only",
+            "Only DB and KB.",
+        ),
+        (
+            "Equipment",
+            "kettlebell",
+            True,
+            False,
+            "allowed_equipment_only",
+            "Only DB and KB.",
+        ),
+    ]
+    assert all(constraint.constraint_type != "UnresolvedConcept" for constraint in constraints)
 
 
 def test_resolves_prd_alias_examples_from_local_graph() -> None:

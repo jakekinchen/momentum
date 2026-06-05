@@ -193,6 +193,17 @@
       }
     },
     {
+      "id": "Exercise:barbell_back_squat",
+      "type": "Exercise",
+      "label": "Barbell Back Squat",
+      "aliases": ["barbell back squat", "back squat"],
+      "properties": {
+        "priority_tier": "seed",
+        "priority_score": 0.65,
+        "verification_status": "local_unverified"
+      }
+    },
+    {
       "id": "Exercise:kettlebell_deadlift",
       "type": "Exercise",
       "label": "Kettlebell Deadlift",
@@ -352,6 +363,44 @@
     },
     {
       "source": "Exercise:goblet_squat",
+      "predicate": "HAS_PATTERN",
+      "target": "MovementPattern:squat",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "REQUIRES",
+      "target": "Equipment:barbell",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "STRESSES",
+      "target": "BodyRegion:left_knee",
+      "properties": {
+        "load_level": "high",
+        "impact_level": "low",
+        "flexion_depth": "deep",
+        "loaded": true,
+        "axial_load": "high",
+        "balance_demand": "medium",
+        "laterality": "left"
+      }
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:glutes",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
+      "predicate": "TARGETS",
+      "target": "MuscleGroup:quadriceps",
+      "properties": {}
+    },
+    {
+      "source": "Exercise:barbell_back_squat",
       "predicate": "HAS_PATTERN",
       "target": "MovementPattern:squat",
       "properties": {}

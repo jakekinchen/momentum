@@ -8,6 +8,9 @@ from kg.constraints import ResolvedConstraint
 from kg.graph_store import GraphNode, LocalGraph, load_local_graph
 
 _BOUNDARY_PUNCTUATION = ".,;:!?\"'()[]{}"
+_CLAUSE_RE = re.compile(r"[^.;!?]+[.;!?]*")
+_REQUEST_VERBS = ("build ", "create ", "make ", "plan ", "program ")
+_REQUEST_NOUNS = ("session", "workout", "routine", "plan")
 
 
 def _normalize(text: str) -> str:
@@ -67,6 +70,20 @@ def _unresolved(source_text: str, normalized_text: str) -> ResolvedConstraint:
     )
 
 
+def _prompt_clauses(text: str) -> list[str]:
+    return [
+        match.group(0).strip()
+        for match in _CLAUSE_RE.finditer(text)
+        if _normalize(match.group(0))
+    ]
+
+
+def _is_request_shape_clause(normalized: str) -> bool:
+    return normalized.startswith(_REQUEST_VERBS) and any(
+        noun in normalized for noun in _REQUEST_NOUNS
+    )
+
+
 def _allowed_equipment_subset(
     *,
     graph: LocalGraph,
@@ -104,14 +121,14 @@ def _allowed_equipment_subset(
     return constraints
 
 
-def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedConstraint]:
-    """Return typed constraints from local seed facts, never prose decisions."""
-
-    local_graph = graph if graph is not None else load_local_graph()
+def _resolve_single_clause(
+    text: str,
+    *,
+    graph: LocalGraph,
+) -> list[ResolvedConstraint]:
     normalized = _normalize(text)
-
     if allowed_equipment := _allowed_equipment_subset(
-        graph=local_graph,
+        graph=graph,
         source_text=text,
         normalized=normalized,
     ):
@@ -120,19 +137,19 @@ def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedCon
     if normalized == "knee":
         return [
             _resolved_node(
-                graph=local_graph,
+                graph=graph,
                 source_text=text,
                 constraint_type="BodyRegion",
                 node_id="BodyRegion:knee",
-                graph_paths=local_graph.part_of_closure_paths("BodyRegion:knee"),
+                graph_paths=graph.part_of_closure_paths("BodyRegion:knee"),
             )
         ]
 
     if normalized == "left knee":
-        paths = tuple(edge.path() for edge in local_graph.outgoing("BodyRegion:left_knee", "PART_OF"))
+        paths = tuple(edge.path() for edge in graph.outgoing("BodyRegion:left_knee", "PART_OF"))
         return [
             _resolved_node(
-                graph=local_graph,
+                graph=graph,
                 source_text=text,
                 constraint_type="BodyRegion",
                 node_id="BodyRegion:left_knee",
@@ -144,20 +161,20 @@ def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedCon
     if normalized == "bad lower back":
         return [
             _resolved_node(
-                graph=local_graph,
+                graph=graph,
                 source_text=text,
                 constraint_type="BodyRegion",
                 node_id="BodyRegion:lower_back",
                 hard=True,
                 safety_behavior="block_if_safety_critical",
-                graph_paths=local_graph.part_of_closure_paths("BodyRegion:lower_back"),
+                graph_paths=graph.part_of_closure_paths("BodyRegion:lower_back"),
             )
         ]
 
     if normalized == "kettlebell":
         return [
             _resolved_node(
-                graph=local_graph,
+                graph=graph,
                 source_text=text,
                 constraint_type="Equipment",
                 node_id="Equipment:kettlebell",
@@ -167,7 +184,7 @@ def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedCon
     if normalized == "no barbell":
         return [
             _resolved_node(
-                graph=local_graph,
+                graph=graph,
                 source_text=text,
                 constraint_type="Equipment",
                 node_id="Equipment:barbell",
@@ -179,7 +196,7 @@ def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedCon
     if normalized == "exclude deadlifts":
         return [
             _resolved_node(
-                graph=local_graph,
+                graph=graph,
                 source_text=text,
                 constraint_type="ExerciseFamily",
                 node_id="ExerciseFamily:deadlift_family",
@@ -188,10 +205,10 @@ def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedCon
             )
         ]
 
-    if matched_node := _exact_label_or_alias_match(normalized, local_graph):
+    if matched_node := _exact_label_or_alias_match(normalized, graph):
         return [
             _resolved_node(
-                graph=local_graph,
+                graph=graph,
                 source_text=text,
                 constraint_type=matched_node.type,
                 node_id=matched_node.id,
@@ -199,3 +216,50 @@ def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedCon
         ]
 
     return [_unresolved(text, normalized)]
+
+
+def _resolve_prompt_clauses(
+    text: str,
+    *,
+    graph: LocalGraph,
+) -> list[ResolvedConstraint] | None:
+    clauses = _prompt_clauses(text)
+    if len(clauses) <= 1:
+        return None
+
+    resolved: list[ResolvedConstraint] = []
+    unresolved: list[ResolvedConstraint] = []
+    for clause in clauses:
+        normalized = _normalize(clause)
+        if _is_request_shape_clause(normalized):
+            continue
+        clause_constraints = _resolve_single_clause(clause, graph=graph)
+        if (
+            len(clause_constraints) == 1
+            and clause_constraints[0].constraint_type == "UnresolvedConcept"
+        ):
+            unresolved.extend(clause_constraints)
+            continue
+        resolved.extend(clause_constraints)
+
+    if resolved:
+        return [*resolved, *unresolved]
+    if unresolved:
+        return unresolved
+    return None
+
+
+def resolve_text(text: str, graph: LocalGraph | None = None) -> list[ResolvedConstraint]:
+    """Return typed constraints from local seed facts, never prose decisions."""
+
+    local_graph = graph if graph is not None else load_local_graph()
+    single_clause = _resolve_single_clause(text, graph=local_graph)
+    if not (
+        len(single_clause) == 1 and single_clause[0].constraint_type == "UnresolvedConcept"
+    ):
+        return single_clause
+
+    if prompt_constraints := _resolve_prompt_clauses(text, graph=local_graph):
+        return prompt_constraints
+
+    return single_clause

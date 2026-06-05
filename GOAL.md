@@ -14,7 +14,7 @@ EOD completion and testing
 
 ## Current Slice
 
-docs/briefs/013-workflow-active-brief-test-refresh.md
+docs/briefs/014-final-acceptance-closeout.md
 
 ## Stop Conditions
 
