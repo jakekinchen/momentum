@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camifit.local/contracts/decision-explanation.schema.json",
+  "title": "CamiFit KG DecisionExplanation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "exercise_id",
+    "decision",
+    "primary_reason_code",
+    "primary_severity",
+    "recovery_policy",
+    "can_use_immediately",
+    "summary",
+    "graph_paths"
+  ],
+  "properties": {
+    "exercise_id": { "type": "string", "minLength": 1 },
+    "decision": { "type": "string", "enum": ["selected", "filtered", "downranked", "unresolved"] },
+    "primary_reason_code": { "type": "string", "minLength": 1 },
+    "primary_severity": { "type": "string", "minLength": 1 },
+    "recovery_policy": {
+      "type": "string",
+      "enum": [
+        "not_excluded",
+        "state_correction_required",
+        "session_override_allowed",
+        "clarification_required",
+        "not_overrideable"
+      ]
+    },
+    "can_use_immediately": { "type": "boolean" },
+    "correction_operation_type": {
+      "type": ["string", "null"],
+      "enum": [
+        "RetractMedicalConstraint",
+        "AddPreference",
+        "AddEquipmentAccess",
+        "RequestClarification",
+        null
+      ]
+    },
+    "summary": { "type": "string" },
+    "graph_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

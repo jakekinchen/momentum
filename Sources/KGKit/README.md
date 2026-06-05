@@ -7,10 +7,38 @@ eligibility; no LLM, no vector search. Loads a frozen graph artifact
 the Python oracle's `DecisionReceipt`s byte-for-byte — including the
 `sha256[:16]` `constraint_fingerprint` — verified by `ConformanceTests`.
 
+## Runtime workspace + member overlay
+
+`KGWorkspace` prepares the on-device graph workspace under
+`Application Support/CamiFit/KnowledgeGraph/`:
+
+```text
+base/<content_sha256>.kgart.json
+overlays/member/current.jsonl
+ops/
+snapshots/
+receipts/
+```
+
+The base artifact is immutable and content-addressed. Member adaptation happens
+through append-only `GraphOperation` JSONL entries validated by
+`OverlayValidator`. `MergedGraphView` rebuilds the deterministic runtime view
+from the base artifact plus accepted overlay operations. This gives the app a
+safe correction path for stale member facts: for example, an active knee-pain
+constraint can filter loaded deep knee-flexion today, then a later
+`RetractMedicalConstraint` can remove that active constraint without deleting
+history or editing canonical safety edges.
+
+`DecisionTransparency` classifies excluded options into recovery policies such
+as `state_correction_required` and `session_override_allowed`. A medical block
+is never an immediate session override; the user must correct the stored health
+fact and rerun safety.
+
 ## Regenerating the artifact + vectors
     FITGRAPH=/Users/kelly/Developer/fitgraph python3 scripts/gen_kg_conformance_vectors.py
     swift test --disable-sandbox --filter KGKitTests
 
 ## What is NOT here yet (see docs/superpowers/plans/)
-Resolver, alternatives, member retrieval, 50-exercise scale-up, monorepo package integration.
+Resolver, alternatives, member retrieval, 50-exercise scale-up, UI rendering of
+excluded/correctable result lanes.
 Scope and rationale: docs/design/2026-06-04-camifit-fitgraph-synthesis.md.

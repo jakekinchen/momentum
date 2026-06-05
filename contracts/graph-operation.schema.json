@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camifit.local/contracts/graph-operation.schema.json",
+  "title": "CamiFit KG GraphOperation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation_id",
+    "operation_type",
+    "actor",
+    "created_at",
+    "base_artifact_sha256",
+    "precondition_revision",
+    "scope",
+    "source_span_ids",
+    "effect"
+  ],
+  "properties": {
+    "operation_id": { "type": "string", "minLength": 1 },
+    "operation_type": {
+      "type": "string",
+      "enum": [
+        "AddMedicalConstraint",
+        "RetractMedicalConstraint",
+        "AddPreference",
+        "RetractPreference",
+        "AddEquipmentAccess",
+        "RequestClarification",
+        "ArchiveStaleObservation"
+      ]
+    },
+    "actor": { "type": "string", "enum": ["user", "agent", "engine"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "base_artifact_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "precondition_revision": { "type": "integer", "minimum": 0 },
+    "scope": { "type": "string", "enum": ["member", "session", "device"] },
+    "source_span_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject_id": { "type": "string" },
+        "constraint_type": { "type": "string" },
+        "value": { "type": "string" },
+        "source_text": { "type": "string" },
+        "hard": { "type": "boolean" },
+        "negated": { "type": "boolean" },
+        "status": { "type": "string" },
+        "replaces_operation_id": { "type": "string" },
+        "reason": { "type": "string" },
+        "review_after": { "type": "string", "format": "date" },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "note": { "type": "string" },
+        "mutation_target": { "type": "string" }
+      }
+    }
+  }
+}
+
