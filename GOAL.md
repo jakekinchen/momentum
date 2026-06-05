@@ -4,17 +4,18 @@
 
 ## Active Mission
 
-Build the FitGraph Knowledge Graph module described in
-`docs/kg-module-prd.md`: a deterministic typed graph for workout eligibility,
-safety filtering, alternatives, decision receipts, and Coach Copilot fact cards.
+Finish the broader candidate-assessment dashboard submission on top of the
+completed FitGraph Knowledge Graph module. Preserve deterministic typed graph
+behavior for workout eligibility, safety filtering, alternatives, decision
+receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-EOD completion and testing
+Full candidate-assessment delivery complete
 
 ## Current Slice
 
-docs/briefs/014-final-acceptance-closeout.md
+docs/briefs/015-full-assessment-delivery.md
 
 ## Stop Conditions
 

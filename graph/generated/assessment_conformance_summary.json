@@ -1,0 +1,53 @@
+{
+  "actual_counts": {
+    "equipment_count": 32,
+    "exercise_count": 50,
+    "loaded_body_region_count": 9,
+    "movement_pattern_count": 36,
+    "muscle_group_count": 19
+  },
+  "all_exercise_records_preserved": true,
+  "exercise_source_sha256": "ffdcf6b3b51787d1f14b327ee9d31b9b1f8ee469eaa11068180f056ce5118798",
+  "expected_counts": {
+    "equipment_count": 32,
+    "exercise_count": 50,
+    "loaded_body_region_count": 9,
+    "movement_pattern_count": 36,
+    "muscle_group_count": 19
+  },
+  "generated_exercise_edge_count": 512,
+  "generated_exercise_node_count": 212,
+  "generated_member_edge_count": 97,
+  "generated_member_node_count": 77,
+  "member_sections_expected": [
+    "profile",
+    "goals",
+    "preferences",
+    "equipment_available",
+    "injuries",
+    "workout_history",
+    "adherence",
+    "biomarkers",
+    "labs",
+    "chat_history",
+    "coach_brief"
+  ],
+  "member_sections_missing": [],
+  "member_sections_represented": [
+    "adherence",
+    "biomarkers",
+    "chat_history",
+    "coach_brief",
+    "equipment_available",
+    "goals",
+    "injuries",
+    "labs",
+    "preferences",
+    "profile",
+    "workout_history"
+  ],
+  "member_source_sha256": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+  "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+  "status": "pass",
+  "synthetic_data_only": true
+}

@@ -1,23 +1,69 @@
 {
   "schema_version": "0.1.0",
-  "graph_version": "fitgraph-kg-m4-member-v1",
+  "graph_version": "fitgraph-kg-assessment-member-v1",
   "status": "seed",
-  "description": "Tiny member-context graph for deterministic Coach Copilot fact-card tests.",
+  "description": "Synthetic Jordan member-context graph for deterministic Coach Copilot fact-card and chart tests.",
   "nodes": [
     {
       "id": "Member:jordan",
       "type": "Member",
-      "label": "Jordan",
-      "aliases": ["Jordan"],
-      "properties": {}
+      "label": "Jordan Rivera",
+      "aliases": ["Jordan", "Jordan Rivera", "mbr_01HX9JORDAN"],
+      "properties": {
+        "source_member_id": "mbr_01HX9JORDAN",
+        "age": 41,
+        "sex": "female",
+        "timezone": "America/Los_Angeles",
+        "member_since": "2024-09-15",
+        "tier": "1:1 Coaching",
+        "synthetic_data": true
+      }
     },
     {
       "id": "Goal:jordan_lower_body_strength",
       "type": "Goal",
-      "label": "Build lower-body strength without aggravating left knee",
+      "label": "Build lower-body strength",
       "aliases": ["lower-body strength"],
       "properties": {
-        "status": "active"
+        "status": "active",
+        "priority": 1,
+        "target_date": "2026-09-01"
+      }
+    },
+    {
+      "id": "Goal:jordan_pain_free_squatting",
+      "type": "Goal",
+      "label": "Return to pain-free squatting after left-knee flare-up",
+      "aliases": ["pain-free squatting", "left knee return to squat"],
+      "properties": {
+        "status": "active",
+        "priority": 1,
+        "target_date": "2026-07-15"
+      }
+    },
+    {
+      "id": "Goal:jordan_weeknight_sleep",
+      "type": "Goal",
+      "label": "Average 7+ hours of sleep on weeknights",
+      "aliases": ["sleep goal"],
+      "properties": {
+        "status": "active",
+        "priority": 2,
+        "target_date": null
+      }
+    },
+    {
+      "id": "Preference:jordan_training_preferences",
+      "type": "Preference",
+      "label": "Jordan training preferences",
+      "aliases": ["training preferences", "dislikes"],
+      "properties": {
+        "preferred_session_minutes": 50,
+        "training_days_per_week": 4,
+        "preferred_days": ["Mon", "Wed", "Thu", "Sat"],
+        "dislikes": ["Deadlift", "Burpees"],
+        "soft_constraints": ["Deadlift", "Burpees", "high-impact jumping"],
+        "notes": "Prefers dumbbell and kettlebell work; trains at home. Dislikes high-impact jumping."
       }
     },
     {
@@ -27,20 +73,50 @@
       "aliases": ["home equipment"],
       "properties": {
         "equipment_ids": [
+          "Equipment:dumbbell",
           "Equipment:kettlebell",
-          "Equipment:yoga_mat"
+          "Equipment:yoga_mat",
+          "Equipment:resistance_band_loop",
+          "Equipment:flat_bench"
+        ],
+        "equipment_labels": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat",
+          "Resistance Band - Loop",
+          "Flat Bench"
         ]
       }
     },
     {
       "id": "InjuryEpisode:left_knee_issue_since_2026_05_10",
       "type": "InjuryEpisode",
-      "label": "Left knee issue since 2026-05-10",
-      "aliases": ["left knee issue"],
+      "label": "Left knee flare-up since 2026-05-10",
+      "aliases": ["left knee issue", "left-knee flare-up"],
       "properties": {
         "status": "active",
+        "source_status": "recovering",
+        "severity": "mild",
         "region_id": "BodyRegion:left_knee",
-        "started_at": "2026-05-10"
+        "joint": "knee",
+        "started_at": "2026-05-10",
+        "restrictions": [
+          "Cleared for low-impact loading",
+          "Avoid deep knee flexion under load",
+          "Avoid plyometrics"
+        ]
+      }
+    },
+    {
+      "id": "AdherenceObservation:jordan_week_2026_05_12",
+      "type": "AdherenceObservation",
+      "label": "Jordan adherence week of 2026-05-12",
+      "aliases": [],
+      "properties": {
+        "week_start": "2026-05-12",
+        "completed_sessions": 4,
+        "planned_sessions": 4,
+        "completion_pct": 100
       }
     },
     {
@@ -51,7 +127,20 @@
       "properties": {
         "week_start": "2026-05-19",
         "completed_sessions": 4,
-        "planned_sessions": 4
+        "planned_sessions": 4,
+        "completion_pct": 100
+      }
+    },
+    {
+      "id": "AdherenceObservation:jordan_week_2026_05_26",
+      "type": "AdherenceObservation",
+      "label": "Jordan adherence week of 2026-05-26",
+      "aliases": [],
+      "properties": {
+        "week_start": "2026-05-26",
+        "completed_sessions": 3,
+        "planned_sessions": 4,
+        "completion_pct": 75
       }
     },
     {
@@ -62,7 +151,8 @@
       "properties": {
         "week_start": "2026-06-02",
         "completed_sessions": 2,
-        "planned_sessions": 4
+        "planned_sessions": 4,
+        "completion_pct": 50
       }
     },
     {
@@ -105,29 +195,254 @@
       }
     },
     {
-      "id": "SourceSpan:jordan_intake_2026_06_04",
-      "type": "SourceSpan",
-      "label": "Jordan intake note 2026-06-04",
-      "aliases": [],
+      "id": "WorkoutSession:jordan_2026_06_03_lower_body_bands_db",
+      "type": "WorkoutSession",
+      "label": "Lower Body - Bands & DB",
+      "aliases": ["2026-06-03 lower body"],
       "properties": {
-        "source_file": "member_kg.seed.json",
-        "json_path": "$.nodes",
-        "text": "Jordan trains at home with kettlebell and yoga mat, has an active left knee issue, and wants lower-body strength without aggravating the knee.",
-        "timestamp": "2026-06-04T00:00:00Z",
-        "source_hash": "m4-jordan-seed"
+        "date": "2026-06-03",
+        "planned": true,
+        "completed": true,
+        "duration_min": 28,
+        "rpe": 6,
+        "exercises": ["Goblet Squat (box-supported)", "Hip Thrust", "Banded Lateral Walk"]
       }
     },
     {
-      "id": "SourceSpan:jordan_copilot_snapshot_2026_06_04",
-      "type": "SourceSpan",
-      "label": "Jordan copilot snapshot 2026-06-04",
+      "id": "WorkoutSession:jordan_2026_06_01_upper_body_push",
+      "type": "WorkoutSession",
+      "label": "Upper Body Push",
+      "aliases": ["2026-06-01 upper body push"],
+      "properties": {
+        "date": "2026-06-01",
+        "planned": true,
+        "completed": true,
+        "duration_min": 31,
+        "rpe": 7,
+        "exercises": ["DB Floor Press", "Half-Kneeling DB Press", "Band Pull-Apart"]
+      }
+    },
+    {
+      "id": "WorkoutSession:jordan_2026_05_29_full_body",
+      "type": "WorkoutSession",
+      "label": "Full Body",
+      "aliases": ["2026-05-29 full body"],
+      "properties": {
+        "date": "2026-05-29",
+        "planned": true,
+        "completed": false,
+        "duration_min": 0,
+        "rpe": null,
+        "exercises": []
+      }
+    },
+    {
+      "id": "WorkoutSession:jordan_2026_05_27_lower_body",
+      "type": "WorkoutSession",
+      "label": "Lower Body",
+      "aliases": ["2026-05-27 lower body"],
+      "properties": {
+        "date": "2026-05-27",
+        "planned": true,
+        "completed": true,
+        "duration_min": 26,
+        "rpe": 6,
+        "exercises": ["Step-Up", "KB Romanian Deadlift", "Wall Sit"]
+      }
+    },
+    {
+      "id": "Message:jordan_2026_06_03_1842_member",
+      "type": "Message",
+      "label": "Jordan member message 2026-06-03 18:42",
       "aliases": [],
       "properties": {
-        "source_file": "member_kg.seed.json",
-        "json_path": "$.nodes",
-        "text": "Jordan's last 7 sleep values are 6.1, 5.4, 7.2, 6.0, 5.1, 7.8, and 6.3 hours. Churn risk is elevated due to declining adherence, fatigue/work explanation for a skipped session, and lower login frequency. The 2026-06-04 coach brief is to celebrate the pain-free lower-body session and review churn risk.",
+        "ts": "2026-06-03T18:42:00-07:00",
+        "from": "member",
+        "text": "Knocked out the lower body session! Knee felt okay with the box squats."
+      }
+    },
+    {
+      "id": "Message:jordan_2026_06_03_1905_coach",
+      "type": "Message",
+      "label": "Coach message 2026-06-03 19:05",
+      "aliases": [],
+      "properties": {
+        "ts": "2026-06-03T19:05:00-07:00",
+        "from": "coach",
+        "text": "Love it - that's the green light we wanted. How's the knee this morning vs. after?"
+      }
+    },
+    {
+      "id": "Message:jordan_2026_05_30_0812_member",
+      "type": "Message",
+      "label": "Jordan member message 2026-05-30 08:12",
+      "aliases": [],
+      "properties": {
+        "ts": "2026-05-30T08:12:00-07:00",
+        "from": "member",
+        "text": "Skipped Thursday, work blew up and I was wiped. Sorry!"
+      }
+    },
+    {
+      "id": "Message:jordan_2026_05_22_0750_member",
+      "type": "Message",
+      "label": "Jordan member message 2026-05-22 07:50",
+      "aliases": [],
+      "properties": {
+        "ts": "2026-05-22T07:50:00-07:00",
+        "from": "member",
+        "text": "Still no barbell at home btw - only DBs and a kettlebell.",
+        "attachments": [{ "type": "image", "caption": "Home setup photo (synthetic placeholder)" }]
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_profile_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan profile fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.profile",
+        "text": "Synthetic Jordan Rivera member profile from the imported candidate-assessment fixture.",
         "timestamp": "2026-06-04T00:00:00Z",
-        "source_hash": "009-jordan-copilot-seed"
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_goals_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan goals fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.goals",
+        "text": "Jordan goals include lower-body strength, pain-free squatting after left-knee flare-up, and weeknight sleep.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_preferences_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan preferences fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.preferences",
+        "text": "Jordan prefers 50-minute sessions, four training days per week, dumbbell and kettlebell work, and dislikes deadlifts, burpees, and high-impact jumping.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_equipment_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan equipment fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.equipment_available",
+        "text": "Jordan has Dumbbell, Kettlebell, Yoga Mat, Resistance Band - Loop, and Flat Bench available.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_injury_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan injury fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.injuries[0]",
+        "text": "Jordan has a mild recovering left-knee injury since 2026-05-10 and should avoid deep knee flexion under load and plyometrics.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_adherence_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan adherence fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.adherence.weekly_completion_pct",
+        "text": "Jordan weekly completion percentages are 100, 100, 75, and 50 for weeks starting 2026-05-12 through 2026-06-02.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_sleep_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan sleep fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.biomarkers.sleep_hours_last_7_days",
+        "text": "Jordan's last 7 sleep values are 6.1, 5.4, 7.2, 6.0, 5.1, 7.8, and 6.3 hours.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_workout_history_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan workout history fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.workout_history",
+        "text": "Jordan's four logged workouts include three completed sessions and one missed full-body session.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_chat_history_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan chat history fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.chat_history",
+        "text": "Jordan chat history has three member messages and one coach message from 2026-05-22 through 2026-06-03.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
+      }
+    },
+    {
+      "id": "SourceSpan:jordan_coach_brief_assessment_fixture",
+      "type": "SourceSpan",
+      "label": "Jordan coach brief fixture",
+      "aliases": [],
+      "properties": {
+        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "json_path": "$.coach_brief",
+        "text": "Jordan's 2026-06-04 coach brief is to celebrate the pain-free lower-body session and review elevated churn risk.",
+        "timestamp": "2026-06-04T00:00:00Z",
+        "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
+        "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
+        "synthetic_data": true
       }
     }
   ],
@@ -136,6 +451,24 @@
       "source": "Member:jordan",
       "predicate": "HAS_GOAL",
       "target": "Goal:jordan_lower_body_strength",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_GOAL",
+      "target": "Goal:jordan_pain_free_squatting",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_GOAL",
+      "target": "Goal:jordan_weeknight_sleep",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_PREFERENCE",
+      "target": "Preference:jordan_training_preferences",
       "properties": {}
     },
     {
@@ -153,7 +486,19 @@
     {
       "source": "Member:jordan",
       "predicate": "HAS_ADHERENCE_OBSERVATION",
+      "target": "AdherenceObservation:jordan_week_2026_05_12",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_ADHERENCE_OBSERVATION",
       "target": "AdherenceObservation:jordan_week_2026_05_19",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_ADHERENCE_OBSERVATION",
+      "target": "AdherenceObservation:jordan_week_2026_05_26",
       "properties": {}
     },
     {
@@ -181,44 +526,188 @@
       "properties": {}
     },
     {
+      "source": "Member:jordan",
+      "predicate": "HAS_WORKOUT_SESSION",
+      "target": "WorkoutSession:jordan_2026_05_27_lower_body",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_WORKOUT_SESSION",
+      "target": "WorkoutSession:jordan_2026_05_29_full_body",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_WORKOUT_SESSION",
+      "target": "WorkoutSession:jordan_2026_06_01_upper_body_push",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_WORKOUT_SESSION",
+      "target": "WorkoutSession:jordan_2026_06_03_lower_body_bands_db",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_MESSAGE",
+      "target": "Message:jordan_2026_05_22_0750_member",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_MESSAGE",
+      "target": "Message:jordan_2026_05_30_0812_member",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_MESSAGE",
+      "target": "Message:jordan_2026_06_03_1842_member",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "HAS_MESSAGE",
+      "target": "Message:jordan_2026_06_03_1905_coach",
+      "properties": {}
+    },
+    {
+      "source": "Member:jordan",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_profile_assessment_fixture",
+      "properties": {}
+    },
+    {
       "source": "Goal:jordan_lower_body_strength",
       "predicate": "DERIVED_FROM",
-      "target": "SourceSpan:jordan_intake_2026_06_04",
+      "target": "SourceSpan:jordan_goals_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "Goal:jordan_pain_free_squatting",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_goals_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "Goal:jordan_weeknight_sleep",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_goals_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "Preference:jordan_training_preferences",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_preferences_assessment_fixture",
       "properties": {}
     },
     {
       "source": "EquipmentAvailability:jordan_home_equipment",
       "predicate": "DERIVED_FROM",
-      "target": "SourceSpan:jordan_intake_2026_06_04",
+      "target": "SourceSpan:jordan_equipment_assessment_fixture",
       "properties": {}
     },
     {
       "source": "InjuryEpisode:left_knee_issue_since_2026_05_10",
       "predicate": "DERIVED_FROM",
-      "target": "SourceSpan:jordan_intake_2026_06_04",
+      "target": "SourceSpan:jordan_injury_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "AdherenceObservation:jordan_week_2026_05_12",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_adherence_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "AdherenceObservation:jordan_week_2026_05_19",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_adherence_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "AdherenceObservation:jordan_week_2026_05_26",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_adherence_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "AdherenceObservation:jordan_week_2026_06_02",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_adherence_assessment_fixture",
       "properties": {}
     },
     {
       "source": "BiomarkerObservation:jordan_sleep_week_2026_06_04",
       "predicate": "DERIVED_FROM",
-      "target": "SourceSpan:jordan_copilot_snapshot_2026_06_04",
+      "target": "SourceSpan:jordan_sleep_assessment_fixture",
       "properties": {}
     },
     {
       "source": "ChurnSignal:jordan_elevated_adherence_fatigue_2026_06_04",
       "predicate": "DERIVED_FROM",
-      "target": "SourceSpan:jordan_copilot_snapshot_2026_06_04",
+      "target": "SourceSpan:jordan_coach_brief_assessment_fixture",
       "properties": {}
     },
     {
       "source": "CoachBrief:jordan_morning_2026_06_04",
       "predicate": "DERIVED_FROM",
-      "target": "SourceSpan:jordan_copilot_snapshot_2026_06_04",
+      "target": "SourceSpan:jordan_coach_brief_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "WorkoutSession:jordan_2026_06_03_lower_body_bands_db",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_workout_history_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "WorkoutSession:jordan_2026_06_01_upper_body_push",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_workout_history_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "WorkoutSession:jordan_2026_05_29_full_body",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_workout_history_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "WorkoutSession:jordan_2026_05_27_lower_body",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_workout_history_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "Message:jordan_2026_06_03_1842_member",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_chat_history_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "Message:jordan_2026_06_03_1905_coach",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_chat_history_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "Message:jordan_2026_05_30_0812_member",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_chat_history_assessment_fixture",
+      "properties": {}
+    },
+    {
+      "source": "Message:jordan_2026_05_22_0750_member",
+      "predicate": "DERIVED_FROM",
+      "target": "SourceSpan:jordan_chat_history_assessment_fixture",
       "properties": {}
     }
   ],
   "todo": [
-    "Add richer Preference, WorkoutSession, Message, Barrier, LabResult, and historical biometric/coach-brief nodes.",
-    "Expand member-context retrieval beyond the tiny deterministic M4 fact-card set."
+    "Add importer-generated member graph artifacts so this hand-authored synthetic seed can become a fixture conformance output.",
+    "Add deterministic retrieval for labs and preference policy when those dashboard surfaces are wired."
   ]
 }

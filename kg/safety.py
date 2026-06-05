@@ -143,6 +143,9 @@ def _stress_hits_restriction(
     path = graph.part_of_path(stress_target_id, restriction_id)
     if path:
         return path
+    reverse_path = graph.part_of_path(restriction_id, stress_target_id)
+    if reverse_path:
+        return reverse_path
     return None
 
 
