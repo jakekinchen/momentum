@@ -41,7 +41,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "CamiFitApp",
-            dependencies: ["CamiFitEngine"],
+            dependencies: ["CamiFitEngine", "KGKit"],
             resources: [
                 .copy("Resources/Presets"),
                 .copy("Resources/RecordedRuns"),
@@ -57,7 +57,7 @@ let package = Package(
         ),
         .testTarget(
             name: "CamiFitAppTests",
-            dependencies: ["CamiFitApp", "CamiFitEngine"]
+            dependencies: ["CamiFitApp", "CamiFitEngine", "KGKit"]
         )
     ]
 )
