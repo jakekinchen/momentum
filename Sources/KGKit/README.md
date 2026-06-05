@@ -34,11 +34,20 @@ as `state_correction_required` and `session_override_allowed`. A medical block
 is never an immediate session override; the user must correct the stored health
 fact and rerun safety.
 
+## Workout generator
+
+KGKit includes the on-device Workout Generator surface: resolve -> safety ->
+alternatives -> structured plan (`WorkoutGenerator.generateWorkout`). The
+exercise-side generator takes available equipment and member-derived constraints
+as parameters, so the member overlay layer can provide inputs without the
+generator owning member persistence. `WorkoutConformanceTests` verifies the
+Swift output byte-for-byte against the Python oracle vectors.
+
 ## Regenerating the artifact + vectors
     FITGRAPH=/Users/kelly/Developer/fitgraph python3 scripts/gen_kg_conformance_vectors.py
     swift test --disable-sandbox --filter KGKitTests
 
 ## What is NOT here yet (see docs/superpowers/plans/)
-Resolver, alternatives, member retrieval, 50-exercise scale-up, UI rendering of
-excluded/correctable result lanes.
+Member retrieval, 50-exercise scale-up, UI rendering of excluded/correctable
+result lanes.
 Scope and rationale: docs/design/2026-06-04-camifit-fitgraph-synthesis.md.

@@ -103,6 +103,115 @@ def emit_vectors() -> None:
     print(f"wrote {VECTORS.relative_to(REPO)}: {len(vectors)} vectors")
 
 
+from kg.resolver import resolve_text  # noqa: E402
+
+RESOLVE_VECTORS = REPO / "Tests/KGKitTests/Fixtures/conformance/resolve_vectors.json"
+
+RESOLVE_PROMPTS = [
+    "knee", "left knee", "bad lower back", "kettlebell", "no barbell",
+    "exclude deadlifts", "only dumbbells and kettlebell", "squat", "xyzzy",
+    "Build a session. No barbell. Exclude deadlifts.",
+    "Frobnicate the wibble. Glorp the snarf.",
+]
+
+
+def emit_resolve_vectors() -> None:
+    graph = load_local_graph(FITGRAPH / "graph" / "exercise_kg.seed.json")
+    vectors = []
+    for prompt in RESOLVE_PROMPTS:
+        constraints = resolve_text(prompt, graph)
+        vectors.append({
+            "text": prompt,
+            "expected": [
+                {"constraint_type": c.constraint_type, "value": c.value, "hard": c.hard,
+                 "negated": c.negated, "laterality": c.laterality, "graph_paths": list(c.graph_paths),
+                 "verified": c.verified, "resolution_status": c.resolution_status,
+                 "safety_behavior": c.safety_behavior}
+                for c in constraints
+            ],
+        })
+    RESOLVE_VECTORS.parent.mkdir(parents=True, exist_ok=True)
+    RESOLVE_VECTORS.write_text(json.dumps({"vectors": vectors}, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {RESOLVE_VECTORS.relative_to(REPO)}: {len(vectors)} resolve vectors")
+
+
+from kg.alternatives import select_alternatives  # noqa: E402
+
+ALT_VECTORS = REPO / "Tests/KGKitTests/Fixtures/conformance/alternatives_vectors.json"
+
+
+def emit_alternatives_vectors() -> None:
+    graph = load_local_graph(FITGRAPH / "graph" / "exercise_kg.seed.json")
+    rules = load_safety_rules(FITGRAPH / "graph")
+    jordan_equipment = ["Dumbbell", "Kettlebell", "Yoga Mat"]
+    constraints = (_c(constraint_type="BodyRegion", value="left_knee", hard=True, source_text="left knee"),)
+    receipts = evaluate_candidates(available_equipment=jordan_equipment,
+                                   constraints=constraints, graph=graph, safety_rules=rules)
+    alts = select_alternatives(receipts, available_equipment=jordan_equipment, graph=graph)
+    vector = {
+        "available_equipment": jordan_equipment,
+        "constraints": [{"constraint_type": c.constraint_type, "value": c.value, "hard": c.hard,
+                         "source_text": c.source_text, "negated": c.negated} for c in constraints],
+        "expected_alternatives": [
+            {"filtered_exercise_id": a.filtered_exercise_id,
+             "alternative_exercise_id": a.alternative_exercise_id, "derived_from": a.derived_from,
+             "score": a.score, "score_components": a.score_components, "graph_paths": list(a.graph_paths)}
+            for a in alts
+        ],
+    }
+    ALT_VECTORS.parent.mkdir(parents=True, exist_ok=True)
+    ALT_VECTORS.write_text(json.dumps({"vectors": [vector]}, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {ALT_VECTORS.relative_to(REPO)}: {len(vector['expected_alternatives'])} alternatives")
+
+
+from kg.workout_generator import generate_workout, _active_injury_constraints  # noqa: E402
+from kg.graph_store import load_member_graph  # noqa: E402
+
+WORKOUT_VECTORS = REPO / "Tests/KGKitTests/Fixtures/conformance/workout_vectors.json"
+
+WORKOUT_SCENARIOS = [
+    {"prompt": "lower body, knee-safe", "minutes": 50},
+    {"prompt": "full body strength", "minutes": 50},
+    {"prompt": "chest and pecs", "minutes": 40},
+]
+
+
+def emit_workout_vectors() -> None:
+    graph = load_local_graph(FITGRAPH / "graph" / "exercise_kg.seed.json")
+    member_graph = load_member_graph(FITGRAPH / "graph" / "member_kg.seed.json")
+    member_id = "Member:jordan"
+    member_constraints = _active_injury_constraints(member_id, member_graph, graph)
+    vectors = []
+    for sc in WORKOUT_SCENARIOS:
+        out = generate_workout(member_id=member_id, prompt=sc["prompt"], minutes=sc["minutes"],
+                               graph=graph, member_graph=member_graph)
+        vectors.append({
+            "prompt": sc["prompt"], "minutes": sc["minutes"],
+            "available_equipment": out["available_equipment"],
+            "member_constraints": [
+                {"constraint_type": c.constraint_type, "value": c.value, "hard": c.hard,
+                 "negated": c.negated, "laterality": c.laterality, "graph_paths": list(c.graph_paths),
+                 "source_text": c.source_text, "safety_behavior": c.safety_behavior,
+                 "resolution_status": c.resolution_status} for c in member_constraints
+            ],
+            "expected": {
+                "warmup": out["workout"]["warmup"], "main": out["workout"]["main"],
+                "cooldown": out["workout"]["cooldown"],
+                "selected_ids": [r["exercise_id"] for r in out["selected_exercises"]],
+                "filtered_ids": [r["exercise_id"] for r in out["filtered_exercises"]],
+                "alternatives": [{"filtered_exercise_id": a["filtered_exercise_id"],
+                                  "alternative_exercise_id": a["alternative_exercise_id"],
+                                  "score": a["score"]} for a in out["alternatives"]],
+            },
+        })
+    WORKOUT_VECTORS.parent.mkdir(parents=True, exist_ok=True)
+    WORKOUT_VECTORS.write_text(json.dumps({"vectors": vectors}, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {WORKOUT_VECTORS.relative_to(REPO)}: {len(vectors)} workout vectors")
+
+
 if __name__ == "__main__":
     freeze_artifact()
     emit_vectors()
+    emit_resolve_vectors()
+    emit_alternatives_vectors()
+    emit_workout_vectors()

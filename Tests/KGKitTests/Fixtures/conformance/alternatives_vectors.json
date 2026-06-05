@@ -1,0 +1,95 @@
+{
+  "vectors": [
+    {
+      "available_equipment": [
+        "Dumbbell",
+        "Kettlebell",
+        "Yoga Mat"
+      ],
+      "constraints": [
+        {
+          "constraint_type": "BodyRegion",
+          "value": "left_knee",
+          "hard": true,
+          "source_text": "left knee",
+          "negated": false
+        }
+      ],
+      "expected_alternatives": [
+        {
+          "filtered_exercise_id": "Exercise:barbell_back_squat",
+          "alternative_exercise_id": "Exercise:glute_bridge",
+          "derived_from": "Exercise:barbell_back_squat",
+          "score": 0.34,
+          "score_components": {
+            "target_overlap": 0.3333333333333333,
+            "movement_pattern_similarity": 0.0,
+            "equipment_preference": 1.0,
+            "priority_tier": 0.9
+          },
+          "graph_paths": [
+            "Exercise:barbell_back_squat -TARGETS-> MuscleGroup:glutes",
+            "Exercise:glute_bridge -TARGETS-> MuscleGroup:glutes",
+            "Exercise:glute_bridge -REQUIRES-> Equipment:yoga_mat",
+            "Exercise:glute_bridge -STRESSES-> BodyRegion:hip"
+          ]
+        },
+        {
+          "filtered_exercise_id": "Exercise:barbell_bench_press",
+          "alternative_exercise_id": "Exercise:dumbbell_floor_press",
+          "derived_from": "Exercise:barbell_bench_press",
+          "score": 0.965,
+          "score_components": {
+            "target_overlap": 1.0,
+            "movement_pattern_similarity": 1.0,
+            "equipment_preference": 1.0,
+            "priority_tier": 0.65
+          },
+          "graph_paths": [
+            "Exercise:barbell_bench_press -TARGETS-> MuscleGroup:chest",
+            "Exercise:dumbbell_floor_press -TARGETS-> MuscleGroup:chest",
+            "Exercise:barbell_bench_press -HAS_PATTERN-> MovementPattern:horizontal_press",
+            "Exercise:dumbbell_floor_press -HAS_PATTERN-> MovementPattern:horizontal_press",
+            "Exercise:dumbbell_floor_press -REQUIRES-> Equipment:dumbbell"
+          ]
+        },
+        {
+          "filtered_exercise_id": "Exercise:goblet_squat",
+          "alternative_exercise_id": "Exercise:glute_bridge",
+          "derived_from": "Exercise:goblet_squat",
+          "score": 0.34,
+          "score_components": {
+            "target_overlap": 0.3333333333333333,
+            "movement_pattern_similarity": 0.0,
+            "equipment_preference": 1.0,
+            "priority_tier": 0.9
+          },
+          "graph_paths": [
+            "Exercise:goblet_squat -TARGETS-> MuscleGroup:glutes",
+            "Exercise:glute_bridge -TARGETS-> MuscleGroup:glutes",
+            "Exercise:glute_bridge -REQUIRES-> Equipment:yoga_mat",
+            "Exercise:glute_bridge -STRESSES-> BodyRegion:hip"
+          ]
+        },
+        {
+          "filtered_exercise_id": "Exercise:jump_squat",
+          "alternative_exercise_id": "Exercise:glute_bridge",
+          "derived_from": "Exercise:jump_squat",
+          "score": 0.34,
+          "score_components": {
+            "target_overlap": 0.3333333333333333,
+            "movement_pattern_similarity": 0.0,
+            "equipment_preference": 1.0,
+            "priority_tier": 0.9
+          },
+          "graph_paths": [
+            "Exercise:jump_squat -TARGETS-> MuscleGroup:glutes",
+            "Exercise:glute_bridge -TARGETS-> MuscleGroup:glutes",
+            "Exercise:glute_bridge -REQUIRES-> Equipment:yoga_mat",
+            "Exercise:glute_bridge -STRESSES-> BodyRegion:hip"
+          ]
+        }
+      ]
+    }
+  ]
+}
