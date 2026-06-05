@@ -1,10 +1,10 @@
 # CamiFit x FitGraph x Candidate-Assessment - Synthesis Plan
 
-> **Status:** Canonical synthesis plan - opinionated architecture plus staged execution guardrails
+> **Status:** Canonical synthesis plan - monorepo package topology plus staged execution guardrails
 > **Date:** 2026-06-04
-> **Scope:** plan to fuse three repositories into one on-device product
+> **Scope:** plan to connect three repositories into one on-device product architecture
 > **Source repos:** CamiFit (/Users/kelly/Developer/camifit), FitGraph (/Users/kelly/Developer/fitgraph), candidate-assessment (vendored at docs/requirements/candidate-assessment, commit 4b8c672)
-> **Decisions baked in:** CamiFit is the hero app; the FitGraph KG is ported to Swift for on-device use with a Python canonical oracle; monorepo topology; surpass via the on-device execution loop.
+> **Decisions baked in:** CamiFit is the hero app; the FitGraph KG is ported to Swift for on-device use with a Python canonical oracle; monorepo for coordinated development with hard modular package boundaries; surpass via the on-device execution loop.
 
 ## Executive summary
 
@@ -12,11 +12,16 @@ CamiFit, FitGraph, and the candidate-assessment are not three projects — they 
 
 The architecture is a **two-layer knowledge graph**. The Python `kg/` package stays as the *canonical build-time oracle*: it owns the ontology pipeline and compiles a frozen, signed graph artifact plus a set of conformance vectors. It never ships at runtime. The **Swift serving runtime** ports the deterministic traversals on-device, loads the signed artifact offline, and — as a hard CI gate — must reproduce the Python oracle's conformance vectors byte-for-byte (same sorted iteration, same `round(…,6)`, same `sha256[:16]` fingerprints, same `graph_paths` evidence strings). Determinism is the contract that lets the brain move from server to phone without behavioral drift.
 
-The implementation stance is deliberately staged: the Swift serving runtime is
-the target architecture, not the first blind coding slice. First freeze the
-golden candidate-assessment snapshot, import the full 50-exercise/Jordan corpus
-into the Python oracle, define the JSON contracts, and emit conformance vectors.
-Only then port graph traversal to Swift, with parity as the acceptance gate.
+On device, the KG has a second critical split: **immutable base graph vs mutable local overlay**. The shipped artifact is copied into the app's persistent Application Support graph workspace as a content-hashed, immutable base snapshot, then loaded into Swift as an in-memory core data structure. The member-specific graph evolves beside it as an append-only overlay and operation log: user preferences, coach requests, generated routines, completed-session observations, and agent-authored graph operations. The local agent can operate on that persistent workspace over time, but only by validated overlay operations; it cannot mutate the signed base artifact or relax canonical safety/ontology edges.
+
+The implementation stance is deliberately staged, but the repo topology should
+now bias toward a **monorepo with modular packages**. The Swift serving runtime,
+Python canonical oracle, contracts, conformance vectors, artifact compiler, and
+CamiFit UI need to co-evolve tightly while the seams are still being discovered.
+Keeping them in separate git repos would turn every schema change into release
+coordination. The correct guardrail is not separate repos; it is hard internal
+boundaries: Python remains build/CI-only, Swift remains the runtime, the app
+never imports Python, and conformance vectors keep the two layers in parity.
 CamiFit may use fixture responses while the runtime is being built, but that is
 a UI/modeling tactic, not the architecture.
 
@@ -47,18 +52,22 @@ flowchart TB
         ENGINE["Pose engine\nsignals / rep-FSM / form rules"]
         GRADE["Grade run\nreps / holds / score / cues"]
         OBS["Performance\nobservations"]
-        MEMBERKG[("Member KG\non-device")]
+        MEMBERKG[("Swift KG core\nbase + overlay")]
+        APPKG[("Application Support\nimmutable base +\nmutable overlay/op log")]
         COPILOT["Copilot / churn\nfact cards"]
 
         PROMPT --> RESOLVE --> SAFETY --> ALT --> RECEIPT --> COMPILEEX
         COMPILEEX --> ENGINE --> GRADE --> OBS --> MEMBERKG
+        OBS --> APPKG
+        APPKG --> MEMBERKG
         MEMBERKG --> COPILOT
         MEMBERKG --> RESOLVE
         COPILOT --> PROMPT
     end
 
-    ARTIFACT --> RESOLVE
-    ARTIFACT --> SAFETY
+    ARTIFACT --> APPKG
+    APPKG --> RESOLVE
+    APPKG --> SAFETY
     VECTORS -.->|"CI parity gate"| SAFETY
 ```
 
@@ -73,7 +82,7 @@ Each section answers one question:
 5. **The three integration contracts** — What are the exact boundaries: the graph artifact + conformance vectors, the resolve/safety/receipt API, and the KG-candidate -> `ExerciseProgram` compile contract?
 6. **The closed execution loop — the surpass** — How does a generated plan get run, pose-graded, and written back as member facts, and why is this the moat the assessment cannot test?
 7. **Coach copilot inside the CamiFit chat** — How does the existing fenced-block chat surface become a KG-grounded copilot with deterministic fact cards instead of a generic LLM?
-8. **Monorepo migration and dual autonomous loops** — How do the Swift app, Python canonical kg, and shared contracts coexist in one repo, and what are the two autonomous loops (compile loop, execution loop)?
+8. **Monorepo package topology and dual autonomous loops** — How do the Swift app, Python canonical kg, shared contracts, and app-local graph workspace co-evolve without becoming architectural mush?
 9. **Ontology provenance and on-device determinism** — How do PROV-O receipts, version stamping, and the unverified ontology lock survive the port to an offline, deterministic Swift runtime?
 10. **Contain versus surpass ledger** — Which work merely satisfies the assessment floor, and which work deliberately exceeds it, with the trade-off accounting?
 11. **Risks, open questions, and phased roadmap** — What are the known gaps (resolver fuzzy/embedding, single-tier data, laterality, SNOMED pinning), and in what phased order do we close them?
@@ -87,7 +96,7 @@ Each section answers one question:
 - [5. The three integration contracts](#5-the-three-integration-contracts)
 - [6. The closed execution loop - the surpass](#6-the-closed-execution-loop---the-surpass)
 - [7. Coach copilot inside the CamiFit chat](#7-coach-copilot-inside-the-camifit-chat)
-- [8. Monorepo migration and dual autonomous loops](#8-monorepo-migration-and-dual-autonomous-loops)
+- [8. Monorepo package topology and dual autonomous loops](#8-monorepo-package-topology-and-dual-autonomous-loops)
 - [9. Ontology provenance and on-device determinism](#9-ontology-provenance-and-on-device-determinism)
 - [10. Contain versus surpass ledger](#10-contain-versus-surpass-ledger)
 - [11. Risks open questions and phased roadmap](#11-risks-open-questions-and-phased-roadmap)
@@ -240,7 +249,7 @@ The decisive fact: CamiFit already round-trips structured artifacts — free tex
 | Seed graphs | `graph/exercise_kg.seed.json` (**25 nodes / 28 edges**, `graph_version: fitgraph-kg-m3-alternatives-v0`), `graph/member_kg.seed.json` (**11 nodes / 14 edges**, `m4-member-v1`), `graph/safety_rules.seed.json` (**2 rules**, 6-level lattice) | Hand-authored micro-slice. Exercise: BodyRegion×8, Equipment×4, MuscleGroup×4, MovementPattern×3, Exercise×5, ExerciseFamily×1. Member: thin Jordan (goal/equipment/injury/2 adherence/sleep/churn/brief + 2 SourceSpans). | **Seed only.** This is the **~10x gap** vs the golden catalog (table below). |
 | Ontology pipeline | `graph/ontology_mappings.seed.json`, `graph/ontology-lock.json`, `graph/provenance_schema.json` | 2 `MAPS_TO` records at `confidence:0.0`, `external_id:null`; lock `status:todo_unverified`, `verified:false`, OPE/COPPER/SNOMED all empty. | **Stubbed by design.** MAPS_TO is **audit metadata, never a safety edge** — enforced by `validate_graph_seed`. SNOMED grounding is a placeholder (`snomedct_hint` string only). |
 | Tests | `tests/test_{resolver,safety,alternatives,provenance,member_retrieval,validation,graph_store,imports,workflow_scripts}.py` (9 files) | Golden behavior: lattice precedence, missing/disallowed equipment, deadlift VARIANT_OF exclusion, knee/lumbar STRESSES blocks, alias resolution, exact receipt `graph_paths`. | **Green in the latest inspected FitGraph slice, but pin exact counts to a commit.** The relevant resolver/safety/alternatives/provenance/member-retrieval/validation/graph-store assertions become the **conformance vectors the Swift port must pass in CI** (§5, §9). |
-| Autonomous workflow | `scripts/run_codex_pair_cycle.sh`, `start_codex_goal_loop.sh`, `stop_codex_goal_loop.sh`, `GOAL.md`, `AGENTS.md`, `.codex-*` state files, `.autonomous-workflow.lock/` | An executor/reviewer Codex pair driven to satisfy `docs/kg-module-prd.md`, gated by `GOAL.md` stop conditions (reviewer `STOP`/`ESCALATE`, or a literal `<stop-orchestrator/>` sentinel in `GOAL.md`). | **Supervised loop, sentinel-gated.** A detached `screen` session `fitgraph-goal-loop` runs `run_codex_pair_cycle.sh --loop --interval 60 --max-cycles 10`; because of `--max-cycles` the worker recycles, so its PID is **not durable** — never hard-code it. `GOAL.md` also carries a `<stop-orchestrator/>` sentinel, the authoritative gate on whether a product slice executes; read `GOAL.md` for the active slice rather than any cached value. Stop via `scripts/stop_codex_goal_loop.sh` (reads `$ROOT/.codex-goal-loop.pid`) or the sentinel. The monorepo migration (§8) must **quiesce whichever loop is active by its control surface**, not assume a fixed PID or a fixed running/stopped state. |
+| Autonomous workflow | `scripts/run_codex_pair_cycle.sh`, `start_codex_goal_loop.sh`, `stop_codex_goal_loop.sh`, `GOAL.md`, `AGENTS.md`, `.codex-*` state files, `.autonomous-workflow.lock/` | An executor/reviewer Codex pair driven to satisfy `docs/kg-module-prd.md`, gated by `GOAL.md` stop conditions (reviewer `STOP`/`ESCALATE`, or a literal `<stop-orchestrator/>` sentinel in `GOAL.md`). | **Supervised loop, sentinel-gated.** A detached `screen` session `fitgraph-goal-loop` runs `run_codex_pair_cycle.sh --loop --interval 60 --max-cycles 10`; because of `--max-cycles` the worker recycles, so its PID is **not durable** — never hard-code it. `GOAL.md` also carries a `<stop-orchestrator/>` sentinel, the authoritative gate on whether a product slice executes; read `GOAL.md` for the active slice rather than any cached value. Stop via `scripts/stop_codex_goal_loop.sh` (reads `$ROOT/.codex-goal-loop.pid`) or the sentinel. The monorepo import (§8) must **quiesce whichever loop is active by its control surface**, not assume a fixed PID or a fixed running/stopped state. |
 
 **Scale honesty — seed vs golden (verified against the files):**
 
@@ -304,13 +313,13 @@ This section maps every testable requirement in `/Users/kelly/Developer/camifit/
 | KG1-3 map 19 muscles / 9 joints / 36 patterns / 32 equipment | GAP (compiled) | Golden vocab verified in `exercises.json`; seed instantiates only ~4/8/3/4 | ~10× gap seed→golden | PROPOSED: Python conformance importer with exact-count CI gate (50/19/9/36/32), feeding the Swift artifact (§4, §9) |
 | KG1-4 SKOS mapping + PROV-O | PART | `MAPS_TO` records exist audit-only, `confidence:0.0` (`/Users/kelly/Developer/fitgraph/graph/ontology_mappings.seed.json`); PROV-O shape documented (`/Users/kelly/Developer/fitgraph/graph/provenance_schema.json`) | PROV edges not materialized; MAPS_TO never authoritative (correctly) | Keep MAPS_TO as audit metadata; materialize PROV-O `GENERATED_BY/USED` edges at compile time (§9) |
 | KG2 member context graph from member-context.json | PART | Thin Jordan: goal/equipment/injury/2 adherence/sleep/churn/brief + SourceSpans (`/Users/kelly/Developer/fitgraph/graph/member_kg.seed.json`) | Missing labs, full workout_history, preferences, weight_trend; `InjuryEpisode` uses a `region_id` *property* not an `AFFECTS` edge | Compile full Jordan via conformance importer; reconcile property-vs-edge for injury region |
-| KG-REL / KG-SCHEMA docs | PART | PRD documents both KGs (`/Users/kelly/Developer/fitgraph/docs/kg-module-prd.md` §7–8) | Not in CamiFit monorepo | Port docs into the monorepo `docs/` as the canonical schema (§4) |
+| KG-REL / KG-SCHEMA docs | PART | PRD documents both KGs (`/Users/kelly/Developer/fitgraph/docs/kg-module-prd.md` §7–8) | Not yet mirrored into CamiFit integration docs | Export schema docs with the artifact/contracts bundle and reference them from CamiFit docs (§4, §8) |
 
 ### D. Ontology grounding (ONT)
 
 | Req | Today | Where | Gap |
 |---|---|---|---|
-| ONT-1/7/8 justified subset + diagram + tradeoffs | PART | PRD §10 enumerates OPE/COPPER/SNOMED/SKOS/PROV-O/SHACL with "use only concepts that affect behavior" | Architecture diagram + monorepo write-up PROPOSED |
+| ONT-1/7/8 justified subset + diagram + tradeoffs | PART | PRD §10 enumerates OPE/COPPER/SNOMED/SKOS/PROV-O/SHACL with "use only concepts that affect behavior" | Architecture diagram + modular artifact-handoff write-up PROPOSED |
 | ONT-2/3/4 OPE / COPPER / SNOMED | GAP | `ontology-lock.json` declares all three `unverified`, `concept_ids:[]` (`/Users/kelly/Developer/fitgraph/graph/ontology-lock.json`); golden injury carries only a `snomedct_hint` string | No pinned IDs. PROPOSED: pin the small SNOMED subset (knee/patella/patellar tendon/meniscus/lumbar/low-back-pain) at build time; lock stays `verified:false` until pinned |
 | ONT-5/6 PROV-O / SKOS | PART | Shapes documented; SKOS records audit-only | Materialize PROV-O edges; keep SKOS non-safety |
 
@@ -338,7 +347,7 @@ The synthesis action across ONT is uniform: ontology grounding is a **build-time
 | Req | Today | Where | Gap | Synthesis action |
 |---|---|---|---|---|
 | PROV-1/2 receipts: why chosen, graph path, what filtered | SAT (engine) | `DecisionReceipt` + `graph_paths` evidence strings `"src -PRED-> tgt"` (`safety.py`); `validate_decision_receipt` (`provenance.py`) | Not rendered in CamiFit | Port receipt + validator to Swift; render via `ProvenanceCard` (§6) |
-| PROV-3 example traces in README | GAP | No README traces in monorepo yet | PROPOSED: include the goblet_squat knee-block trace (verbatim from `/Users/kelly/Developer/fitgraph/tests/test_safety.py`) as a golden example |
+| PROV-3 example traces in README | GAP | No CamiFit README trace examples yet | PROPOSED: include the goblet_squat knee-block trace (verbatim from `/Users/kelly/Developer/fitgraph/tests/test_safety.py`) as a golden example |
 
 ### H. Required tests (TST)
 
@@ -346,7 +355,7 @@ The synthesis action across ONT is uniform: ontology grounding is a **build-time
 |---|---|---|---|---|
 | TST-1 resolver tests | SAT | `test_resolver.py` (alias/punctuation cases) | Swift-side equivalents PROPOSED | Port as Swift unit tests; reuse Python outputs as conformance vectors |
 | TST-2 safety filter tests | SAT | `test_safety.py` (lattice, equipment, VARIANT_OF, knee/lumbar blocks, exact graph_paths) | Swift equivalents PROPOSED | Same: Python golden = Swift CI gate |
-| TST-3 explain chosen critical paths | PART | KG resolver/safety/alternatives tests exist; rationale in PRD §20 | Doc PROPOSED in monorepo |
+| TST-3 explain chosen critical paths | PART | KG resolver/safety/alternatives tests exist; rationale in PRD §20 | Doc PROPOSED in integration docs |
 
 CamiFit also already has an engine-side test discipline (golden trace fixtures via `EngineTraceRecorder`, `Sources/CamiFitEngine/EngineTraceRecorder.swift`) — the natural home for the ported KG conformance suite.
 
@@ -518,7 +527,30 @@ flowchart TD
   end
 ```
 
-### 4.5 What is hard to port: the embedding fallback
+### 4.5 On-device graph state: immutable base, mutable overlay
+
+The Swift port should not treat "the graph" as one mutable blob. It has four distinct states, each with a different authority level:
+
+| State | Location | Mutability | Authority |
+|---|---|---|---|
+| **Canonical source graph** | FitGraph repo (`kg/`, `graph/`, ontology lock, compiler) | Mutable by KG authors and CI only | Ground truth for exercise taxonomy, safety rules, ontology/provenance, and conformance vectors |
+| **Signed base artifact** | Bundled with the app and copied into Application Support as `base/<content_sha256>.kgart.json` | Immutable; updates are new files, never in-place edits | Read-only base graph for exercise, safety, resolver, ontology-audit, and canonical member seed data |
+| **Swift in-memory graph core** | `KGKit` runtime structures | Rebuilt from base + overlay at launch or after validated operations | Fast deterministic traversal surface for resolver, safety, alternatives, receipts, and fact cards |
+| **Member overlay + operation log** | Application Support, e.g. `KnowledgeGraph/overlays/member/current.jsonl` and `KnowledgeGraph/ops/*.jsonl` | Append-only, compactable into signed local snapshots | User-specific preferences, requests, generated routines, observations, and agent-authored graph operations |
+
+This resolves the apparent tension between an immutable graph and an adaptive coach. The **base artifact is immutable** and protects safety/ontology truthfulness. The **overlay evolves** in response to the user's preferences and requests. A local agent may operate on the overlay through a small operation grammar — for example `AddPreference`, `RetractPreference`, `RecordWorkoutSession`, `AttachGeneratedProgram`, `AddAliasCandidate`, `RequestClarification`, or `ArchiveStaleObservation` — but every operation is validated before it becomes visible to `KGKit`.
+
+Hard rules for the overlay:
+
+1. Overlay operations may add member facts, preferences, requests, generated program references, observations, source spans, and local aliases.
+2. Overlay operations may not edit canonical `Exercise`, `BodyRegion`, `SafetyRule`, `PART_OF`, `STRESSES`, `REQUIRES`, `VARIANT_OF`, `MAPS_TO`, or severity-lattice records from the base artifact.
+3. Overlay operations may never downgrade a hard safety block, remove a required equipment edge, or mark an unverified ontology mapping authoritative.
+4. Every operation carries `{operation_id, actor, created_at, base_artifact_sha, precondition_revision, source_span_ids[]}` so the app can audit, replay, and roll back local graph evolution.
+5. The in-memory graph is a deterministic merge view: `base artifact + validated overlay`, with stable ordering and receipt fingerprints that include both the base artifact hash and the overlay revision when member facts affect the decision.
+
+The product payoff is large: CamiFit can keep a copy of the KG as a first-class Swift data structure for offline traversal, while also giving the local agent a persistent file-system workspace it can refine over time. The app becomes adaptive without letting the agent rewrite the safety brain.
+
+### 4.6 What is hard to port: the embedding fallback
 
 The PRD §11 three-pass resolver (exact/alias/SKOS → fuzzy+margin → embedding) is **the only genuinely hard piece**, and the ground truth is unambiguous: it exists *only as prose*. `kg/resolver.py` ships exact/alias/canonical + a hard `UnresolvedConcept` fallback; brief 002 lists fuzzy and embedding under Out Of Scope; there are no `difflib`/cosine/levenshtein imports anywhere, no confidence thresholds, and no SKOS-label pass (MAPS_TO carries `confidence:0.0`, `external_id:null`). So a faithful port has nothing to mirror — fuzzy/embedding are new work, not a translation.
 
@@ -534,8 +566,6 @@ PROPOSED on-device options, in priority order, all preserving the invariant that
 The recommended path is **A + D for v1** (closes the assessment's RES-1/RES-4 conformance floor deterministically and offline), with **B** as the first surpass and **C** as the build-time recall booster — never a runtime model. This keeps the entire serving layer offline and deterministic, satisfies the fixed "closed on-device execution loop" priority, and ensures the LLM in the coach chat (§7) only parses and verbalizes — the compiled graph, replayed in Swift and proven equal to the Python oracle, is the sole authority on eligibility and safety.
 
 ---
-
-The shapes match the ground truth exactly. I have everything I need to write the section.
 
 ## 5. The three integration contracts
 
@@ -669,6 +699,8 @@ Determinism levers the Swift port **must** preserve (from `kg/`): sort nodes by 
 
 This is the surpass contract (the closed loop, §6) and is **entirely PROPOSED** — no write-back exists today. The CamiFit engine already produces the raw material: `RepStateMachine` counts, `HoldEvaluator.heldSeconds`, `FormRuleScoreSummarizer` weighted score, `SetProgressTracker` completion (`Sources/CamiFitEngine/*`). The member KG (`graph/member_kg.seed.json`) currently has the read side only (`AdherenceObservation` x2). Write-back appends typed, provenance-anchored observation nodes that the next KG resolve/safety pass reads — every node carries `DERIVED_FROM -> SourceSpan` per the existing member-KG invariant.
 
+Physically, these writes land in the Application Support graph workspace defined in §4.5, not in the signed base artifact. The app keeps the base graph immutable and records user-specific evolution as validated overlay operations: preference changes, generated-program attachments, completed workout sessions, adherence observations, clarifications, and local source spans. The local agent may propose and apply those operations through the same validator, which is how the KG can change over time in response to the user's requests without corrupting canonical safety.
+
 ```json
 // PROPOSED ExercisePerformance node (from one completed set)
 {
@@ -682,6 +714,8 @@ This is the surpass contract (the closed loop, §6) and is **entirely PROPOSED**
     "form_score": 0.86, "cue_codes": ["depth","torso"],
     "rom_deg_mean": 92.4, "tracking_quality": "good",
     "graph_version": "fitgraph-kg-m5-validation-v0",
+    "base_artifact_sha": "<full sha256 of immutable base artifact>",
+    "overlay_revision": "member-overlay-rev-00042",
     "ruleset_version": "ruleset-m2-safety-v0",
     "ontology_lock_version": "ontology-lock-m0-unverified",
     "occurred_at": "2026-06-04T18:05:11Z"
@@ -878,7 +912,7 @@ The morning brief is two deterministic queries composed: `coach_brief` (the cele
 The fixed decision is that the hero is a member-facing on-device app, yet the assessment's Copilot is explicitly a *coach* dashboard (congratulate the member, assess churn). These are reconcilable without two apps. **Proposal: one chat surface, a `CopilotRole` toggle (`.member` | `.coach`), defaulting to `.member`, switchable in the existing `CamiFitSettingsView` account scene** (`ContentView.swift`) where the ChatGPT login already lives — the same place that already encodes identity. Justification:
 
 1. **The data is identical; the framing differs.** Every `member_retrieval` query runs against the same Jordan graph. Role does not change *what is true*, only *who is addressed* and *what is exposed*. Churn-risk and message-pattern cards are clinically/relationally sensitive — surfacing "you're at risk of churning" to the member is counterproductive — so `.member` mode **suppresses** the `churn_risk` and `message_pattern` cards and reframes `coach_brief` as "Today's focus." This is a pure render-layer filter over the same deterministic facts; no query is duplicated.
-2. **It honors the on-device, single-binary topology.** A separate coach app would fork the monorepo's serving runtime. A role flag keeps one `ChatViewModel`, one ported KG runtime, one card renderer.
+2. **It honors the on-device, single-binary topology.** A separate coach app would fork CamiFit's serving runtime. A role flag keeps one `ChatViewModel`, one ported KG runtime, one card renderer.
 3. **It maps cleanly to the existing identity seam.** `profile.coach_id: "coach_01HXSAM"` and `profile.id: "mbr_01HX9JORDAN"` already exist in the golden member; the role toggle is the UI expression of which identity is driving the session. PROPOSED: persist the chosen role alongside the account detail `CodexAppServerClient.accountDetail` populates.
 4. **The closed loop (Section 6) feeds both roles from the same writes.** When the on-device engine writes rep/hold/form-score results back into the member KG, the member sees "first pain-free squat work" and the coach sees the same observation as adherence/recovery evidence — one write, two framings.
 
@@ -886,130 +920,164 @@ The brain swap is the one structural change the chat surface needs, and the seam
 
 ---
 
-## 8. Monorepo migration and dual autonomous loops
+## 8. Monorepo package topology and dual autonomous loops
 
-CamiFit and FitGraph are today two independent git repos, each driven by an identical autonomous Codex executor/reviewer loop. The fusion (thesis, §1) requires collapsing them into one monorepo **without stalling either loop and without losing the history that justifies every prior reviewer decision**. The hard part is not the file moves — it is that both loops poll the same control surface (`GOAL.md`, `.codex-goal-loop.pid`, `scripts/run_codex_pair_cycle.sh`) and would collide on a shared `GOAL.md` and a shared root PID file. This section sequences a safe migration and proposes the per-loop isolation that lets them coexist.
+Updated decision: **use a monorepo for coordinated development, but keep the architecture modular inside it**. The integration pressure is real: the Swift serving runtime, Python oracle, graph compiler, JSON contracts, conformance vectors, CamiFit chat surface, and execution loop all need to change together while the seam is still being discovered. Separate git repos would make every schema tweak a release-management event. The monorepo should remove coordination friction without letting package boundaries dissolve.
 
-### 8.1 What exists today (both repos, verified)
+The principle is: **same git root, different authority zones**. Python can author, validate, compile, and emit oracle vectors. Swift can load, serve, execute, and write local member overlays. The app runtime never imports Python. The local agent never mutates the signed base graph. CI is the line between "integrated" and "mushed together."
 
-| Artifact | CamiFit | FitGraph | Note |
+### 8.1 What exists today
+
+| Artifact | CamiFit | FitGraph | Monorepo implication |
 |---|---|---|---|
-| Mission file | `/Users/kelly/Developer/camifit/GOAL.md` (M3 productize) | `/Users/kelly/Developer/fitgraph/GOAL.md` (EOD, slice `docs/briefs/011-jordan-plyometric-knee-safety.md`) | Both define **Stop Conditions** incl. literal `<stop-orchestrator/>` sentinel |
-| Loop driver | `scripts/start_codex_goal_loop.sh`, `stop_codex_goal_loop.sh`, `run_codex_pair_cycle.sh` | same filenames | Identical machinery in both `scripts/` dirs |
-| Live PID | `.codex-goal-loop.pid` is per-root; **no camifit loop runs today** (camifit is driven interactively / via Codex.app sessions on `feat/chat-regimen`) | only fitgraph runs the supervised loop (§2) | because `stop` reads `$ROOT/.codex-goal-loop.pid`, disjoint roots never collide |
-| Build/test | `swift test` (Package.swift: `CamiFitEngineTests`, `CamiFitAppTests`) | `uv` + `pytest` (`pyproject.toml`, `uv.lock`; exact test count pinned by commit) | Two toolchains |
-| CI | **none** — no `.github/workflows` (PROPOSED) | **none** — no `.github/workflows` (PROPOSED) | CI is greenfield |
-| Role docs | `executor-reviewer-pair-programming.md`, `docs/autonomous-workflow/*` | same + `AGENTS.md` | fitgraph has the richer guardian protocol |
+| Mission file | `/Users/kelly/Developer/camifit/GOAL.md` | `/Users/kelly/Developer/fitgraph/GOAL.md` | Move to per-loop roots so app and KG goals do not collide. |
+| Loop driver | `scripts/start_codex_goal_loop.sh`, `stop_codex_goal_loop.sh`, `run_codex_pair_cycle.sh` | same filenames | Reuse common scripts with explicit per-loop roots. |
+| Build/test | `swift test` (`CamiFitEngineTests`, `CamiFitAppTests`) | `uv` + `pytest` (`pyproject.toml`, `uv.lock`) | CI runs both toolchains and the cross-language parity gate. |
+| Source data | `docs/requirements/candidate-assessment/` snapshot | `graph/*.seed.json`, ontology lock, safety rules | Candidate-assessment remains golden data; FitGraph remains canonical KG authoring. |
+| Runtime state | app support files, generated presets/routines | none | Runtime graph evolution lives outside git in Application Support (§8.5). |
 
-The `<stop-orchestrator/>` sentinel (a FitGraph `GOAL.md` Stop Condition) is the clean lever: writing it into a loop's `GOAL.md` halts that loop at the next cycle boundary without `kill`. This is the safe pause primitive the migration leans on.
-
-### 8.2 Proposed package layout
+### 8.2 Recommended monorepo layout
 
 ```
-camifit/                      # monorepo root (keep the camifit repo as the hero base)
+camifit/                                  # monorepo root
 ├─ apps/
-│  └─ macos/                  # MOVED Sources/CamiFitApp + Resources, Presets/
-├─ engine/                    # MOVED Sources/CamiFitEngine (ExerciseProgram, ProgramLoader, Expression/*)
-├─ kgkit/                     # PROPOSED Swift KG runtime — the §5/§9 Swift port of fitgraph/kg/*
-├─ kg-canonical/             # MOVED fitgraph/kg/*.py + pyproject.toml + uv.lock (build-time oracle only)
-├─ contracts/                 # PROPOSED shared schemas (§5): ExerciseProgram.schema.json, DecisionReceipt, conformance vectors
+│  ├─ macos/                              # CamiFit SwiftUI macOS shell
+│  └─ iphone/                             # future iPhone app target
+├─ engine/
+│  └─ CamiFitEngine/                      # pose/form/rep engine; KG-agnostic
+├─ kgkit/
+│  └─ Sources/KGKit/                      # Swift serving runtime
+├─ kg-canonical/
+│  ├─ kg/                                 # Python oracle/compiler/validation
+│  ├─ graph/                              # source seed graphs, ontology lock
+│  ├─ tests/                              # oracle tests
+│  ├─ pyproject.toml
+│  └─ uv.lock
+├─ contracts/                             # shared schemas
+│  ├─ DecisionReceipt.schema.json
+│  ├─ GraphOperation.schema.json
+│  ├─ FactCard.schema.json
+│  └─ Trackability.schema.json
 ├─ data/
-│  ├─ golden/                 # from camifit docs/requirements/candidate-assessment/data/ (fitgraph keeps a 2nd copy at docs/external/ — dedupe on merge)
-│  └─ seed/                   # MOVED fitgraph/graph/*.seed.json + ontology-lock.json + safety_rules
-├─ artifact/                  # PROPOSED frozen compiled+signed graph artifact the Swift runtime loads
+│  ├─ golden/candidate-assessment/         # vendored golden spec + data
+│  └─ seed/                                # compiled/imported KG seed bundle
+├─ artifacts/
+│  ├─ fitgraph.kgart.json                  # generated signed base artifact
+│  └─ conformance/*.vectors.json           # Python oracle outputs
 ├─ loops/
-│  ├─ app/   GOAL.md  .codex-goal-loop.pid   # camifit loop, relocated
-│  └─ kg/    GOAL.md  .codex-goal-loop.pid   # fitgraph loop, relocated
-├─ scripts/                   # unified loop drivers (per-loop ROOT arg)
+│  ├─ app/GOAL.md                          # app/execution loop
+│  └─ kg/GOAL.md                           # KG/compiler loop
 ├─ docs/
-└─ Package.swift              # multi-target: CamiFitEngine, KGKit, CamiFitApp
+└─ Package.swift                           # CamiFitEngine + KGKit + apps
+
+Application Support/CamiFit/KnowledgeGraph/ # runtime, outside git
+├─ base/<content_sha256>.kgart.json
+├─ overlays/member/current.jsonl
+├─ ops/*.jsonl
+├─ snapshots/member-<revision>.kgmember.json
+└─ receipts/*.json
 ```
 
-`Package.swift` gains a `KGKit` library target (depended on by `CamiFitApp`, not `CamiFitEngine` — the engine stays pose-only per its design). `kg-canonical/` keeps its own `pyproject.toml`/`uv.lock`; **it never ships at runtime** (fixed decision): it compiles `data/seed/*` + `kg/validation.py` into `artifact/` plus conformance vectors that `kgkit/` must replay in CI.
+This keeps the layers close enough to move together, while preserving authority:
 
-### 8.3 Dual autonomous loops: isolate, don't merge
+| Zone | Allowed to change | Not allowed to change |
+|---|---|---|
+| `kg-canonical/` | Python oracle behavior, source graph, ontology lock, artifact compiler, conformance vectors | Swift runtime code or app UI |
+| `kgkit/` | Swift graph loader, resolver/safety/alternatives/fact-card runtime, parity tests | canonical graph source, ontology truth, Python oracle outputs |
+| `engine/` | pose-frame DSL, rep/hold/form engine, trace records | KG safety decisions |
+| `apps/` | chat UI, cards, routine execution, settings, local graph workspace UX | canonical safety rules |
+| `contracts/` | shared JSON schemas, reviewed by both loops | runtime-only or source-only hidden fields |
+| `artifacts/` | generated outputs only | hand-authored behavior |
+| Application Support | user/member overlay, operation log, receipts | signed base artifact contents |
 
-Merging the two loops into one `GOAL.md` would force one executor to context-switch between Swift pose-engine work and Python KG work every cycle — and would make the single root `.codex-goal-loop.pid` a contention point. **Keep them as two loops with disjoint control surfaces and disjoint write scopes.** `stop_codex_goal_loop.sh` already takes a `ROOT` argument (`ROOT="${1:-$PWD}"`, reads `$ROOT/.codex-goal-loop.pid`), so pointing each loop at `loops/app` vs `loops/kg` requires no script change — only that `run_codex_pair_cycle.sh` and `start_codex_goal_loop.sh` are invoked with the per-loop root.
+### 8.3 Monorepo gates
 
-```mermaid
-flowchart TB
-  subgraph repo[camifit monorepo]
-    subgraph appL[loops/app]
-      AG[GOAL.md M-app] --> APID[.codex-goal-loop.pid]
-    end
-    subgraph kgL[loops/kg]
-      KG[GOAL.md M-kg] --> KPID[.codex-goal-loop.pid]
-    end
-    APID -.writes.-> APPS[apps/ engine/ kgkit-consumers]
-    KPID -.writes.-> KGC[kg-canonical/ data/seed contracts/]
-    KGC -->|compiles| ART[artifact/ + conformance vectors]
-    ART -->|loaded+verified by| KGK[kgkit/]
-  end
-  CI[CI gates] --> repo
-```
-
-| Concern | Rule (PROPOSED) |
-|---|---|
-| Write scope, app loop | `apps/`, `engine/`, `kgkit/` (consumes the artifact; never edits `data/seed`) |
-| Write scope, kg loop | `kg-canonical/`, `data/seed/`, `contracts/`, regenerates `artifact/` |
-| Shared boundary | `contracts/` + `artifact/` are the **only** cross-loop coupling; changes there land via the kg loop and are pulled by the app loop |
-| Reviewer gate | each loop keeps its own reviewer `STOP`/`ESCALATE`; the conformance-parity gate (§8.5) is the shared backstop that fails either loop's PR if the boundary drifts |
-
-The `artifact/` directory is the deliberate seam from the two-layer model (§4, §9): the kg loop produces the frozen signed graph + conformance vectors; the app loop's `kgkit/` consumes them and must pass them. Neither loop writes the other's domain, so two executors run concurrently without a shared lock.
-
-### 8.4 History preservation: `git filter-repo`, not subtree merge
-
-Both repos carry reviewer-decision history that justifies current behavior (e.g. camifit commit `9b8b8cc` "CRLF-safe parsing"; fitgraph's 48-test-green KG-logic state). Preserve both. Use `git filter-repo` to rewrite each source repo so its files sit under the target subdirectory **before** merging — this keeps `git log --follow` working across the move, which `git mv` after a naive merge does not. Prefer `filter-repo` over `git subtree add` because subtree squashes (or creates a synthetic merge that breaks `--follow`), and over a fresh `git mv` because that orphans every prior path's history.
-
-```
-# fitgraph → kg-canonical/ + data/seed/ (run on a throwaway clone)
-git filter-repo --path kg/ --path graph/ --path tests/ --path pyproject.toml \
-  --path uv.lock --path docs/kg-module-prd.md \
-  --to-subdirectory-filter kg-canonical/
-# then split graph/ → data/seed via a path rename pass, commit, add as remote, merge --allow-unrelated-histories
-```
-
-CamiFit stays the base repo (it is the hero, §1), so its history is untouched at root; its own files are relocated with `git mv` inside one commit (acceptable because the repo identity is preserved). Tag both repos `pre-monorepo-freeze` first so the original linear histories remain recoverable.
-
-### 8.5 CI gates (all PROPOSED — `.github/workflows/ci.yml`)
-
-Five gates, two of them new. The conformance-parity gate is the load-bearing one for the fixed two-layer decision.
+The monorepo is only safe if CI enforces the architectural split:
 
 | Gate | Command | Enforces |
 |---|---|---|
-| `swift-test` | `swift test --disable-sandbox` | engine + app + `kgkit/` unit tests (sandbox off so the test host can read bundled `data/`/`artifact/`) |
-| `kg-python` | `uv run pytest` (in `kg-canonical/`) | the canonical KG resolver/safety/alternatives/provenance/member-retrieval tests stay green — the oracle is trustworthy |
-| `kg-validation` | `uv run python -m kg.validation` | seed integrity: unique node ids, closed-world edge endpoints, `MAPS_TO.runtime_safety_edge==false`, ontology-lock truthfulness (`verified:false` until pinned) — exits non-zero on failure |
-| `artifact-build` | PROPOSED `python -m kg_canonical.compile` | recompiles `artifact/` from `data/seed`; **fails if `artifact/` is dirty vs HEAD** (frozen artifact must be regenerated, not hand-edited) |
-| `conformance-parity` | PROPOSED `swift test --filter ConformanceTests` | `kgkit/` (Swift) replays the Python oracle's conformance vectors and must match **byte-for-byte** on every `DecisionReceipt` (decision, `primary_severity`, ordered `reason_codes`, `graph_paths`, `constraint_fingerprint`) |
+| `kg-python` | `cd kg-canonical && uv run pytest` | Python oracle and importer behavior stays green. |
+| `kg-validation` | `cd kg-canonical && uv run python -m kg.validation` | graph/ontology/safety seed integrity. |
+| `artifact-build` | `python -m kg_canonical.compile` | `artifacts/` are regenerated from source, not hand-edited. |
+| `swift-test` | `swift test --disable-sandbox` | app, engine, and KGKit tests stay green. |
+| `conformance-parity` | `swift test --filter ConformanceTests` | Swift `KGKit` reproduces Python vectors byte-for-byte. |
+| `contracts-compat` | schema validation over fixtures, vectors, and app-generated blocks | no hidden contract drift. |
 
-The `conformance-parity` gate is what makes "port the KG to Swift" safe: it pins the Swift runtime to the Python oracle's output on the golden cases (Jordan's `avoid_loaded_knee_flexion` block on `goblet_squat`, the `no barbell` subset filter, the `exclude deadlifts` VARIANT_OF exclusion). It directly enforces the fixed invariants — deterministic graph traversal decides safety, MAPS_TO is audit-only, vector search never enters the safety path — by failing if any Swift receipt diverges from the deterministic oracle. The honest-broker JSON-RPC posture of the coach (`approvalPolicy:"never"`, `sandbox:"read-only"`, every server→client request answered `-32601`, `CodexAppServerClient.swift`) means the LLM still only verbalizes; CI does not need to police it, only the deterministic KGKit output.
+The cross-language gates are the point of the monorepo: a schema edit, graph edit, artifact compile, Swift loader change, and UI fixture update can land in one PR, with one red/green answer.
 
-### 8.6 Order of operations
+### 8.4 Dual autonomous loops: same repo, separate write scopes
 
-1. **Freeze.** Write `<stop-orchestrator/>` into `fitgraph/GOAL.md`; let its loop halt at the next cycle boundary (clean, not `kill`). Confirm its reviewer last recorded a non-dirty state.
-2. **Snapshot.** Tag both repos `pre-monorepo-freeze`; ensure camifit `feat/chat-regimen` is committed.
-3. **Rewrite fitgraph history** on a throwaway clone with `git filter-repo` into `kg-canonical/` + `data/seed/`.
-4. **Relocate camifit** in-place: `git mv` into `apps/`, `engine/`, `data/golden/`; move `GOAL.md`+`.codex-goal-loop.pid` to `loops/app/`. Keep the live loop pointed at the new root by restarting it against `loops/app`.
-5. **Merge** the rewritten fitgraph remote with `--allow-unrelated-histories`; place its `GOAL.md` under `loops/kg/`.
-6. **Wire the build:** add `KGKit` target to `Package.swift`; stub `contracts/` and `artifact/` from the first `kg.validation`-clean compile.
-7. **Land CI** (`.github/workflows/ci.yml`) with all five gates; require green before either loop resumes.
-8. **Restart both loops** against `loops/app` and `loops/kg` with disjoint write scopes; remove `<stop-orchestrator/>` from `loops/kg/GOAL.md` last.
+The app loop and KG loop can coexist in one repo if they keep disjoint control surfaces and write scopes:
 
-### 8.7 Migration checklist
+```mermaid
+flowchart LR
+  subgraph REPO["camifit monorepo"]
+    subgraph KG["loops/kg"]
+      KGG["KG goal"] --> KGC["kg-canonical/ graph/ contracts/ artifacts/"]
+    end
+    subgraph APP["loops/app"]
+      APPG["app goal"] --> APPC["apps/ engine/ kgkit/"]
+    end
+    KGC --> PARITY["conformance parity gate"]
+    APPC --> PARITY
+    PARITY --> SHIP["app bundle"]
+  end
+  SHIP --> AS["Application Support graph workspace"]
+```
 
-- [ ] `<stop-orchestrator/>` added to fitgraph `GOAL.md`; loop confirmed idle via its `.codex-goal-loop.pid`
-- [ ] camifit `feat/chat-regimen` committed; both repos tagged `pre-monorepo-freeze`
-- [ ] `git filter-repo` rewrite of fitgraph into `kg-canonical/`+`data/seed/`; `git log --follow` spot-checked on `kg/safety.py` and a seed file
-- [ ] camifit relocated to `apps/`/`engine/`/`data/golden/`; loops moved to `loops/app`,`loops/kg`
-- [ ] `--allow-unrelated-histories` merge complete; no path collisions; `uv.lock` and `Package.swift` both resolve
-- [ ] `data/seed/*` byte-identical to pre-move fitgraph `graph/*` (verified by hash) — no silent seed drift
-- [ ] `uv run python -m kg.validation` green; `uv run pytest` green from `kg-canonical/`; exact test count pinned to the merged fitgraph commit
-- [ ] `swift test --disable-sandbox` green (engine + app + KGKit)
-- [ ] `artifact/` regenerated by `artifact-build`; tree clean; `conformance-parity` Swift-vs-oracle replay matches on all golden receipts
-- [ ] Both loops restarted with disjoint write scopes; per-loop PID files distinct; `<stop-orchestrator/>` removed from `loops/kg/GOAL.md`
+| Concern | Rule |
+|---|---|
+| App loop write scope | `apps/`, `engine/`, `kgkit/`, app-facing docs; consumes `artifacts/` but does not hand-edit them. |
+| KG loop write scope | `kg-canonical/`, `data/seed/`, `contracts/`, generated `artifacts/`; does not edit app UI. |
+| Shared files | `contracts/` and `artifacts/` require both suites plus parity gate. |
+| Loop control | `loops/app/GOAL.md` and `loops/kg/GOAL.md` stay separate; PID/state files stay per-loop. |
+| Reviewer stop | either loop can stop independently; parity failure blocks integration. |
 
-Cross-references: artifact/contracts seam (§4, §9); conformance receipts (§5); closed execution loop the app loop builds toward (§6); the contain-vs-surpass framing the kg loop advances (§10); residual risks of two-loop drift (§11).
+This is the key monorepo trade: one branch can carry a coordinated contract/runtime change, but the loops still act like separate teams.
+
+### 8.5 App-local graph workspace
+
+The monorepo does **not** make the runtime graph mutable in source control. At first launch or artifact upgrade, CamiFit copies the bundled base artifact into Application Support under its content hash. That file is immutable. The app then builds a deterministic in-memory graph view from:
+
+```text
+base/<sha>.kgart.json + overlays/member/current.jsonl
+```
+
+The overlay is the adaptive surface. It records validated operations from the user, the execution engine, and the local agent:
+
+| Operation | Allowed effect |
+|---|---|
+| `AddPreference` / `RetractPreference` | Add or retire member likes, dislikes, equipment access, goals, scheduling preferences. |
+| `RecordWorkoutSession` | Append completed session and performance facts from the pose engine. |
+| `AttachGeneratedProgram` | Link a validated generated `ExerciseProgram` to a graph exercise or local routine. |
+| `AddAliasCandidate` | Add a local alias only after resolver confidence/clarification rules pass. |
+| `RequestClarification` | Record unresolved or ambiguous user intent without guessing. |
+| `ArchiveStaleObservation` | Hide old local facts from default retrieval without deleting audit history. |
+
+Forbidden effects are just as important: the overlay cannot edit canonical exercise nodes, anatomy, safety rules, ontology mappings, severity precedence, or hard-block receipts from the base artifact. If the agent wants a new canonical rule, that is a `kg-canonical/` authoring change that goes through the compiler and produces a new base artifact.
+
+### 8.6 Why not separate repos now?
+
+Separate repos remain a future option once the contracts stabilize, but they are the wrong first move for this phase. Early work needs coupled edits:
+
+1. Adding a field to `DecisionReceipt` touches Python receipt generation, schema, vectors, Swift decoder, parity tests, and chat rendering.
+2. Adding `GraphOperation` support touches contracts, app overlay validation, fact cards, and write-back receipts.
+3. Expanding the 50-exercise importer touches golden data, seed graph, artifact compiler, trackability classification, and CamiFit routine emission.
+4. Debugging parity requires inspecting Python and Swift side by side.
+
+Those are monorepo-shaped changes. After the contract surface stops moving, FitGraph could split back out as an artifact-producing package/repo. Until then, the monorepo is the faster and safer topology.
+
+### 8.7 Migration order
+
+1. Freeze both current repos and tag `pre-monorepo-freeze`.
+2. Stop any active supervised loop cleanly via its own control surface (`<stop-orchestrator/>` or stop script), not by killing random PIDs.
+3. Use history-preserving import (`git filter-repo` into subdirectories or equivalent) for FitGraph so `kg/safety.py`, seed files, and tests keep useful history.
+4. Move CamiFit code into `apps/` and `engine/` with `git mv`; add `kgkit/`, `contracts/`, `artifacts/`, and `loops/`.
+5. Wire CI gates before resuming autonomous loops.
+6. Bring candidate-assessment data into `data/golden/candidate-assessment/` while keeping the current `docs/requirements/` snapshot/provenance visible.
+7. Resume loops with separate goals and write scopes.
+
+Cross-references: artifact/contracts seam (§4, §9); Application Support graph state (§4.5); conformance receipts (§5); closed execution loop (§6); residual risks of loop and overlay drift (§11).
 
 ---
 
@@ -1174,7 +1242,7 @@ This section names the load-bearing risks and open questions for the fusion, the
 | R3 | **Compiling 50 catalog exercises into *runnable* Exercise-Programs.** The catalog gives `joints_loaded[]`/`muscle_groups[]`/`movement_patterns[]` — it carries **no** pose signals, predicates, or form rules. The engine only runs `abs/angle/angle_to_vertical` and a single-comparison predicate grammar; `bodyweight_plank` is the only hold preset. | A KG-selected exercise that has no pose program cannot enter the execution loop (§6) — it can be *recommended* but not *graded*. | catalog `/Users/kelly/Developer/camifit/docs/requirements/candidate-assessment/data/exercises.json`; engine grammar `/Users/kelly/Developer/camifit/Sources/CamiFitEngine/Expression/{Lexer,Parser,Evaluator}.swift`; presets `/Users/kelly/Developer/camifit/Presets/` | **Phased.** Only the 4 v1 presets are runnable today. PROPOSED: a per-movement-pattern authoring table (squat/lunge/press/hold archetypes) so a subset of the 50 compile to real programs; the rest recommend-only until authored. This is the single biggest scope unknown. |
 | R4 | **Embedding fallback on-device.** PRD §11 wants exact→fuzzy→embedding; the live resolver implements **only** exact/alias + hardcoded cases (`kg/resolver.py`), and fuzzy/embedding are explicitly Out Of Scope (`docs/briefs/002-m1-resolver-seed-graph.md`). | Shipping an embedding pass risks letting a vector match influence safety — forbidden. | `kg/resolver.py`, `docs/briefs/002` | **Surpass, fenced.** Embedding work happens at **build time** only (expand alias map via Apple `NLEmbedding`); runtime stays purely lexical; any embedding-derived term is capped at `needs_review`, never auto-resolving a safety-critical concept. Invariant: vector search never enforces safety. |
 | R5 | **SNOMED licensing / ontology verification.** `ontology-lock.json` is `verified:false`, all `concept_ids:[]`, `external_id:null`, `confidence:0.0`; MAPS_TO is audit-only. | Claiming verified grounding without pinned IDs/release/license violates the lock's own truthfulness checks (`kg/validation.py validate_ontology_lock`). | `/Users/kelly/Developer/fitgraph/graph/ontology-lock.json`, `graph/ontology_mappings.seed.json`, `kg/validation.py` | **Contain now, surpass later.** Phase 5 only. Until pinned, the compiled artifact ships MAPS_TO marked non-authoritative; lock stays literally `"unverified"`. |
-| R6 | **Dual-loop coordination.** Two autonomous loops (§8): the *recommendation* loop (resolve→safety→alternatives→receipt) and the *execution* loop (pose→grade→observation write-back). They share the member KG but have different determinism profiles (graph traversal is pure; pose grading is timestamp/sensor-driven). | Write-back from a noisy live session could corrupt the deterministic member graph the safety engine reads. | recommendation: `kg/safety.py`; execution: `/Users/kelly/Developer/camifit/Sources/CamiFitEngine/EngineTraceRecorder.swift`, member graph `/Users/kelly/Developer/fitgraph/graph/member_kg.seed.json` | **Phased.** PROPOSED: observations write to a separate append-only `ExercisePerformance`/`WorkoutSession` partition (declared-but-unseeded in PRD §7) consumed by fact cards; they never mutate STRESSES/PART_OF safety edges. |
+| R6 | **Overlay coordination.** The recommendation loop (resolve→safety→alternatives→receipt) and execution loop (pose→grade→observation write-back) share the app-local member overlay (§4.5, §8.4), but have different determinism profiles: graph traversal is pure; pose grading is timestamp/sensor-driven. | Write-back from a noisy live session could pollute the member facts that retrieval reads, or an agent operation could accidentally appear to relax safety. | recommendation: `kg/safety.py`; execution: `/Users/kelly/Developer/camifit/Sources/CamiFitEngine/EngineTraceRecorder.swift`; overlay workspace: Application Support `KnowledgeGraph/overlays/member/current.jsonl` | **Phased.** PROPOSED: observations write to a separate append-only `ExercisePerformance`/`WorkoutSession` partition consumed by fact cards; overlay validator rejects edits to STRESSES/PART_OF/REQUIRES/VARIANT_OF/safety rules and stamps every operation with base artifact hash + overlay revision. |
 | R7 | **Member-vs-coach framing.** Assessment specifies a *coach* dashboard (CP-2 morning brief, CP-7 churn); the hero product is *member-facing* (§1). | A first-person member app surfacing "churn risk: elevated" or "celebrate Jordan" reads wrong. | `docs/requirements/candidate-assessment/ASSESSMENT.md` (CP-2/CP-7); chat surface `/Users/kelly/Developer/camifit/Sources/CamiFitApp/ContentView.swift` | **Contain by reframing (§7).** Same fact cards, re-voiced: churn→"let's get you back on track," celebrate→self-congratulation. The graph queries are identical; only the verbalization layer changes. |
 | R8 | **~5s latency / on-device perf.** Soft target ≤5s (ASSESSMENT line 123); Python traversal is O(edges) linear scan per query (`kg/graph_store.py outgoing/incoming`). | At 50 exercises × N constraints, repeated linear scans plus per-frame pose eval on iPhone could miss budget. | `kg/graph_store.py`; pipeline `/Users/kelly/Developer/camifit/Sources/CamiFitEngine/FrameSignalProcessor.swift` | **Surpass.** PROPOSED: Swift loader precomputes adjacency dicts `[nodeId:[predicate:[edge]]]` + materialized PART_OF closures → O(1)/O(depth). Pose eval is already per-frame and offline. |
 | R9 | **Two divergent DSL surfaces.** Loader regex allowlist (10 functions, and/or/not) is a superset of the runtime (3 functions, single comparison); `form_rules.when` isn't validated at load. | A KG-emitted program can *load* yet evaluate `.invalid` at runtime — the candidate→Program compile (§5) would emit plausible-but-dead programs. | `/Users/kelly/Developer/camifit/Sources/CamiFitEngine/ProgramLoader.swift` vs `Expression/Parser.swift`; `FormRuleEvaluator.swift:479-549` | **Contain.** Generator targets the **intersection** only; PROPOSED Phase 2 hardening: make `ProgramLoader` fully parse expressions + `FormRuleCondition` at load so "reject at load" is restored. |
@@ -1184,7 +1252,7 @@ This section names the load-bearing risks and open questions for the fusion, the
 
 ```mermaid
 flowchart LR
-  P0[Phase 0\nMonorepo + contracts] --> P1[Phase 1\nCanonical catalog +\nartifact + Swift resolver/safety]
+  P0[Phase 0\nMonorepo packages +\ncontracts] --> P1[Phase 1\nCanonical catalog +\nartifact + Swift resolver/safety]
   P1 --> P2[Phase 2\nCandidate -> Exercise-Program\ncompile + render in chat]
   P2 --> P3[Phase 3\nOn-device execution +\nobservation write-back]
   P3 --> P4[Phase 4\nCopilot fact cards +\ncharts + brief]
@@ -1193,7 +1261,7 @@ flowchart LR
 
 | Phase | Entry criteria | Exit criteria | Conformance gate |
 |---|---|---|---|
-| **P0 — Monorepo + contracts** | Three repos exist independently (camifit, fitgraph). | Single monorepo: Swift app + Python canonical `kg/` + shared `contracts/` dir holding the JSON schemas for `ResolvedConstraint`, `DecisionReceipt`, `AlternativeRecord`, `FactCard`, `ExerciseProgram`, and the trackability classification (PROPOSED, derived from `kg/constraints.py`, `kg/safety.py`, `ExerciseProgram.swift`, and §5). CI runs both the pinned KG oracle tests and the Swift engine tests. Frozen-vector format defined. CamiFit may add fixture JSON responses against these contracts so UI/model work can proceed before the Swift runtime lands. | **Structural only:** both test suites green in one CI; fixture responses validate against contracts; no behavior change. |
+| **P0 — Monorepo packages + contracts** | Three repos exist independently (camifit, fitgraph, candidate-assessment snapshot). | One monorepo with hard package boundaries: `apps/`, `engine/`, `kgkit/`, `kg-canonical/`, `contracts/`, `data/golden/`, `artifacts/`, and `loops/`. Shared JSON schemas exist for `ResolvedConstraint`, `DecisionReceipt`, `AlternativeRecord`, `FactCard`, `GraphOperation`, `ExerciseProgram` linkage, and trackability classification. `KGKit` parity-test skeleton exists; Application Support graph workspace layout and overlay operation grammar are documented. CamiFit may add fixture JSON responses against these contracts so UI/model work can proceed before the Swift runtime lands. | **Structural only:** Python tests green; Swift tests green; fixture responses validate against contracts; generated artifact/vector hashes match; no behavior change. |
 | **P1 — Canonical catalog + compiled artifact + Swift resolver/safety with parity** | P0 done; contracts frozen. | Python canonical layer imports all 50 exercises (`source id`→`source_exercise_id`, `joints_loaded`→STRESSES, `muscle_groups`→TARGETS, `movement_patterns`→HAS_PATTERN, `equipment_required`→REQUIRES) + full Jordan, emits a **frozen signed graph artifact** + conformance vectors. Swift loads the artifact and a Swift port of `resolve_text` + `evaluate_candidates` + `select_alternatives` passes every vector byte-for-byte (fingerprints, `graph_paths`, lattice precedence, alternatives tie-break). STRESSES curation table authored (the hand-tuned safety bundle has no upstream source). | **Conformance importer count gate** (synthesis plan §"Conformance importer"): exactly 50 exercises / 19 muscle groups / 9 joints / 36 movement patterns / 32 equipment + full Jordan; **fail CI on any silently dropped field**. **Parity gate:** Swift output ≡ Python oracle on all vectors. **Safety gate:** `unsafe_allowed_rate = 0` on the WG-3a/b/c golden cases. |
 | **P2 — Candidate → Exercise-Program compile + render in chat** | P1 parity holds; Swift safety engine selects a safe pool on-device. | A KG-backed generator emits `camifit-routine` blocks referencing only known-good preset ids, and `camifit-exercise` blocks for the authored archetypes, into the existing chat surface (`RegimenBlockParser`, `RegimenCard`). Every emitted program targets the DSL **intersection** (R9) and survives `ProgramLoader.load` + dry-run. `ProgramLoader` hardened to fully parse expressions + `form_rules.when` at load. | **Compile gate:** 100% of generator-emitted programs pass load + dry-run (no load-accepts-but-runtime-invalid). **Provenance gate:** every routine block carries the `DecisionReceipt` graph-path trace (WG-4/PROV-2). No dangling preset ids. |
 | **P3 — On-device execution + observation write-back** | P2 emits runnable programs; live/synthetic pose path works (`LiveSession`, `EngineTraceRecorder`). | Member runs a generated workout; the engine grades reps/holds/form and writes results into an **append-only `WorkoutSession`/`ExercisePerformance` partition** of the member KG (PROPOSED; PRD §7 declared-unseeded). Fact cards read the write-back; safety edges are never mutated (R6). Guided-workout auto-advance on set completion wired to `advanceRoutine`. | **Loop closure gate:** a recommended→graded→written-back round trip is reproducible end-to-end. **Isolation gate:** post-write-back, re-running safety on the member graph yields identical receipts (write-back touched no safety edge). |
@@ -1202,4 +1270,4 @@ flowchart LR
 
 ### 11.3 Immediate next targets
 
-**Phase 0 and Phase 1 are the two writing-plans targets.** P0 is pure plumbing (monorepo topology, the shared `contracts/` schemas, dual-suite CI, frozen-vector format, and CamiFit fixture responses) and de-risks everything downstream by establishing the oracle harness without pretending the Swift runtime already exists. P1 is where the thesis is proven or falsified: it is the first phase that produces the **frozen signed graph artifact** and demonstrates **Swift-runtime parity against the Python oracle's conformance vectors** while hitting the importer count gate and `unsafe_allowed_rate = 0` on the golden injury/equipment cases (§3, §6). Everything after — chat-side generation (§7), the closed execution loop (§6), ontology verification (§9) — depends on P1's parity proof holding. Plan P0 and P1 in full detail next; leave P2–P5 as roadmap until P1's parity gate is green.
+**Phase 0 and Phase 1 are the two writing-plans targets.** P0 is pure plumbing (monorepo package layout, shared `contracts/` schemas, generated artifact/vector bundle, Application Support overlay layout, frozen-vector format, and CamiFit fixture responses) and de-risks everything downstream by establishing the oracle harness without pretending the Swift runtime already exists. P1 is where the thesis is proven or falsified: it is the first phase that produces the **frozen signed graph artifact** and demonstrates **Swift-runtime parity against the Python oracle's conformance vectors** while hitting the importer count gate and `unsafe_allowed_rate = 0` on the golden injury/equipment cases (§3, §6). Everything after — chat-side generation (§7), the closed execution loop (§6), ontology verification (§9) — depends on P1's parity proof holding. Plan P0 and P1 in full detail next; leave P2–P5 as roadmap until P1's parity gate is green.
