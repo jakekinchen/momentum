@@ -1,10 +1,14 @@
 /// Property values in the seed graph are JSON scalars (string/bool/number).
-/// A small closed enum keeps edge property matching deterministic and Codable.
+/// A small closed enum keeps edge property matching deterministic and type-safe.
 public enum PropertyValue: Equatable, Sendable {
     case string(String)
     case bool(Bool)
     case double(Double)
     case null
+}
+
+extension PropertyValue: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) { self = .string(value) }
 }
 
 public struct GraphNode: Equatable, Sendable {
