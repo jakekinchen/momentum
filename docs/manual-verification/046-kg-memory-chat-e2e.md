@@ -22,6 +22,7 @@ Touched implementation:
 - `Sources/CamiFitApp/ContentView.swift`
 - `Sources/CamiFitApp/KGMemoryProposal.swift`
 - `Sources/CamiFitApp/KGMemoryStore.swift`
+- `Tests/CamiFitAppTests/CoachAuthoringGateTests.swift`
 - `Tests/CamiFitAppTests/KGMemoryPanelModelTests.swift`
 - `script/build_and_run.sh`
 
@@ -57,7 +58,7 @@ That proves the Codex app-server protocol can produce the expected LLM operation
 
 ## GUI E2E Evidence
 
-Result: FAIL / BLOCKED for the full visible in-app E2E.
+Result: PASS for the full visible in-app E2E.
 
 The app was launched with:
 
@@ -72,29 +73,62 @@ The prompt was sent through the visible SwiftUI chat field by accessibility cont
 I have left knee pain, please remember this for future workouts.
 ```
 
-Observed GUI state after the first full watchdog attempt:
+Observed GUI state after the first successful turn:
 
 ```text
 AXStaticText | I have left knee pain, please remember this for future workouts.
-AXStaticText | ⚠️ Codex did not respond in time.
+AXStaticText | Got it — for workouts, we’ll avoid aggravating your left knee and favor low-impact, knee-friendly options or modifications.
+AXStaticText | Memory saved
+AXStaticText | Left Knee health/safety memory added to the local KG.
 ```
 
 Overlay evidence:
 
 ```text
-0 /Users/kelly/Library/Application Support/CamiFit/KnowledgeGraph/overlays/member/current.jsonl
+1 /Users/kelly/Library/Application Support/CamiFit/KnowledgeGraph/overlays/member/current.jsonl
+{"actor":"agent","effect":{"constraint_type":"BodyRegion","hard":true,"negated":false,"source_text":"I have left knee pain, please remember this for future workouts.","value":"left_knee"},"operation_type":"AddMedicalConstraint","precondition_revision":0,"scope":"member"}
 ```
 
-Current app session evidence after applying stderr-drain, stale-child cleanup, minimal effort, and `/tmp` cwd fixes:
+The follow-up prompt was then sent through the same visible chat field:
 
 ```text
-/Users/kelly/.codex/sessions/2026/06/05/rollout-2026-06-05T16-01-24-019e9997-374e-7c33-ae7e-109d3350059e.jsonl
-meta=["019e9997-374e-7c33-ae7e-109d3350059e", "/tmp"]
-turn=["019e9997-4b3c-72a0-b3ec-90798a4e0171", "/tmp", "gpt-5.5", "minimal", "auto"]
-counts={"message"=>3}
+Can I do jump squats today?
 ```
 
-The app-server session records the user message but no reasoning item and no assistant message. Since the app never receives the LLM response, it cannot parse an operation, append the overlay, render the artifact, or prove subsequent-chat behavior in the GUI.
+Observed subsequent-chat response:
+
+```text
+I’d skip jump squats today because the jumping/landing can stress your left knee.
+
+Try a gentler option instead:
+- Box squats to a chair: 2–3 sets of 8–12
+- Glute bridges: 2–3 sets of 10–15
+- Step-free wall sit only if pain-free: 2–3 holds of 15–30 seconds
+
+Keep the range of motion comfortable, move slowly, and stop if knee pain increases.
+```
+
+The overlay remained at one line after the follow-up turn, so the app acted on the memory without appending a duplicate write.
+
+Current passing app session:
+
+```text
+/Users/kelly/.codex/sessions/2026/06/05/rollout-2026-06-05T16-46-45-019e99c0-ba88-7fb2-b2a2-35accc4fe734.jsonl
+```
+
+The second user message recorded in that session included the app-injected fact card:
+
+```text
+CamiFit local KG fact cards for this user:
+- Left Knee: I have left knee pain, please remember this for future workouts.
+```
+
+Screenshot evidence:
+
+```text
+/tmp/camifit-e2e/kg-memory-after-first-visible.png
+/tmp/camifit-e2e/kg-memory-after-followup.png
+```
 
 ## Fixes Applied During Verification
 
@@ -102,13 +136,22 @@ The app-server session records the user message but no reasoning item and no ass
 - Cleared stdout/stderr readability handlers on termination.
 - Stopped the Codex child in `ContentView.onDisappear`.
 - Updated `script/build_and_run.sh` to terminate direct child processes before killing the app.
-- Reduced coach turns to `effort: minimal`.
+- Set coach turns to `effort: low`.
 - Set coach thread cwd to `/tmp`, matching the successful protocol harness.
 
-These fixes are valid hardening, but they did not make the visible GUI E2E pass on 2026-06-05.
+The key GUI blocker was `effort: minimal`. A matching app-server harness returned:
+
+```text
+invalid_request_error: The following tools cannot be used with reasoning.effort 'minimal': image_gen, web_search.
+```
+
+Switching to `effort: low` made the protocol harness complete in about 6 seconds and made the visible GUI E2E pass.
 
 ## Verdict
 
-Planning and bridge implementation are ready enough to review, but the requested full in-app E2E is not complete yet.
+The requested full in-app E2E passed on 2026-06-05:
 
-The next blocking issue is the GUI-launched Codex app-server turn lifecycle: the turn is accepted and logged, but the model turn does not produce reasoning or assistant output before the app watchdog. The KG memory parser/store path should not be treated as the active blocker until the GUI app-server turn returns a response.
+- the LLM produced a KG operation proposal;
+- the app validated and appended it to the member KG overlay;
+- the chat showed a memory-saved artifact instead of raw operation JSON;
+- the next chat turn used the saved left-knee memory to avoid jump squats.

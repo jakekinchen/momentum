@@ -46,6 +46,7 @@ final class CodexAppServerClient: ObservableObject {
     private var queuedText: String?
 
     private static let turnWatchdogSeconds: TimeInterval = 300
+    static let coachTurnEffort = "low"
 
     /// The chat coach must NOT freehand-author exercise programs. Per the FitGraph/KG synthesis
     /// (docs/design/2026-06-04-camifit-fitgraph-synthesis.md), "the graph decides; the LLM never
@@ -339,7 +340,7 @@ final class CodexAppServerClient: ObservableObject {
         guard let threadID else { queuedText = text; return }
         sendRequest(method: "turn/start",
                     params: ["threadId": threadID,
-                             "effort": "minimal",
+                             "effort": Self.coachTurnEffort,
                              "summary": "none",
                              "input": [["type": "text", "text": text]]])
     }

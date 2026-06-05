@@ -13,4 +13,8 @@ final class CoachAuthoringGateTests: XCTestCase {
             "Coach must not freehand-author ExercisePrograms until the KG/compiler is the author."
         )
     }
+
+    func testCoachTurnEffortAvoidsToolIncompatibleMinimalMode() {
+        XCTAssertEqual(CodexAppServerClient.coachTurnEffort, "low")
+    }
 }
