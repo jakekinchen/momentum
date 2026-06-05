@@ -12,5 +12,5 @@ the Python oracle's `DecisionReceipt`s byte-for-byte — including the
     swift test --disable-sandbox --filter KGKitTests
 
 ## What is NOT here yet (see docs/superpowers/plans/)
-Resolver, alternatives, member retrieval, 50-exercise scale-up, monorepo package integration.
+Member retrieval, 50-exercise scale-up, monorepo package integration.
 Scope and rationale: docs/design/2026-06-04-camifit-fitgraph-synthesis.md.

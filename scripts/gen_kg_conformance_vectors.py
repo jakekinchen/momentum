@@ -135,7 +135,37 @@ def emit_resolve_vectors() -> None:
     print(f"wrote {RESOLVE_VECTORS.relative_to(REPO)}: {len(vectors)} resolve vectors")
 
 
+from kg.alternatives import select_alternatives  # noqa: E402
+
+ALT_VECTORS = REPO / "Tests/KGKitTests/Fixtures/conformance/alternatives_vectors.json"
+
+
+def emit_alternatives_vectors() -> None:
+    graph = load_local_graph(FITGRAPH / "graph" / "exercise_kg.seed.json")
+    rules = load_safety_rules(FITGRAPH / "graph")
+    jordan_equipment = ["Dumbbell", "Kettlebell", "Yoga Mat"]
+    constraints = (_c(constraint_type="BodyRegion", value="left_knee", hard=True, source_text="left knee"),)
+    receipts = evaluate_candidates(available_equipment=jordan_equipment,
+                                   constraints=constraints, graph=graph, safety_rules=rules)
+    alts = select_alternatives(receipts, available_equipment=jordan_equipment, graph=graph)
+    vector = {
+        "available_equipment": jordan_equipment,
+        "constraints": [{"constraint_type": c.constraint_type, "value": c.value, "hard": c.hard,
+                         "source_text": c.source_text, "negated": c.negated} for c in constraints],
+        "expected_alternatives": [
+            {"filtered_exercise_id": a.filtered_exercise_id,
+             "alternative_exercise_id": a.alternative_exercise_id, "derived_from": a.derived_from,
+             "score": a.score, "score_components": a.score_components, "graph_paths": list(a.graph_paths)}
+            for a in alts
+        ],
+    }
+    ALT_VECTORS.parent.mkdir(parents=True, exist_ok=True)
+    ALT_VECTORS.write_text(json.dumps({"vectors": [vector]}, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {ALT_VECTORS.relative_to(REPO)}: {len(vector['expected_alternatives'])} alternatives")
+
+
 if __name__ == "__main__":
     freeze_artifact()
     emit_vectors()
     emit_resolve_vectors()
+    emit_alternatives_vectors()
