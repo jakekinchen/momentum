@@ -44,6 +44,8 @@ final class CodexAppServerClient: ObservableObject {
     private var activeTurn: ActiveTurn?
     private var turnToken = 0
     private var queuedText: String?
+    private let applicationSupportDirectory: URL
+    private let fileManager: FileManager
 
     private static let turnWatchdogSeconds: TimeInterval = 300
     static let coachTurnEffort = "low"
@@ -54,6 +56,13 @@ final class CodexAppServerClient: ObservableObject {
     /// a KG-backed ProgramCompiler becomes the author — it targets the same camifit-exercise grammar
     /// and the same ProgramLoader + FrameSignalProcessor validation gate. Flip to true only then.
     static let exerciseAuthoringEnabled = false
+
+    init(applicationSupportDirectory: URL? = nil,
+         fileManager: FileManager = .default) {
+        self.fileManager = fileManager
+        self.applicationSupportDirectory = applicationSupportDirectory
+            ?? Self.defaultApplicationSupportDirectory(fileManager: fileManager)
+    }
 
     private static let exerciseTemplate = #"""
     {
@@ -278,12 +287,23 @@ final class CodexAppServerClient: ObservableObject {
     }
 
     private func startThread() {
+        let coachWorkspace: URL
+        do {
+            coachWorkspace = try prepareCoachThreadWorkspace()
+        } catch {
+            let message = "Could not prepare Codex coach workspace: \(error.localizedDescription)"
+            queuedText = nil
+            state = .failed(message)
+            finishTurn { $0.onError(message) }
+            return
+        }
+
         sendRequest(method: "thread/start",
                     params: ["approvalPolicy": "never",
                              "personality": "friendly",
                              "sandbox": "read-only",
                              "baseInstructions": baseInstructions,
-                             "cwd": "/tmp"]) { [weak self] result in
+                             "cwd": coachWorkspace.path]) { [weak self] result in
             guard let self else { return }
             if let thread = result["thread"] as? [String: Any], let id = thread["id"] as? String {
                 self.threadID = id
@@ -296,6 +316,28 @@ final class CodexAppServerClient: ObservableObject {
                 self.state = .failed("Codex did not return a thread id.")
             }
         }
+    }
+
+    static func defaultApplicationSupportDirectory(fileManager: FileManager = .default) -> URL {
+        if let url = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            return url
+        }
+        return URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Application Support", isDirectory: true)
+    }
+
+    static func coachThreadWorkspaceURL(applicationSupportDirectory: URL) -> URL {
+        applicationSupportDirectory
+            .appendingPathComponent("CamiFit", isDirectory: true)
+            .appendingPathComponent("AgentThreads", isDirectory: true)
+            .appendingPathComponent("Coach", isDirectory: true)
+    }
+
+    func prepareCoachThreadWorkspace() throws -> URL {
+        let url = Self.coachThreadWorkspaceURL(applicationSupportDirectory: applicationSupportDirectory)
+        try fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
     }
 
     private func handleTermination() {

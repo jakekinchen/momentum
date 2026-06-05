@@ -137,7 +137,8 @@ Screenshot evidence:
 - Stopped the Codex child in `ContentView.onDisappear`.
 - Updated `script/build_and_run.sh` to terminate direct child processes before killing the app.
 - Set coach turns to `effort: low`.
-- Set coach thread cwd to `/tmp`, matching the successful protocol harness.
+- Set coach thread cwd to an app-owned persistent workspace:
+  `Application Support/CamiFit/AgentThreads/Coach`.
 
 The key GUI blocker was `effort: minimal`. A matching app-server harness returned:
 
@@ -146,6 +147,30 @@ invalid_request_error: The following tools cannot be used with reasoning.effort 
 ```
 
 Switching to `effort: low` made the protocol harness complete in about 6 seconds and made the visible GUI E2E pass.
+
+## Thread Workspace Policy
+
+`/tmp` was a verification workaround only. Production CamiFit coach threads use
+`Application Support/CamiFit/AgentThreads/Coach` as the Codex thread `cwd`, so
+the app does not depend on a disposable directory when relaunched.
+
+Live verification after the policy change:
+
+```text
+/Users/kelly/.codex/sessions/2026/06/05/rollout-2026-06-05T17-17-41-019e99dd-0ba5-7391-89eb-6080d9a0f197.jsonl
+cwd=/Users/kelly/Library/Application Support/CamiFit/AgentThreads/Coach
+```
+
+This directory is the app-owned coach workspace, not the KG writer. Member facts
+and memory updates still persist through the validated KG overlay under:
+
+```text
+Application Support/CamiFit/KnowledgeGraph/overlays/member/current.jsonl
+```
+
+Codex may still write its own JSONL audit/session logs under `~/.codex/sessions`;
+those files are Codex's external logs, while CamiFit's durable runtime state lives
+under Application Support.
 
 ## Verdict
 
