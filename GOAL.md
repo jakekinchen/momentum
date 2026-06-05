@@ -15,7 +15,7 @@ validated `RetractMedicalConstraint`.
 
 ## Current Slice
 
-docs/briefs/044-kg-memory-inspector-panel.md
+docs/briefs/045-kg-memory-inspector-ui-wiring.md
 
 ## Stop Conditions
 
