@@ -43,6 +43,13 @@ final class CodexAppServerClient: ObservableObject {
     private var turnToken = 0
     private var queuedText: String?
 
+    /// The chat coach must NOT freehand-author exercise programs. Per the FitGraph/KG synthesis
+    /// (docs/design/2026-06-04-camifit-fitgraph-synthesis.md), "the graph decides; the LLM never
+    /// decides eligibility." The authoring prompt + template below are retained but DISABLED until
+    /// a KG-backed ProgramCompiler becomes the author — it targets the same camifit-exercise grammar
+    /// and the same ProgramLoader + FrameSignalProcessor validation gate. Flip to true only then.
+    static let exerciseAuthoringEnabled = false
+
     private static let exerciseTemplate = #"""
     {
       "schemaVersion": 1,
@@ -152,11 +159,13 @@ final class CodexAppServerClient: ObservableObject {
     """#
 
     private var baseInstructions: String {
-        """
+        let persona = """
         You are CamiFit's friendly fitness coach. Answer questions about exercise form, reps, \
         holds, and general workout guidance in clear, encouraging text. Never run shell commands, \
         edit files, or use tools — only reply with text (the text may contain code blocks).
-
+        """
+        guard Self.exerciseAuthoringEnabled else { return persona }
+        return persona + "\n\n" + """
         When the user asks you to create a workout or a new exercise, reply with a short \
         encouraging explanation AND a single fenced code block the app reads:
         - For a routine: a fenced block tagged camifit-routine containing JSON \
