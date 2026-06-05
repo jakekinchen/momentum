@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up an on-device, fully-offline Swift `CamiFitKG` module that runs FitGraph's deterministic safety-by-traversal (medical + equipment + prompt-exclusion blocks, the severity lattice, decision receipts) and produces receipts that are **byte-identical** to FitGraph's Python oracle, proven by a golden conformance-vector harness.
+**Goal:** Stand up an on-device, fully-offline Swift `KGKit` module that runs FitGraph's deterministic safety-by-traversal (medical + equipment + prompt-exclusion blocks, the severity lattice, decision receipts) and produces receipts that are **byte-identical** to FitGraph's Python oracle, proven by a golden conformance-vector harness.
 
-**Architecture:** This is the first executable slice of the synthesis plan's Phase 1 ([docs/design/2026-06-04-camifit-fitgraph-synthesis.md](../../design/2026-06-04-camifit-fitgraph-synthesis.md) §4–§6). A small Python generator (the embryo of the future canonical compiler) reads FitGraph's seed graph + safety rules, freezes a Swift-loadable **graph artifact** JSON, and runs the live Python oracle over a set of scenarios to emit **golden conformance vectors**. The Swift `CamiFitKG` runtime loads the same frozen artifact and must reproduce every receipt — `decision`, `primary_severity`, ordered `reason_codes`, `graph_paths`, and the `sha256[:16]` `constraint_fingerprint` — exactly. A failing parity assertion fails the build. The deterministic levers from the Python source (sorted traversals, BFS `PART_OF` paths, sorted-key compact-JSON fingerprint) are ported verbatim.
+**Architecture:** This is the first executable slice of the synthesis plan's Phase 1 ([docs/design/2026-06-04-camifit-fitgraph-synthesis.md](../../design/2026-06-04-camifit-fitgraph-synthesis.md) §4–§6) and the `KGKit` parity skeleton the evolved roadmap names (§11 P0/P1). It builds the **Swift in-memory graph core over the immutable base artifact** (synthesis §4.5): the signed graph artifact is the read-only *base*. This plan does **not** yet add the Application-Support base-copy or the mutable member overlay/operation-log (synthesis §4.5/§8.5) — those are the immediate follow-on (Plan 5 below). A small Python generator (the embryo of the future canonical compiler) reads FitGraph's seed graph + safety rules, freezes a Swift-loadable **graph artifact** JSON, and runs the live Python oracle over a set of scenarios to emit **golden conformance vectors**. The Swift `KGKit` runtime loads the same frozen base artifact and must reproduce every receipt — `decision`, `primary_severity`, ordered `reason_codes`, `graph_paths`, and the `sha256[:16]` `constraint_fingerprint` — exactly. A failing parity assertion fails the build. The deterministic levers from the Python source (sorted traversals, BFS `PART_OF` paths, sorted-key compact-JSON fingerprint) are ported verbatim. The receipt fingerprint stays **current-oracle-exact**; the proposed `base_artifact_sha`/`overlay_revision` receipt fields (synthesis §6) are a future extension and out of scope here — adding them would break byte-parity with the present oracle.
 
 **Tech Stack:** Swift 5.9 / SwiftPM (existing `Package.swift`), XCTest, CryptoKit (`SHA256`), Foundation `Codable`. Python 3 + the existing FitGraph `kg/` package (`/Users/kelly/Developer/fitgraph`) for vector generation only — Python never ships at runtime.
 
@@ -18,7 +18,8 @@
 - *Plan 2 — Resolver port:* `resolve_text` (normalize + exact/alias + canonical cases + `only …` subset + `UnresolvedConcept`) and the on-device fuzzy pass.
 - *Plan 3 — Alternatives + member retrieval:* `select_alternatives` scoring and the copilot fact cards.
 - *Plan 4 — Canonical compiler + 50-exercise scale-up:* grow the artifact from the golden `data/exercises.json`, precomputed closures, exact-count CI gate.
-- *Plan 5 — Monorepo migration:* fold FitGraph in as `kg-canonical/`, dual-loop isolation.
+- *Plan 5 — App-local graph workspace:* copy the signed base artifact into Application Support under its content hash, the append-only member overlay + operation grammar (`AddPreference`/`RecordWorkoutSession`/…) + the validator that forbids overlay edits to canonical safety/ontology edges (synthesis §4.5/§8.5). The immediate next slice — it makes the graph adaptive without letting the agent rewrite the safety brain.
+- *Plan 6 — Monorepo package topology:* fold FitGraph in as `kg-canonical/`, package authority zones + cross-language CI gates incl. `conformance-parity` (synthesis §8).
 
 This plan deliberately constructs `ResolvedConstraint` values directly in tests/generators (mirroring FitGraph's `tests/test_safety.py`), so it does **not** depend on the resolver. It produces working, testable software on its own: `swift test` proves on-device safety parity.
 
@@ -28,50 +29,50 @@ This plan deliberately constructs `ResolvedConstraint` values directly in tests/
 
 | File | Responsibility |
 |---|---|
-| `Package.swift` (modify) | Add `CamiFitKG` library target (+ bundled `Resources/Artifact`) and `CamiFitKGTests` test target (+ `Fixtures`). |
-| `Sources/CamiFitKG/GraphModel.swift` | `GraphNode`, `GraphEdge` (with `path()`), value types. |
-| `Sources/CamiFitKG/GraphArtifact.swift` | `Codable` frozen artifact (`nodes`, `edges`, `safetyRules`, version stamps) + load from `Data`/`Bundle`. |
-| `Sources/CamiFitKG/LocalGraph.swift` | Closed-world snapshot: `node`, `outgoing`, `incoming`, `nodesByType`, `partOfPath`, `partOfClosurePaths`. |
-| `Sources/CamiFitKG/ResolvedConstraint.swift` | Typed constraint struct (mirror of `kg/constraints.py`). |
-| `Sources/CamiFitKG/SafetyRule.swift` | `SafetyRule` value type + property-match helper. |
-| `Sources/CamiFitKG/CanonicalJSON.swift` | Python-`json.dumps`-compatible serializer + `sha256[:16]` fingerprint. |
-| `Sources/CamiFitKG/DecisionReceipt.swift` | Receipt struct + `severityRank`/`primarySeverity` lattice. |
-| `Sources/CamiFitKG/SafetyEngine.swift` | The three reason generators + receipt assembly + `evaluateCandidates`. |
-| `Sources/CamiFitKG/Resources/Artifact/kg_artifact.v0.json` | Frozen graph artifact (generated from FitGraph seed). |
+| `Package.swift` (modify) | Add `KGKit` library target (+ bundled `Resources/Artifact`) and `KGKitTests` test target (+ `Fixtures`). |
+| `Sources/KGKit/GraphModel.swift` | `GraphNode`, `GraphEdge` (with `path()`), value types. |
+| `Sources/KGKit/GraphArtifact.swift` | `Codable` frozen artifact (`nodes`, `edges`, `safetyRules`, version stamps) + load from `Data`/`Bundle`. |
+| `Sources/KGKit/LocalGraph.swift` | Closed-world snapshot: `node`, `outgoing`, `incoming`, `nodesByType`, `partOfPath`, `partOfClosurePaths`. |
+| `Sources/KGKit/ResolvedConstraint.swift` | Typed constraint struct (mirror of `kg/constraints.py`). |
+| `Sources/KGKit/SafetyRule.swift` | `SafetyRule` value type + property-match helper. |
+| `Sources/KGKit/CanonicalJSON.swift` | Python-`json.dumps`-compatible serializer + `sha256[:16]` fingerprint. |
+| `Sources/KGKit/DecisionReceipt.swift` | Receipt struct + `severityRank`/`primarySeverity` lattice. |
+| `Sources/KGKit/SafetyEngine.swift` | The three reason generators + receipt assembly + `evaluateCandidates`. |
+| `Sources/KGKit/Resources/Artifact/kg_artifact.v0.json` | Frozen graph artifact (generated from FitGraph seed). |
 | `scripts/gen_kg_conformance_vectors.py` | Generator: freezes the artifact + emits golden vectors from the live oracle. |
-| `Tests/CamiFitKGTests/Fixtures/conformance/safety_vectors.json` | Golden vectors (generated, committed). |
-| `Tests/CamiFitKGTests/*.swift` | Unit tests + `ConformanceTests`. |
+| `Tests/KGKitTests/Fixtures/conformance/safety_vectors.json` | Golden vectors (generated, committed). |
+| `Tests/KGKitTests/*.swift` | Unit tests + `ConformanceTests`. |
 
 ---
 
-### Task 1: Add the `CamiFitKG` module + test target
+### Task 1: Add the `KGKit` module + test target
 
 **Files:**
 - Modify: `Package.swift`
-- Create: `Sources/CamiFitKG/Version.swift`
-- Create: `Tests/CamiFitKGTests/ModuleSmokeTests.swift`
+- Create: `Sources/KGKit/Version.swift`
+- Create: `Tests/KGKitTests/ModuleSmokeTests.swift`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/ModuleSmokeTests.swift`:
+Create `Tests/KGKitTests/ModuleSmokeTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class ModuleSmokeTests: XCTestCase {
     func testModuleVersionStampsArePresent() {
-        XCTAssertEqual(CamiFitKG.graphVersion, "fitgraph-kg-m5-validation-v0")
-        XCTAssertEqual(CamiFitKG.rulesetVersion, "ruleset-m2-safety-v0")
-        XCTAssertEqual(CamiFitKG.ontologyLockVersion, "ontology-lock-m0-unverified")
+        XCTAssertEqual(KGVersion.graphVersion, "fitgraph-kg-m5-validation-v0")
+        XCTAssertEqual(KGVersion.rulesetVersion, "ruleset-m2-safety-v0")
+        XCTAssertEqual(KGVersion.ontologyLockVersion, "ontology-lock-m0-unverified")
     }
 }
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `swift test --disable-sandbox --filter CamiFitKGTests`
-Expected: FAIL — `no such module 'CamiFitKG'` (target does not exist yet).
+Run: `swift test --disable-sandbox --filter KGKitTests`
+Expected: FAIL — `no such module 'KGKit'` (target does not exist yet).
 
 - [ ] **Step 3: Add the targets and the version constants**
 
@@ -79,8 +80,8 @@ In `Package.swift`, add to `products`:
 
 ```swift
         .library(
-            name: "CamiFitKG",
-            targets: ["CamiFitKG"]
+            name: "KGKit",
+            targets: ["KGKit"]
         ),
 ```
 
@@ -88,46 +89,46 @@ In `Package.swift`, add to `targets` (place after the `CamiFitEngine` target):
 
 ```swift
         .target(
-            name: "CamiFitKG",
+            name: "KGKit",
             resources: [
                 .copy("Resources/Artifact")
             ]
         ),
         .testTarget(
-            name: "CamiFitKGTests",
-            dependencies: ["CamiFitKG"],
+            name: "KGKitTests",
+            dependencies: ["KGKit"],
             resources: [
                 .copy("Fixtures")
             ]
         ),
 ```
 
-Create `Sources/CamiFitKG/Version.swift`:
+Create `Sources/KGKit/Version.swift`:
 
 ```swift
 /// On-device FitGraph KG runtime. Version stamps are frozen by the build-time
 /// canonical layer and carried in every DecisionReceipt for provenance.
 /// Mirrors GRAPH_VERSION / RULESET_VERSION (kg/validation.py) and
 /// ONTOLOGY_LOCK_VERSION (kg/safety.py).
-public enum CamiFitKG {
+public enum KGVersion {
     public static let graphVersion = "fitgraph-kg-m5-validation-v0"
     public static let rulesetVersion = "ruleset-m2-safety-v0"
     public static let ontologyLockVersion = "ontology-lock-m0-unverified"
 }
 ```
 
-Create a placeholder so the resource directory exists: `Sources/CamiFitKG/Resources/Artifact/.gitkeep` (empty file). (Task 6 replaces this with the real artifact; `.copy` requires the directory to exist now.)
+Create a placeholder so the resource directory exists: `Sources/KGKit/Resources/Artifact/.gitkeep` (empty file). (Task 6 replaces this with the real artifact; `.copy` requires the directory to exist now.)
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `swift test --disable-sandbox --filter CamiFitKGTests`
+Run: `swift test --disable-sandbox --filter KGKitTests`
 Expected: PASS (1 test).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Package.swift Sources/CamiFitKG/Version.swift Sources/CamiFitKG/Resources/Artifact/.gitkeep Tests/CamiFitKGTests/ModuleSmokeTests.swift
-git commit -m "feat(kgkit): add CamiFitKG module + version stamps"
+git add Package.swift Sources/KGKit/Version.swift Sources/KGKit/Resources/Artifact/.gitkeep Tests/KGKitTests/ModuleSmokeTests.swift
+git commit -m "feat(kgkit): add KGKit module + version stamps"
 ```
 
 ---
@@ -135,18 +136,18 @@ git commit -m "feat(kgkit): add CamiFitKG module + version stamps"
 ### Task 2: Graph model value types
 
 **Files:**
-- Create: `Sources/CamiFitKG/GraphModel.swift`
-- Create: `Tests/CamiFitKGTests/GraphModelTests.swift`
+- Create: `Sources/KGKit/GraphModel.swift`
+- Create: `Tests/KGKitTests/GraphModelTests.swift`
 
 Port `GraphNode` / `GraphEdge` from `kg/graph_store.py`. `GraphEdge.path()` is the exact evidence-string format used in every receipt.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/GraphModelTests.swift`:
+Create `Tests/KGKitTests/GraphModelTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class GraphModelTests: XCTestCase {
     func testEdgePathFormatMatchesPythonEvidenceString() {
@@ -170,7 +171,7 @@ Expected: FAIL — `cannot find 'GraphEdge' in scope`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `Sources/CamiFitKG/GraphModel.swift`:
+Create `Sources/KGKit/GraphModel.swift`:
 
 ```swift
 /// Property values in the seed graph are JSON scalars (string/bool/number).
@@ -221,7 +222,7 @@ Expected: PASS (2 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/GraphModel.swift Tests/CamiFitKGTests/GraphModelTests.swift
+git add Sources/KGKit/GraphModel.swift Tests/KGKitTests/GraphModelTests.swift
 git commit -m "feat(kgkit): graph node/edge value types with path() evidence string"
 ```
 
@@ -230,19 +231,19 @@ git commit -m "feat(kgkit): graph node/edge value types with path() evidence str
 ### Task 3: `Codable` graph artifact + decode
 
 **Files:**
-- Create: `Sources/CamiFitKG/SafetyRule.swift`
-- Create: `Sources/CamiFitKG/GraphArtifact.swift`
-- Create: `Tests/CamiFitKGTests/GraphArtifactDecodeTests.swift`
+- Create: `Sources/KGKit/SafetyRule.swift`
+- Create: `Sources/KGKit/GraphArtifact.swift`
+- Create: `Tests/KGKitTests/GraphArtifactDecodeTests.swift`
 
 The artifact is the frozen JSON the Swift runtime loads. `PropertyValue` and the rule `match.properties` decode from heterogeneous JSON (string, bool, or array-of-strings), so a custom decoder is required.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/GraphArtifactDecodeTests.swift`:
+Create `Tests/KGKitTests/GraphArtifactDecodeTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class GraphArtifactDecodeTests: XCTestCase {
     static let json = """
@@ -291,7 +292,7 @@ Expected: FAIL — `cannot find 'GraphArtifact' in scope`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `Sources/CamiFitKG/SafetyRule.swift`:
+Create `Sources/KGKit/SafetyRule.swift`:
 
 ```swift
 /// A rule property matcher mirrors kg/safety.py `_matches_properties`:
@@ -319,7 +320,7 @@ public struct SafetyRule: Equatable, Sendable {
 }
 ```
 
-Create `Sources/CamiFitKG/GraphArtifact.swift`:
+Create `Sources/KGKit/GraphArtifact.swift`:
 
 ```swift
 import Foundation
@@ -422,7 +423,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/SafetyRule.swift Sources/CamiFitKG/GraphArtifact.swift Tests/CamiFitKGTests/GraphArtifactDecodeTests.swift
+git add Sources/KGKit/SafetyRule.swift Sources/KGKit/GraphArtifact.swift Tests/KGKitTests/GraphArtifactDecodeTests.swift
 git commit -m "feat(kgkit): Codable graph artifact + safety-rule match decoding"
 ```
 
@@ -431,18 +432,18 @@ git commit -m "feat(kgkit): Codable graph artifact + safety-rule match decoding"
 ### Task 4: `LocalGraph` traversal (`outgoing`/`incoming`/`nodesByType`)
 
 **Files:**
-- Create: `Sources/CamiFitKG/LocalGraph.swift`
-- Create: `Tests/CamiFitKGTests/LocalGraphTests.swift`
+- Create: `Sources/KGKit/LocalGraph.swift`
+- Create: `Tests/KGKitTests/LocalGraphTests.swift`
 
 Port the closed-world snapshot from `kg/graph_store.py` (`LocalGraph`), including the load-time validation (duplicate ids, dangling edge endpoints).
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/LocalGraphTests.swift`:
+Create `Tests/KGKitTests/LocalGraphTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class LocalGraphTests: XCTestCase {
     private func graph() throws -> LocalGraph {
@@ -481,7 +482,7 @@ Expected: FAIL — `cannot find 'LocalGraph' in scope`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `Sources/CamiFitKG/LocalGraph.swift`:
+Create `Sources/KGKit/LocalGraph.swift`:
 
 ```swift
 public struct LocalGraph: Sendable {
@@ -538,7 +539,7 @@ Expected: PASS (3 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/LocalGraph.swift Tests/CamiFitKGTests/LocalGraphTests.swift
+git add Sources/KGKit/LocalGraph.swift Tests/KGKitTests/LocalGraphTests.swift
 git commit -m "feat(kgkit): LocalGraph closed-world snapshot + traversal"
 ```
 
@@ -547,18 +548,18 @@ git commit -m "feat(kgkit): LocalGraph closed-world snapshot + traversal"
 ### Task 5: `PART_OF` BFS path + closure paths
 
 **Files:**
-- Modify: `Sources/CamiFitKG/LocalGraph.swift`
-- Create: `Tests/CamiFitKGTests/PartOfTraversalTests.swift`
+- Modify: `Sources/KGKit/LocalGraph.swift`
+- Create: `Tests/KGKitTests/PartOfTraversalTests.swift`
 
 Port `part_of_path` (BFS, outgoing `PART_OF` edges **sorted by target**, return first path) and `part_of_closure_paths` (DFS over incoming `PART_OF`, edges **sorted by source**) verbatim — these produce the exact `graph_paths` evidence strings.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/PartOfTraversalTests.swift`:
+Create `Tests/KGKitTests/PartOfTraversalTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class PartOfTraversalTests: XCTestCase {
     private func graph() throws -> LocalGraph {
@@ -596,7 +597,7 @@ Expected: FAIL — `value of type 'LocalGraph' has no member 'partOfPath'`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Append to `Sources/CamiFitKG/LocalGraph.swift` (inside the `LocalGraph` struct):
+Append to `Sources/KGKit/LocalGraph.swift` (inside the `LocalGraph` struct):
 
 ```swift
     /// Port of part_of_path: one deterministic PART_OF path source->target (BFS,
@@ -648,7 +649,7 @@ Expected: PASS (4 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/LocalGraph.swift Tests/CamiFitKGTests/PartOfTraversalTests.swift
+git add Sources/KGKit/LocalGraph.swift Tests/KGKitTests/PartOfTraversalTests.swift
 git commit -m "feat(kgkit): PART_OF BFS path + closure-path traversal"
 ```
 
@@ -657,20 +658,20 @@ git commit -m "feat(kgkit): PART_OF BFS path + closure-path traversal"
 ### Task 6: `ResolvedConstraint` + node-id normalization + the frozen artifact
 
 **Files:**
-- Create: `Sources/CamiFitKG/ResolvedConstraint.swift`
+- Create: `Sources/KGKit/ResolvedConstraint.swift`
 - Create: `scripts/gen_kg_conformance_vectors.py`
-- Create (generated): `Sources/CamiFitKG/Resources/Artifact/kg_artifact.v0.json`
-- Create: `Tests/CamiFitKGTests/NodeIDTests.swift`
+- Create (generated): `Sources/KGKit/Resources/Artifact/kg_artifact.v0.json`
+- Create: `Tests/KGKitTests/NodeIDTests.swift`
 
 `ResolvedConstraint` mirrors `kg/constraints.py`. `nodeID(prefix:value:)` ports `_node_id` (`kg/safety.py`). The generator script freezes FitGraph's seed into the Swift artifact (and, in Task 12, emits vectors).
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/NodeIDTests.swift`:
+Create `Tests/KGKitTests/NodeIDTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class NodeIDTests: XCTestCase {
     func testNodeIDNormalization() {
@@ -694,7 +695,7 @@ Expected: FAIL — `cannot find 'NodeID' in scope`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `Sources/CamiFitKG/ResolvedConstraint.swift`:
+Create `Sources/KGKit/ResolvedConstraint.swift`:
 
 ```swift
 /// Mirror of kg/constraints.py ResolvedConstraint. Safety stays graph-driven;
@@ -750,7 +751,7 @@ from kg.safety import load_safety_rules, ONTOLOGY_LOCK_VERSION  # noqa: E402
 from kg.validation import GRAPH_VERSION, RULESET_VERSION  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[1]
-ARTIFACT = REPO / "Sources/CamiFitKG/Resources/Artifact/kg_artifact.v0.json"
+ARTIFACT = REPO / "Sources/KGKit/Resources/Artifact/kg_artifact.v0.json"
 
 
 def freeze_artifact() -> None:
@@ -793,7 +794,7 @@ Generate the artifact (the `.gitkeep` may stay alongside it — harmless):
 FITGRAPH=/Users/kelly/Developer/fitgraph python3 scripts/gen_kg_conformance_vectors.py
 ```
 
-Expected stdout: `wrote Sources/CamiFitKG/Resources/Artifact/kg_artifact.v0.json: 25 nodes / 28 edges / 3 rules` (counts reflect the current FitGraph seed; if they differ, that is fine — the artifact is whatever the seed contains).
+Expected stdout: `wrote Sources/KGKit/Resources/Artifact/kg_artifact.v0.json: 25 nodes / 28 edges / 3 rules` (counts reflect the current FitGraph seed; if they differ, that is fine — the artifact is whatever the seed contains).
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -803,7 +804,7 @@ Expected: PASS (2 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/ResolvedConstraint.swift scripts/gen_kg_conformance_vectors.py Sources/CamiFitKG/Resources/Artifact/kg_artifact.v0.json Tests/CamiFitKGTests/NodeIDTests.swift
+git add Sources/KGKit/ResolvedConstraint.swift scripts/gen_kg_conformance_vectors.py Sources/KGKit/Resources/Artifact/kg_artifact.v0.json Tests/KGKitTests/NodeIDTests.swift
 git commit -m "feat(kgkit): ResolvedConstraint, node-id normalization, frozen graph artifact"
 ```
 
@@ -812,8 +813,8 @@ git commit -m "feat(kgkit): ResolvedConstraint, node-id normalization, frozen gr
 ### Task 7: Canonical-JSON fingerprint (byte-exact `stable_fingerprint` parity)
 
 **Files:**
-- Create: `Sources/CamiFitKG/CanonicalJSON.swift`
-- Create: `Tests/CamiFitKGTests/CanonicalFingerprintTests.swift`
+- Create: `Sources/KGKit/CanonicalJSON.swift`
+- Create: `Tests/KGKitTests/CanonicalFingerprintTests.swift`
 
 This is the load-bearing parity primitive (synthesis doc §4.4 / R2). It must reproduce `json.dumps(payload, sort_keys=True, separators=(",",":"))` exactly — including `ensure_ascii` (non-ASCII → `\uXXXX`), unescaped `/`, and `true`/`false` — then `sha256(...).hexdigest()[:16]`. The expected values below are produced by Python and pinned.
 
@@ -835,11 +836,11 @@ This is the load-bearing parity primitive (synthesis doc §4.4 / R2). It must re
 
 - [ ] **Step 1: Write the failing test** (replace the two `EXPECTED_*` placeholders with the printed values)
 
-Create `Tests/CamiFitKGTests/CanonicalFingerprintTests.swift`:
+Create `Tests/KGKitTests/CanonicalFingerprintTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class CanonicalFingerprintTests: XCTestCase {
     func testAsciiCanonicalStringAndFingerprint() {
@@ -876,7 +877,7 @@ Expected: FAIL — `cannot find 'CanonicalJSON' in scope`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `Sources/CamiFitKG/CanonicalJSON.swift`:
+Create `Sources/KGKit/CanonicalJSON.swift`:
 
 ```swift
 import Foundation
@@ -963,7 +964,7 @@ Expected: PASS (2 tests). If the fingerprint assertions fail, the canonical stri
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/CanonicalJSON.swift Tests/CamiFitKGTests/CanonicalFingerprintTests.swift
+git add Sources/KGKit/CanonicalJSON.swift Tests/KGKitTests/CanonicalFingerprintTests.swift
 git commit -m "feat(kgkit): canonical-JSON fingerprint with byte-exact Python parity"
 ```
 
@@ -972,18 +973,18 @@ git commit -m "feat(kgkit): canonical-JSON fingerprint with byte-exact Python pa
 ### Task 8: `DecisionReceipt` + severity lattice
 
 **Files:**
-- Create: `Sources/CamiFitKG/DecisionReceipt.swift`
-- Create: `Tests/CamiFitKGTests/SeverityLatticeTests.swift`
+- Create: `Sources/KGKit/DecisionReceipt.swift`
+- Create: `Tests/KGKitTests/SeverityLatticeTests.swift`
 
 Port `DecisionReceipt`, `SEVERITY_LATTICE`, `HARD_BLOCK_SEVERITIES`, and `primary_severity` (`kg/safety.py`).
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/SeverityLatticeTests.swift`:
+Create `Tests/KGKitTests/SeverityLatticeTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class SeverityLatticeTests: XCTestCase {
     func testPrimarySeverityPicksMostSevere() {
@@ -1006,7 +1007,7 @@ Expected: FAIL — `cannot find 'Severity' in scope`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `Sources/CamiFitKG/DecisionReceipt.swift`:
+Create `Sources/KGKit/DecisionReceipt.swift`:
 
 ```swift
 /// Port of SEVERITY_LATTICE / HARD_BLOCK_SEVERITIES / primary_severity (kg/safety.py).
@@ -1054,7 +1055,7 @@ Expected: PASS (2 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/DecisionReceipt.swift Tests/CamiFitKGTests/SeverityLatticeTests.swift
+git add Sources/KGKit/DecisionReceipt.swift Tests/KGKitTests/SeverityLatticeTests.swift
 git commit -m "feat(kgkit): DecisionReceipt + severity lattice"
 ```
 
@@ -1063,18 +1064,18 @@ git commit -m "feat(kgkit): DecisionReceipt + severity lattice"
 ### Task 9: Medical reason generator
 
 **Files:**
-- Create: `Sources/CamiFitKG/SafetyEngine.swift`
-- Create: `Tests/CamiFitKGTests/MedicalReasonsTests.swift`
+- Create: `Sources/KGKit/SafetyEngine.swift`
+- Create: `Tests/KGKitTests/MedicalReasonsTests.swift`
 
 Port `_medical_reasons` + `_stress_hits_restriction` + `_restriction_applies_to_rule` + `_matches_properties` (`kg/safety.py`). `graphPaths = [stressEdge.path()] + restrictionPath + ruleUsesConceptPaths`.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/MedicalReasonsTests.swift`:
+Create `Tests/KGKitTests/MedicalReasonsTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class MedicalReasonsTests: XCTestCase {
     private func engine() throws -> SafetyEngine {
@@ -1110,7 +1111,7 @@ Expected: FAIL — `cannot find 'SafetyEngine' in scope`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `Sources/CamiFitKG/SafetyEngine.swift`:
+Create `Sources/KGKit/SafetyEngine.swift`:
 
 ```swift
 /// Deterministic safety evaluation over the local graph. Port of kg/safety.py.
@@ -1185,7 +1186,7 @@ Expected: PASS (2 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/SafetyEngine.swift Tests/CamiFitKGTests/MedicalReasonsTests.swift
+git add Sources/KGKit/SafetyEngine.swift Tests/KGKitTests/MedicalReasonsTests.swift
 git commit -m "feat(kgkit): medical reason generator (knee STRESSES-rule match over PART_OF closure)"
 ```
 
@@ -1194,18 +1195,18 @@ git commit -m "feat(kgkit): medical reason generator (knee STRESSES-rule match o
 ### Task 10: Equipment + prompt-exclusion reason generators
 
 **Files:**
-- Modify: `Sources/CamiFitKG/SafetyEngine.swift`
-- Create: `Tests/CamiFitKGTests/EquipmentAndExclusionReasonsTests.swift`
+- Modify: `Sources/KGKit/SafetyEngine.swift`
+- Create: `Tests/KGKitTests/EquipmentAndExclusionReasonsTests.swift`
 
 Port `_equipment_reasons` (REQUIRES not in available → `MISSING_EQUIPMENT`; in disallowed negated set → `DISALLOWED_EQUIPMENT`) and `_prompt_exclusion_reasons` (VARIANT_OF into excluded family → `PROMPT_EXCLUDED_FAMILY`).
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/EquipmentAndExclusionReasonsTests.swift`:
+Create `Tests/KGKitTests/EquipmentAndExclusionReasonsTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class EquipmentAndExclusionReasonsTests: XCTestCase {
     // Local artifact: one barbell exercise requiring a barbell, plus a deadlift variant.
@@ -1262,7 +1263,7 @@ Expected: FAIL — `value of type 'SafetyEngine' has no member 'equipmentReasons
 
 - [ ] **Step 3: Write minimal implementation**
 
-Append to `Sources/CamiFitKG/SafetyEngine.swift` (inside the `SafetyEngine` struct):
+Append to `Sources/KGKit/SafetyEngine.swift` (inside the `SafetyEngine` struct):
 
 ```swift
     /// Port of _equipment_ids: normalize available equipment labels to node ids.
@@ -1320,7 +1321,7 @@ Expected: PASS (3 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/SafetyEngine.swift Tests/CamiFitKGTests/EquipmentAndExclusionReasonsTests.swift
+git add Sources/KGKit/SafetyEngine.swift Tests/KGKitTests/EquipmentAndExclusionReasonsTests.swift
 git commit -m "feat(kgkit): equipment + prompt-exclusion reason generators"
 ```
 
@@ -1329,18 +1330,18 @@ git commit -m "feat(kgkit): equipment + prompt-exclusion reason generators"
 ### Task 11: Receipt assembly + `evaluateCandidates`
 
 **Files:**
-- Modify: `Sources/CamiFitKG/SafetyEngine.swift`
-- Create: `Tests/CamiFitKGTests/EvaluateCandidatesTests.swift`
+- Modify: `Sources/KGKit/SafetyEngine.swift`
+- Create: `Tests/KGKitTests/EvaluateCandidatesTests.swift`
 
 Port `_receipt` (compose reasons in order medical → equipment → prompt; pick primary by lattice; `filtered` if hard-block else `downranked`; no reasons → `selected`/`BOOST`/`PASSED_SAFETY`; fingerprint over the sorted-equipment + constraints payload) and `evaluate_candidates`.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Tests/CamiFitKGTests/EvaluateCandidatesTests.swift`:
+Create `Tests/KGKitTests/EvaluateCandidatesTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class EvaluateCandidatesTests: XCTestCase {
     private func engine() throws -> SafetyEngine {
@@ -1359,7 +1360,7 @@ final class EvaluateCandidatesTests: XCTestCase {
         XCTAssertEqual(receipt.primarySeverity, "MEDICAL_HARD_BLOCK")
         XCTAssertEqual(receipt.reasonCodes, ["ACTIVE_KNEE_RESTRICTION"])
         XCTAssertEqual(receipt.primaryReasonCode, "ACTIVE_KNEE_RESTRICTION")
-        XCTAssertEqual(receipt.graphVersion, CamiFitKG.graphVersion)
+        XCTAssertEqual(receipt.graphVersion, KGVersion.graphVersion)
         XCTAssertEqual(receipt.constraintFingerprint.count, 16)
         // Fingerprint must equal the canonical computation for these exact inputs.
         XCTAssertEqual(receipt.constraintFingerprint,
@@ -1385,7 +1386,7 @@ Expected: FAIL — `value of type 'SafetyEngine' has no member 'evaluateCandidat
 
 - [ ] **Step 3: Write minimal implementation**
 
-Append to `Sources/CamiFitKG/SafetyEngine.swift` (inside the `SafetyEngine` struct):
+Append to `Sources/KGKit/SafetyEngine.swift` (inside the `SafetyEngine` struct):
 
 ```swift
     /// Port of _receipt.
@@ -1407,8 +1408,8 @@ Append to `Sources/CamiFitKG/SafetyEngine.swift` (inside the `SafetyEngine` stru
         return DecisionReceipt(
             exerciseID: exerciseID, decision: decision, primarySeverity: severity,
             reasonCodes: reasonCodes, primaryReasonCode: primaryReason, graphPaths: graphPaths,
-            constraintFingerprint: fingerprint, graphVersion: CamiFitKG.graphVersion,
-            rulesetVersion: CamiFitKG.rulesetVersion, ontologyLockVersion: CamiFitKG.ontologyLockVersion)
+            constraintFingerprint: fingerprint, graphVersion: KGVersion.graphVersion,
+            rulesetVersion: KGVersion.rulesetVersion, ontologyLockVersion: KGVersion.ontologyLockVersion)
     }
 
     /// Port of evaluate_candidates. When candidateIDs is nil, evaluate all Exercise nodes sorted by id.
@@ -1439,7 +1440,7 @@ Expected: PASS (2 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/CamiFitKG/SafetyEngine.swift Tests/CamiFitKGTests/EvaluateCandidatesTests.swift
+git add Sources/KGKit/SafetyEngine.swift Tests/KGKitTests/EvaluateCandidatesTests.swift
 git commit -m "feat(kgkit): receipt assembly + evaluateCandidates"
 ```
 
@@ -1449,9 +1450,9 @@ git commit -m "feat(kgkit): receipt assembly + evaluateCandidates"
 
 **Files:**
 - Modify: `scripts/gen_kg_conformance_vectors.py`
-- Create (generated): `Tests/CamiFitKGTests/Fixtures/conformance/safety_vectors.json`
-- Create: `Sources/CamiFitKG/ArtifactLoader.swift`
-- Create: `Tests/CamiFitKGTests/ConformanceTests.swift`
+- Create (generated): `Tests/KGKitTests/Fixtures/conformance/safety_vectors.json`
+- Create: `Sources/KGKit/ArtifactLoader.swift`
+- Create: `Tests/KGKitTests/ConformanceTests.swift`
 
 The generator now runs FitGraph's **live oracle** over scenarios and freezes each receipt as a vector. The Swift test loads the **same bundled artifact**, replays each vector, and asserts every field — proving on-device parity. This is the deliverable.
 
@@ -1464,7 +1465,7 @@ from kg.constraints import ResolvedConstraint  # noqa: E402
 from kg.safety import evaluate_candidates  # noqa: E402
 from dataclasses import asdict  # noqa: E402
 
-VECTORS = REPO / "Tests/CamiFitKGTests/Fixtures/conformance/safety_vectors.json"
+VECTORS = REPO / "Tests/KGKitTests/Fixtures/conformance/safety_vectors.json"
 
 
 def _c(**kw) -> ResolvedConstraint:
@@ -1530,7 +1531,7 @@ Expected: two `wrote …` lines; `safety_vectors.json` now holds one vector per 
 
 - [ ] **Step 3: Write the failing test + the bundled-artifact loader**
 
-Create `Sources/CamiFitKG/ArtifactLoader.swift`:
+Create `Sources/KGKit/ArtifactLoader.swift`:
 
 ```swift
 import Foundation
@@ -1538,7 +1539,7 @@ import Foundation
 public enum ArtifactLoader {
     public enum LoadError: Error { case missingResource }
 
-    /// Load the frozen artifact bundled into the CamiFitKG module.
+    /// Load the frozen artifact bundled into the KGKit module.
     public static func bundled() throws -> GraphArtifact {
         guard let url = Bundle.module.url(forResource: "kg_artifact.v0", withExtension: "json",
                                           subdirectory: "Artifact") else {
@@ -1549,11 +1550,11 @@ public enum ArtifactLoader {
 }
 ```
 
-Create `Tests/CamiFitKGTests/ConformanceTests.swift`:
+Create `Tests/KGKitTests/ConformanceTests.swift`:
 
 ```swift
 import XCTest
-@testable import CamiFitKG
+@testable import KGKit
 
 final class ConformanceTests: XCTestCase {
     struct Vector: Decodable {
@@ -1612,7 +1613,7 @@ Expected: PASS. Every seed exercise across all four scenarios produces a Swift r
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/gen_kg_conformance_vectors.py Tests/CamiFitKGTests/Fixtures/conformance/safety_vectors.json Sources/CamiFitKG/ArtifactLoader.swift Tests/CamiFitKGTests/ConformanceTests.swift
+git add scripts/gen_kg_conformance_vectors.py Tests/KGKitTests/Fixtures/conformance/safety_vectors.json Sources/KGKit/ArtifactLoader.swift Tests/KGKitTests/ConformanceTests.swift
 git commit -m "feat(kgkit): conformance-vector harness proving byte-exact oracle parity"
 ```
 
@@ -1621,15 +1622,15 @@ git commit -m "feat(kgkit): conformance-vector harness proving byte-exact oracle
 ### Task 13: Module README + full-suite green gate
 
 **Files:**
-- Create: `Sources/CamiFitKG/README.md`
-- Test: full `CamiFitKG` suite
+- Create: `Sources/KGKit/README.md`
+- Test: full `KGKit` suite
 
 - [ ] **Step 1: Write the README**
 
-Create `Sources/CamiFitKG/README.md`:
+Create `Sources/KGKit/README.md`:
 
 ```markdown
-# CamiFitKG — on-device deterministic safety runtime
+# KGKit — on-device deterministic safety runtime
 
 Swift port of FitGraph's deterministic safety-by-traversal. The graph decides
 eligibility; no LLM, no vector search. Loads a frozen graph artifact
@@ -1640,27 +1641,27 @@ the Python oracle's `DecisionReceipt`s byte-for-byte — including the
 
 ## Regenerating the artifact + vectors
     FITGRAPH=/Users/kelly/Developer/fitgraph python3 scripts/gen_kg_conformance_vectors.py
-    swift test --disable-sandbox --filter CamiFitKGTests
+    swift test --disable-sandbox --filter KGKitTests
 
 ## What is NOT here yet (see docs/superpowers/plans/)
-Resolver, alternatives, member retrieval, 50-exercise scale-up, monorepo migration.
+Resolver, alternatives, member retrieval, 50-exercise scale-up, monorepo package integration.
 Scope and rationale: docs/design/2026-06-04-camifit-fitgraph-synthesis.md.
 ```
 
 - [ ] **Step 2: Run the full module suite**
 
-Run: `swift test --disable-sandbox --filter CamiFitKGTests`
+Run: `swift test --disable-sandbox --filter KGKitTests`
 Expected: PASS — all tests from Tasks 1–12 green.
 
 - [ ] **Step 3: Run the entire package suite (no regressions elsewhere)**
 
 Run: `swift test --disable-sandbox`
-Expected: PASS — existing `CamiFitEngineTests` / `CamiFitAppTests` unaffected, plus the new `CamiFitKGTests`.
+Expected: PASS — existing `CamiFitEngineTests` / `CamiFitAppTests` unaffected, plus the new `KGKitTests`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Sources/CamiFitKG/README.md
+git add Sources/KGKit/README.md
 git commit -m "docs(kgkit): module README + safety-core milestone"
 ```
 
@@ -1668,7 +1669,7 @@ git commit -m "docs(kgkit): module README + safety-core milestone"
 
 ## Self-review (completed during authoring)
 
-- **Spec coverage:** This plan implements synthesis §4 (Swift serving runtime + conformance parity), §5 Contract 2 (the `DecisionReceipt` shape, ported verbatim), and the deterministic safety half of §6 — for the medical/equipment/exclusion blocks. Resolver (§5 resolve), alternatives, member retrieval, the 50-exercise catalog (§5 Contract 1), the closed execution loop's compile/write-back (§6.3–§6.6), and the monorepo (§8) are explicitly deferred to named follow-on plans.
+- **Spec coverage:** This plan implements synthesis §4 (Swift serving runtime + conformance parity), §5 Contract 2 (the `DecisionReceipt` shape, ported verbatim), and the deterministic safety half of §6 — for the medical/equipment/exclusion blocks. Resolver (§5 resolve), alternatives, member retrieval, the 50-exercise catalog (§5 Contract 1), the closed execution loop's compile/write-back (§6.3–§6.6), and the monorepo package topology (§8) are explicitly deferred to named follow-on plans.
 - **No placeholders:** every code step contains complete code. The only intentional fill-ins are the two Python-generated fingerprint expectations in Task 7 (`EXPECTED_ASCII_FP` / `EXPECTED_UNICODE_FP`) and the generated artifact/vector JSON — each with the exact command to produce them.
 - **Type consistency:** `GraphNode`/`GraphEdge`/`PropertyValue` (Task 2) → `GraphArtifact`/`SafetyRule`/`RuleMatch` (Task 3) → `LocalGraph` (Tasks 4–5) → `ResolvedConstraint`/`NodeID` (Task 6) → `CanonicalJSON` (Task 7) → `DecisionReceipt`/`Severity`/`SafetyReason` (Task 8) → `SafetyEngine` (Tasks 9–11) → `ArtifactLoader`/`ConformanceTests` (Task 12). `evaluateCandidates(_:availableEquipment:constraints:)` is used identically in Tasks 11 and 12.
 - **Determinism parity:** sorted `nodesByType`, BFS `partOfPath` (edges sorted by target), DFS `partOfClosurePaths` (edges sorted by source), reason order medical→equipment→prompt, and sorted-equipment fingerprint payload all mirror the Python source line-for-line.
