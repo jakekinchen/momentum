@@ -1,0 +1,17 @@
+import XCTest
+@testable import CamiFitApp
+import CamiFitEngine
+
+final class WorkoutRoutineTests: XCTestCase {
+    func testDecodesRoutineWithPresetRef() throws {
+        let json = """
+        {"id":"r1","name":"Leg Day","description":"x",
+         "blocks":[{"exerciseRef":{"preset":"bodyweight_squat"},"sets":3,"reps":10,"restSeconds":60}]}
+        """.data(using: .utf8)!
+        let routine = try JSONDecoder().decode(WorkoutRoutine.self, from: json)
+        XCTAssertEqual(routine.blocks.count, 1)
+        XCTAssertEqual(routine.blocks[0].sets, 3)
+        if case let .preset(id) = routine.blocks[0].exerciseRef { XCTAssertEqual(id, "bodyweight_squat") }
+        else { XCTFail("expected preset ref") }
+    }
+}

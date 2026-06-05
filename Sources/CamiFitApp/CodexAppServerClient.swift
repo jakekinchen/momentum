@@ -43,11 +43,141 @@ final class CodexAppServerClient: ObservableObject {
     private var turnToken = 0
     private var queuedText: String?
 
-    private let baseInstructions = """
-    You are CamiFit's friendly fitness coach. Answer questions about exercise form, reps, \
-    holds, and general workout guidance in clear, encouraging text. You are a chat assistant \
-    only — never run shell commands, edit files, or use tools. Just reply with helpful text.
-    """
+    /// The chat coach must NOT freehand-author exercise programs. Per the FitGraph/KG synthesis
+    /// (docs/design/2026-06-04-camifit-fitgraph-synthesis.md), "the graph decides; the LLM never
+    /// decides eligibility." The authoring prompt + template below are retained but DISABLED until
+    /// a KG-backed ProgramCompiler becomes the author — it targets the same camifit-exercise grammar
+    /// and the same ProgramLoader + FrameSignalProcessor validation gate. Flip to true only then.
+    static let exerciseAuthoringEnabled = false
+
+    private static let exerciseTemplate = #"""
+    {
+      "schemaVersion": 1,
+      "id": "bodyweight_squat",
+      "name": "Bodyweight Squat",
+      "coordinate_space": "image2d",
+      "setup": {
+        "required_view": "side",
+        "required_landmarks": [
+          "primary.hip",
+          "primary.knee",
+          "primary.ankle",
+          "primary.shoulder"
+        ],
+        "min_visibility": 0.65,
+        "primary_side": "auto_lock",
+        "mirror_handling": "detect",
+        "calibration": {
+          "top_pose": {
+            "instruction": "Stand tall in frame",
+            "capture_seconds": 1.0,
+            "signals": [
+              "knee",
+              "torso_tilt"
+            ]
+          }
+        }
+      },
+      "landmark_aliases": {
+        "shoulder": "primary.shoulder",
+        "hip": "primary.hip",
+        "knee": "primary.knee",
+        "ankle": "primary.ankle"
+      },
+      "signals": {
+        "knee_left": "angle(left.hip, left.knee, left.ankle)",
+        "knee_right": "angle(right.hip, right.knee, right.ankle)",
+        "knee_raw": "angle(primary.hip, primary.knee, primary.ankle)",
+        "torso_raw": "angle_to_vertical(primary.shoulder, primary.hip)",
+        "knee_symmetry": "abs(knee_left - knee_right)"
+      },
+      "filters": {
+        "knee": {
+          "source": "knee_raw",
+          "type": "ema",
+          "alpha": 0.35
+        },
+        "torso_tilt": {
+          "source": "torso_raw",
+          "type": "median",
+          "window_ms": 200
+        }
+      },
+      "validity": {
+        "min_signal_confidence": 0.65,
+        "phase_signal_invalid_policy": "freeze_then_reset",
+        "freeze_ms": 500,
+        "reset_after_ms": 1500
+      },
+      "rep": {
+        "phase_signal": "knee",
+        "down_when": "knee < 100",
+        "down_min_ms": 120,
+        "bottom_min_ms": 80,
+        "up_when": "knee > 160",
+        "up_min_ms": 120,
+        "min_rom_deg": 50,
+        "cooldown_ms": 250
+      },
+      "hold": null,
+      "form_rules": [
+        {
+          "id": "depth",
+          "when": "phase == 'bottom'",
+          "expect": "knee <= 95",
+          "min_violation_ms": 0,
+          "cue": "Go deeper",
+          "severity": "warn",
+          "score_weight": 10,
+          "cooldown_ms": 1500
+        },
+        {
+          "id": "torso",
+          "when": "phase in ['descending','bottom']",
+          "expect": "torso_tilt <= 45",
+          "min_violation_ms": 250,
+          "cue": "Chest up",
+          "severity": "warn",
+          "score_weight": 8,
+          "cooldown_ms": 1500
+        },
+        {
+          "id": "symmetry",
+          "when": "phase == 'bottom'",
+          "expect": "knee_symmetry <= 20",
+          "min_violation_ms": 0,
+          "cue": "Even both sides",
+          "severity": "info",
+          "score_weight": 4,
+          "cooldown_ms": 2000
+        }
+      ],
+      "set": {
+        "target_reps": 10
+      }
+    }
+    """#
+
+    private var baseInstructions: String {
+        let persona = """
+        You are CamiFit's friendly fitness coach. Answer questions about exercise form, reps, \
+        holds, and general workout guidance in clear, encouraging text. Never run shell commands, \
+        edit files, or use tools — only reply with text (the text may contain code blocks).
+        """
+        guard Self.exerciseAuthoringEnabled else { return persona }
+        return persona + "\n\n" + """
+        When the user asks you to create a workout or a new exercise, reply with a short \
+        encouraging explanation AND a single fenced code block the app reads:
+        - For a routine: a fenced block tagged camifit-routine containing JSON \
+          {"id","name","description","blocks":[{"exerciseRef":{"preset":"<id>"} OR {"inline":<ExerciseProgram>},"sets":N,"reps":N or "holdSeconds":N,"restSeconds":N}]}.
+        - For a brand-new exercise: a fenced block tagged camifit-exercise containing a full \
+          ExerciseProgram JSON. Keep schemaVersion 1; signals are angle(...) expressions over \
+          landmarks like primary.hip/primary.knee/primary.ankle; provide a "rep" block OR a "hold" block.
+
+        Use this exact existing exercise as your ExerciseProgram template:
+        \(Self.exerciseTemplate)
+        """
+    }
 
     // MARK: - Binary resolution
 

@@ -84,6 +84,41 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         self.recordedRunSourceCandidates = recordedRunSourceCandidates
     }
 
+    public func saveGeneratedExercise(_ program: ExerciseProgram, store: RegimenStore = RegimenStore()) throws {
+        try store.saveExercise(program)
+        loadAvailablePresets()
+    }
+
+    @Published public private(set) var activeRoutine: WorkoutRoutine?
+    @Published public private(set) var activeRoutineBlockIndex: Int = 0
+
+    public func startRoutine(_ routine: WorkoutRoutine) throws {
+        activeRoutine = routine
+        activeRoutineBlockIndex = 0
+        if let ref = routine.blocks.first?.exerciseRef { activateBlockExercise(ref) }
+    }
+
+    public func advanceRoutine() {
+        guard let routine = activeRoutine else { return }
+        let next = activeRoutineBlockIndex + 1
+        guard next < routine.blocks.count else { activeRoutine = nil; return }
+        activeRoutineBlockIndex = next
+        activateBlockExercise(routine.blocks[next].exerciseRef)
+    }
+
+    /// Selects a routine block's exercise. Inline (coach-authored) programs are dry-run
+    /// validated and saved as a user preset first, so they become trackable.
+    private func activateBlockExercise(_ ref: ExerciseRef, store: RegimenStore = RegimenStore()) {
+        switch ref {
+        case let .preset(id):
+            try? selectPreset(id: id)
+        case let .inline(program):
+            guard RegimenBlockParser.validate(program: program) == nil else { return }
+            try? saveGeneratedExercise(program, store: store)
+            try? selectPreset(id: program.id)
+        }
+    }
+
     public func loadAvailablePresets() {
         let resolved = Self.resolvePresetSummaries(from: presetSourceCandidates)
         availablePresets = resolved.presets
@@ -370,6 +405,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         }
 
         candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Presets"))
+        candidates.append(RegimenStore.userPresetsDirectory())
         return candidates
     }
 
@@ -412,14 +448,18 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     }
 
     private static func resolvePresetSummaries(from candidates: [URL]) -> (sourceURL: URL?, presets: [AppPresetSummary]) {
-        for candidate in candidates {
-            let presets = loadPresetSummaries(from: candidate)
-            if !presets.isEmpty {
-                return (candidate, presets)
-            }
-        }
+        let merged = mergedPresetSummaries(from: candidates)
+        let source = candidates.first { !loadPresetSummaries(from: $0).isEmpty }
+        return (source, merged)
+    }
 
-        return (nil, [])
+    /// Merge every candidate directory; later candidates win on id collision.
+    static func mergedPresetSummaries(from candidates: [URL]) -> [AppPresetSummary] {
+        var byID: [String: AppPresetSummary] = [:]
+        for candidate in candidates {
+            for preset in loadPresetSummaries(from: candidate) { byID[preset.id] = preset }
+        }
+        return byID.values.sorted { $0.name < $1.name }
     }
 
     private static func loadPresetSummaries(from directory: URL) -> [AppPresetSummary] {

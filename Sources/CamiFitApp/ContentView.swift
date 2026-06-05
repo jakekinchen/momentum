@@ -117,6 +117,21 @@ private struct HeroPreviewCard: View {
             }
             .padding(14)
 
+            if let routine = model.activeRoutine {
+                VStack {
+                    HStack(spacing: 8) {
+                        Text(routine.name).font(.caption.weight(.semibold))
+                        Text("Block \(model.activeRoutineBlockIndex + 1) of \(routine.blocks.count)")
+                            .font(.caption2).foregroundStyle(.secondary)
+                        Button("Next") { model.advanceRoutine() }.buttonStyle(.bordered).controlSize(.mini)
+                    }
+                    .padding(8)
+                    .glassEffect(.regular, in: .capsule)
+                    Spacer()
+                }
+                .padding(.top, 64)
+            }
+
             if let cueText = model.state.cueText {
                 VStack {
                     Spacer()
@@ -577,6 +592,7 @@ struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
     let role: Role
     var text: String
+    var regimen: [RegimenResult] = []
 }
 
 /// UI-shell chat model: the transcript and composer are real; the responder is a
@@ -630,9 +646,9 @@ final class ChatViewModel: ObservableObject {
 
     private func finish(_ id: UUID) {
         isResponding = false
-        if let idx = messages.firstIndex(where: { $0.id == id }), messages[idx].text.isEmpty {
-            messages[idx].text = "(No response.)"
-        }
+        guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
+        if messages[idx].text.isEmpty { messages[idx].text = "(No response.)" }
+        messages[idx].regimen = RegimenBlockParser.parse(message: messages[idx].text)
     }
 
     private func setError(_ message: String, on id: UUID) {
@@ -687,8 +703,14 @@ private struct ChatPanel: View {
                             .padding(.top, 14)
                     } else {
                         ForEach(chat.messages) { message in
-                            ChatBubble(message: message)
-                                .id(message.id)
+                            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 8) {
+                                ChatBubble(message: message)
+                                ForEach(Array(message.regimen.enumerated()), id: \.offset) { _, result in
+                                    RegimenCard(result: result)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+                            .id(message.id)
                         }
                     }
                 }
