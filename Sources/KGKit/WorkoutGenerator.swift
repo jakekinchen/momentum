@@ -143,4 +143,34 @@ public enum WorkoutGenerator {
                                    alternativeExerciseID: $0.alternativeExerciseID, score: $0.score)
             })
     }
+
+    /// Runtime bridge: member overlay persistence supplies the active constraints;
+    /// the exercise-side generator stays pure and deterministic.
+    public static func generateWorkout(view: MergedGraphView, prompt: String, minutes: Int,
+                                       availableEquipment: [String],
+                                       memberID: String = "Member:jordan") throws -> WorkoutPlan {
+        let engine = SafetyEngine(graph: view.graph, rules: view.baseArtifact.safetyRules)
+        return try generateWorkout(
+            engine: engine,
+            prompt: prompt,
+            minutes: minutes,
+            availableEquipment: availableEquipment,
+            memberConstraints: view.activeResolvedConstraints,
+            memberID: memberID
+        )
+    }
+
+    /// Convenience for app startup paths that have a prepared Application
+    /// Support KG workspace but have not materialized a view yet.
+    public static func generateWorkout(workspace: KGWorkspace, prompt: String, minutes: Int,
+                                       availableEquipment: [String],
+                                       memberID: String = "Member:jordan") throws -> WorkoutPlan {
+        try generateWorkout(
+            view: try MergedGraphView(workspace: workspace),
+            prompt: prompt,
+            minutes: minutes,
+            availableEquipment: availableEquipment,
+            memberID: memberID
+        )
+    }
 }
