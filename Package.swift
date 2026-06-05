@@ -15,11 +15,29 @@ let package = Package(
         .executable(
             name: "CamiFitApp",
             targets: ["CamiFitApp"]
-        )
+        ),
+        .library(
+            name: "KGKit",
+            targets: ["KGKit"]
+        ),
     ],
     targets: [
         .target(
             name: "CamiFitEngine"
+        ),
+        .target(
+            name: "KGKit",
+            exclude: ["README.md"],
+            resources: [
+                .copy("Resources/Artifact")
+            ]
+        ),
+        .testTarget(
+            name: "KGKitTests",
+            dependencies: ["KGKit"],
+            resources: [
+                .copy("Fixtures")
+            ]
         ),
         .executableTarget(
             name: "CamiFitApp",

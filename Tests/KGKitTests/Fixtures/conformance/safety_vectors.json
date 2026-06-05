@@ -1,0 +1,903 @@
+{
+  "vectors": [
+    {
+      "scenario": "knee_restriction",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "BodyRegion",
+            "value": "left_knee",
+            "hard": true,
+            "source_text": "left knee",
+            "negated": false
+          }
+        ],
+        "exercise_id": "Exercise:barbell_back_squat"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "MEDICAL_HARD_BLOCK",
+        "reason_codes": [
+          "ACTIVE_KNEE_RESTRICTION",
+          "MISSING_EQUIPMENT:barbell"
+        ],
+        "primary_reason_code": "ACTIVE_KNEE_RESTRICTION",
+        "graph_paths": [
+          "Exercise:barbell_back_squat -STRESSES-> BodyRegion:left_knee",
+          "SafetyRule:avoid_loaded_knee_flexion -USES_CONCEPT-> BodyRegion:knee",
+          "Exercise:barbell_back_squat -REQUIRES-> Equipment:barbell"
+        ],
+        "constraint_fingerprint": "81c92a7b84f9fd3d",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "knee_restriction",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "BodyRegion",
+            "value": "left_knee",
+            "hard": true,
+            "source_text": "left knee",
+            "negated": false
+          }
+        ],
+        "exercise_id": "Exercise:barbell_bench_press"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "EQUIPMENT_HARD_BLOCK",
+        "reason_codes": [
+          "MISSING_EQUIPMENT:barbell"
+        ],
+        "primary_reason_code": "MISSING_EQUIPMENT:barbell",
+        "graph_paths": [
+          "Exercise:barbell_bench_press -REQUIRES-> Equipment:barbell"
+        ],
+        "constraint_fingerprint": "a8e961e7b6ace5a6",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "knee_restriction",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "BodyRegion",
+            "value": "left_knee",
+            "hard": true,
+            "source_text": "left knee",
+            "negated": false
+          }
+        ],
+        "exercise_id": "Exercise:dumbbell_floor_press"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "74e2047c87b05e10",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "knee_restriction",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "BodyRegion",
+            "value": "left_knee",
+            "hard": true,
+            "source_text": "left knee",
+            "negated": false
+          }
+        ],
+        "exercise_id": "Exercise:glute_bridge"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "eaba99d7b95c9deb",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "knee_restriction",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "BodyRegion",
+            "value": "left_knee",
+            "hard": true,
+            "source_text": "left knee",
+            "negated": false
+          }
+        ],
+        "exercise_id": "Exercise:goblet_squat"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "MEDICAL_HARD_BLOCK",
+        "reason_codes": [
+          "ACTIVE_KNEE_RESTRICTION"
+        ],
+        "primary_reason_code": "ACTIVE_KNEE_RESTRICTION",
+        "graph_paths": [
+          "Exercise:goblet_squat -STRESSES-> BodyRegion:left_knee",
+          "SafetyRule:avoid_loaded_knee_flexion -USES_CONCEPT-> BodyRegion:knee"
+        ],
+        "constraint_fingerprint": "529a2db8d8bf6486",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "knee_restriction",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "BodyRegion",
+            "value": "left_knee",
+            "hard": true,
+            "source_text": "left knee",
+            "negated": false
+          }
+        ],
+        "exercise_id": "Exercise:jump_squat"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "MEDICAL_HARD_BLOCK",
+        "reason_codes": [
+          "ACTIVE_KNEE_HIGH_IMPACT_RESTRICTION"
+        ],
+        "primary_reason_code": "ACTIVE_KNEE_HIGH_IMPACT_RESTRICTION",
+        "graph_paths": [
+          "Exercise:jump_squat -STRESSES-> BodyRegion:left_knee",
+          "SafetyRule:avoid_high_impact_knee_stress -USES_CONCEPT-> BodyRegion:knee"
+        ],
+        "constraint_fingerprint": "b8328ad1c2f4aeb5",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "knee_restriction",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "BodyRegion",
+            "value": "left_knee",
+            "hard": true,
+            "source_text": "left knee",
+            "negated": false
+          }
+        ],
+        "exercise_id": "Exercise:kettlebell_deadlift"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "07c92866a8e5f0c8",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "no_barbell",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "Equipment",
+            "value": "barbell",
+            "hard": true,
+            "source_text": "no barbell",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:barbell_back_squat"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "EQUIPMENT_HARD_BLOCK",
+        "reason_codes": [
+          "MISSING_EQUIPMENT:barbell",
+          "DISALLOWED_EQUIPMENT:barbell"
+        ],
+        "primary_reason_code": "MISSING_EQUIPMENT:barbell",
+        "graph_paths": [
+          "Exercise:barbell_back_squat -REQUIRES-> Equipment:barbell",
+          "Exercise:barbell_back_squat -REQUIRES-> Equipment:barbell"
+        ],
+        "constraint_fingerprint": "64f455335f8dcab5",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "no_barbell",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "Equipment",
+            "value": "barbell",
+            "hard": true,
+            "source_text": "no barbell",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:barbell_bench_press"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "EQUIPMENT_HARD_BLOCK",
+        "reason_codes": [
+          "MISSING_EQUIPMENT:barbell",
+          "DISALLOWED_EQUIPMENT:barbell"
+        ],
+        "primary_reason_code": "MISSING_EQUIPMENT:barbell",
+        "graph_paths": [
+          "Exercise:barbell_bench_press -REQUIRES-> Equipment:barbell",
+          "Exercise:barbell_bench_press -REQUIRES-> Equipment:barbell"
+        ],
+        "constraint_fingerprint": "9522045fc9fe13e0",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "no_barbell",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "Equipment",
+            "value": "barbell",
+            "hard": true,
+            "source_text": "no barbell",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:dumbbell_floor_press"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "4dd13fd35999e951",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "no_barbell",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "Equipment",
+            "value": "barbell",
+            "hard": true,
+            "source_text": "no barbell",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:glute_bridge"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "7d88cb6a1f993fa5",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "no_barbell",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "Equipment",
+            "value": "barbell",
+            "hard": true,
+            "source_text": "no barbell",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:goblet_squat"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "c4db05deb6d4c131",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "no_barbell",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "Equipment",
+            "value": "barbell",
+            "hard": true,
+            "source_text": "no barbell",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:jump_squat"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "263bf65400804146",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "no_barbell",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "Equipment",
+            "value": "barbell",
+            "hard": true,
+            "source_text": "no barbell",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:kettlebell_deadlift"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "bc6d7128df4cb313",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "exclude_deadlifts",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "ExerciseFamily",
+            "value": "deadlift_family",
+            "hard": true,
+            "source_text": "exclude deadlifts",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:barbell_back_squat"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "EQUIPMENT_HARD_BLOCK",
+        "reason_codes": [
+          "MISSING_EQUIPMENT:barbell"
+        ],
+        "primary_reason_code": "MISSING_EQUIPMENT:barbell",
+        "graph_paths": [
+          "Exercise:barbell_back_squat -REQUIRES-> Equipment:barbell"
+        ],
+        "constraint_fingerprint": "890ae24d62f9d710",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "exclude_deadlifts",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "ExerciseFamily",
+            "value": "deadlift_family",
+            "hard": true,
+            "source_text": "exclude deadlifts",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:barbell_bench_press"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "EQUIPMENT_HARD_BLOCK",
+        "reason_codes": [
+          "MISSING_EQUIPMENT:barbell"
+        ],
+        "primary_reason_code": "MISSING_EQUIPMENT:barbell",
+        "graph_paths": [
+          "Exercise:barbell_bench_press -REQUIRES-> Equipment:barbell"
+        ],
+        "constraint_fingerprint": "98eade77cbf7840e",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "exclude_deadlifts",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "ExerciseFamily",
+            "value": "deadlift_family",
+            "hard": true,
+            "source_text": "exclude deadlifts",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:dumbbell_floor_press"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "3547f7ef6d001e3e",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "exclude_deadlifts",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "ExerciseFamily",
+            "value": "deadlift_family",
+            "hard": true,
+            "source_text": "exclude deadlifts",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:glute_bridge"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "1b276f69eb7c86d9",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "exclude_deadlifts",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "ExerciseFamily",
+            "value": "deadlift_family",
+            "hard": true,
+            "source_text": "exclude deadlifts",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:goblet_squat"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "8ada9a6605a9ce78",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "exclude_deadlifts",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "ExerciseFamily",
+            "value": "deadlift_family",
+            "hard": true,
+            "source_text": "exclude deadlifts",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:jump_squat"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "8880b07c34bb7384",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "exclude_deadlifts",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [
+          {
+            "constraint_type": "ExerciseFamily",
+            "value": "deadlift_family",
+            "hard": true,
+            "source_text": "exclude deadlifts",
+            "negated": true
+          }
+        ],
+        "exercise_id": "Exercise:kettlebell_deadlift"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "PROMPT_EXCLUSION",
+        "reason_codes": [
+          "PROMPT_EXCLUDED_FAMILY:deadlift_family"
+        ],
+        "primary_reason_code": "PROMPT_EXCLUDED_FAMILY:deadlift_family",
+        "graph_paths": [
+          "Exercise:kettlebell_deadlift -VARIANT_OF-> ExerciseFamily:deadlift_family"
+        ],
+        "constraint_fingerprint": "9bf30dc459ff35b6",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "clean",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [],
+        "exercise_id": "Exercise:barbell_back_squat"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "EQUIPMENT_HARD_BLOCK",
+        "reason_codes": [
+          "MISSING_EQUIPMENT:barbell"
+        ],
+        "primary_reason_code": "MISSING_EQUIPMENT:barbell",
+        "graph_paths": [
+          "Exercise:barbell_back_squat -REQUIRES-> Equipment:barbell"
+        ],
+        "constraint_fingerprint": "518579b78ff7001b",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "clean",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [],
+        "exercise_id": "Exercise:barbell_bench_press"
+      },
+      "expected": {
+        "decision": "filtered",
+        "primary_severity": "EQUIPMENT_HARD_BLOCK",
+        "reason_codes": [
+          "MISSING_EQUIPMENT:barbell"
+        ],
+        "primary_reason_code": "MISSING_EQUIPMENT:barbell",
+        "graph_paths": [
+          "Exercise:barbell_bench_press -REQUIRES-> Equipment:barbell"
+        ],
+        "constraint_fingerprint": "4b2a03698ccca0aa",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "clean",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [],
+        "exercise_id": "Exercise:dumbbell_floor_press"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "5762f9ff7dc36b31",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "clean",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [],
+        "exercise_id": "Exercise:glute_bridge"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "ae755d1c5fa8a9f4",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "clean",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [],
+        "exercise_id": "Exercise:goblet_squat"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "19578fd0c0047ddf",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "clean",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [],
+        "exercise_id": "Exercise:jump_squat"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "b0ed516a5f4854d4",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    },
+    {
+      "scenario": "clean",
+      "input": {
+        "available_equipment": [
+          "Dumbbell",
+          "Kettlebell",
+          "Yoga Mat"
+        ],
+        "constraints": [],
+        "exercise_id": "Exercise:kettlebell_deadlift"
+      },
+      "expected": {
+        "decision": "selected",
+        "primary_severity": "BOOST",
+        "reason_codes": [
+          "PASSED_SAFETY"
+        ],
+        "primary_reason_code": "PASSED_SAFETY",
+        "graph_paths": [],
+        "constraint_fingerprint": "3ba81556b794401d",
+        "graph_version": "fitgraph-kg-m5-validation-v0",
+        "ruleset_version": "ruleset-m2-safety-v0",
+        "ontology_lock_version": "ontology-lock-m0-unverified"
+      }
+    }
+  ]
+}
