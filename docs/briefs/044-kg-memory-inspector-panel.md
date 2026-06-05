@@ -8,6 +8,117 @@ user from the mutable KG overlay, make the evidence and reasoning auditable, and
 let the user correct or remove active memories without mutating the immutable KG
 base artifact.
 
+## Full Product Goal
+
+CamiFit is a local-first fitness coach that can recommend a safe workout, turn
+that recommendation into a runnable routine, watch the user perform it through
+the camera, grade reps/holds/form offline, and then use the measured result to
+improve the next recommendation. The product goal is not just "chat about
+fitness"; it is a closed on-device loop:
+
+```text
+ask coach -> KG decides -> routine renders -> user performs -> engine grades ->
+member KG updates -> next plan reflects real history
+```
+
+The user experience should feel like one product:
+
+- The center of the app is the live/training surface: camera or recorded run,
+  skeleton overlay, rep/hold/form HUD, routine progress, and session status.
+- The right inspector has two cooperating modes:
+  - `Coach`: a ChatGPT-backed Codex app-server chat that verbalizes bounded
+    facts, answers questions, and can propose KG operations.
+  - `Memories`: a brain-icon panel showing what CamiFit remembers, why it
+    remembers it, what decisions those memories affected, and how to correct
+    them.
+- The KG is the decision brain: it resolves prompt text, checks safety,
+  equipment, preferences, alternatives, and provenance. It emits receipts that
+  the app can render.
+- The pose engine is the execution body: it consumes validated
+  `ExerciseProgram`s, computes signals from pose landmarks, counts reps/holds,
+  evaluates form rules, and writes measured observations back into the member
+  layer.
+- Codex is the conversational surface: it may summarize fact cards or propose
+  memory changes, but it does not decide safety, fabricate graph facts, or write
+  the KG directly.
+
+## How It Works
+
+The complete product architecture has four cooperating layers:
+
+1. **Canonical KG compiler / oracle.** FitGraph remains the Python build-time
+   oracle. It imports the golden exercise/member data, validates graph integrity,
+   compiles a signed/content-hashed graph artifact, and emits conformance
+   vectors. Python never ships in the app runtime.
+2. **Swift KGKit runtime.** CamiFit ships the frozen artifact and uses Swift
+   KGKit for resolver, safety traversal, alternatives, workout generation,
+   decision receipts, and fact cards. KGKit must match the Python oracle through
+   conformance tests.
+3. **CamiFitEngine runtime.** The engine is KG-agnostic. It runs pose frames
+   through the deterministic signal DSL, filters, validity gates, rep/hold state
+   machines, and form rules. A KG-selected exercise can start only if it has a
+   runnable, validated program or is clearly labeled timer/manual or
+   recommendation-only.
+4. **CamiFit app shell.** The SwiftUI app owns the live session UI, Codex chat,
+   regimen cards, memory inspector, Application Support graph workspace, and
+   all user-visible correction/approval flows.
+
+Runtime graph state has two layers:
+
+- **Immutable base.** The signed artifact is bundled and copied to
+  `Application Support/CamiFit/KnowledgeGraph/base/<sha>.kgart.json`. It is never
+  edited in place.
+- **Mutable member overlay.** User preferences, health constraints, equipment
+  access, generated routine links, completed-session observations, corrections,
+  and receipts live in append-only local files. The app builds the effective
+  view from `base + overlay`.
+
+The workout path should work like this:
+
+1. The user asks for a workout in chat or chooses a guided flow.
+2. The app collects prompt, time window, equipment, current profile memories,
+   and any relevant fact cards.
+3. KGKit resolves constraints and evaluates candidate exercises.
+4. KGKit returns selected exercises, filtered exercises, alternatives, and
+   `DecisionReceipt`s with graph paths and fingerprints.
+5. The app shows a routine/regimen card with "Why this?" receipts and an
+   "excluded because..." lane when useful.
+6. Safe, runnable exercises compile into or reference validated
+   `ExerciseProgram`s. Non-runnable items are labeled as timer/manual or
+   recommendation-only.
+7. During the workout, the pose engine grades the session locally.
+8. Completed-session observations append to the member overlay without changing
+   canonical safety edges.
+9. Future recommendations and fact cards can read those observations.
+
+The memory path should work like this:
+
+1. The user or Codex chat turn surfaces a possible memory, such as "left knee
+   pain" or "I have dumbbells now".
+2. Codex may propose a structured `camifit-kg-operation`; the app validates it
+   as a proposal, not active state.
+3. The user approves, dismisses, corrects, or edits the proposal.
+4. The app appends the validated operation to the overlay, stamps evidence, and
+   reruns affected KG views.
+5. The brain panel shows the active memory, its source, related receipts, and
+   available correction/archive actions.
+6. If the fact later changes, the user appends a retraction/correction instead
+   of silently mutating the original history.
+
+Non-negotiable product invariants:
+
+- The LLM never decides eligibility or safety.
+- Vector search never enforces safety.
+- The base graph is immutable at runtime.
+- Member-specific state is local, append-only, auditable, and correctable.
+- Raw member KG/source text stays local by default.
+- Receipts explain every recommendation, exclusion, substitution, and graph
+  write.
+- A hard medical block can be corrected if stale, but not bypassed as a casual
+  session override.
+- Real-world tests must prove behavior with realistic user facts, generated
+  plans, receipts, corrections, and completed-session write-back.
+
 ## Product Principle
 
 This is not a second preferences database. The panel is a friendly view over the
