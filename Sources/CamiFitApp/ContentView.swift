@@ -951,6 +951,22 @@ private struct ChatEmptyState: View {
     }
 }
 
+enum ChatMarkdownRenderer {
+    static func attributedString(for text: String) -> AttributedString {
+        do {
+            return try AttributedString(
+                markdown: text,
+                options: AttributedString.MarkdownParsingOptions(
+                    interpretedSyntax: .inlineOnlyPreservingWhitespace,
+                    failurePolicy: .returnPartiallyParsedIfPossible
+                )
+            )
+        } catch {
+            return AttributedString(text)
+        }
+    }
+}
+
 private struct ChatBubble: View {
     let message: ChatMessage
 
@@ -971,7 +987,7 @@ private struct ChatBubble: View {
     }
 
     private var bubble: some View {
-        Text(message.text)
+        Text(ChatMarkdownRenderer.attributedString(for: message.text))
             .font(.system(size: 13.5, weight: .regular, design: .rounded))
             .foregroundStyle(.primary)
             .textSelection(.enabled)
