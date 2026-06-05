@@ -26,7 +26,7 @@ the graph model:
 - deleting from the active profile appends a retraction/archive operation;
 - privacy-grade hard deletion is a later compaction/redaction flow, not the
   default correction path;
-- every user or agent action carries actor, timestamp, base artifact hash,
+- every user or Codex/tool action carries actor, timestamp, base artifact hash,
   precondition revision, source text/source span, and reason.
 
 The same transparency model must also apply to recommendations. If CamiFit
@@ -245,8 +245,8 @@ on-device view:
 - If the member plan has too few usable results, show safe alternatives first,
   then optionally show base-only exclusions as explainable backups that require
   correcting the stored fact before use.
-- Persist the comparison receipt so future agents and the user can audit why a
-  recommendation changed over time.
+- Persist the comparison receipt so future app/tool actions and the user can
+  audit why a recommendation changed over time.
 
 ## Fact Card and Coach Grounding Slice
 
@@ -284,21 +284,22 @@ preferences:
 - The Memory panel should label measured observations differently from user
   claims, for example "Measured by camera" vs "Told to coach".
 
-## Agent Authority and Approval Slice
+## Codex App-Server Authority and Approval Slice
 
-Codex/Claude tooling needs a safe dynamic-write path:
+The runtime write path is the Codex app server plus local overlay tooling. It
+needs a safe dynamic-write path:
 
 - The overlay tool should support `--dry-run` and `propose` modes that generate
   a candidate operation plus receipt without appending it.
-- Agent-authored health/safety operations should default to proposed until the
+- Codex-authored health/safety operations should default to proposed until the
   user confirms in the Memory panel or the initiating chat turn clearly carries
   user consent.
-- Every agent operation must include the source chat turn or tool transcript
+- Every Codex/tool operation must include the source chat turn or tool transcript
   excerpt that justified it.
 - The app should show proposed operations separately from active memories, with
   approve/dismiss controls.
 - Concurrent writes should fail closed on revision mismatch and surface a
-  reload/retry action rather than overwriting another agent or user change.
+  reload/retry action rather than overwriting another app/tool or user change.
 
 ## Contracts, Migration, and Local Data Controls Slice
 
@@ -319,10 +320,10 @@ Add durable contracts around the user-visible KG state:
   - compact/redact specific historical source text in a later privacy-grade
     deletion flow while preserving non-sensitive tombstones needed for audit.
 
-## Agent Tooling Slice
+## Codex Overlay Tooling Slice
 
-Add a stable command-line tool so Codex/Claude agents do not write overlay JSON
-by hand:
+Add a stable command-line tool so the Codex app server and local automation do
+not write overlay JSON by hand:
 
 ```bash
 scripts/kg_overlay_tool.sh list --format json
@@ -338,7 +339,7 @@ scripts/kg_overlay_tool.sh export --format json
 
 The shell wrapper should call a small Swift executable target, for example
 `KGOverlayTool`, that depends on `KGKit`. Tool output must be JSON by default so
-agent actions can be logged, tested, and inspected by the app.
+Codex/tool actions can be logged, tested, and inspected by the app.
 
 Required tool guarantees:
 
@@ -346,7 +347,8 @@ Required tool guarantees:
 - validate base hash and overlay revision before every append;
 - support dry-run/propose output without mutation;
 - fail closed on stale revisions or canonical mutation attempts;
-- write an action receipt under `receipts/` for every successful agent action;
+- write an action receipt under `receipts/` for every successful Codex/tool
+  action;
 - include enough evidence for the user to understand why the memory exists;
 - emit recommendation/comparison receipts that distinguish base-only results
   from merged member-overlay results;
@@ -363,7 +365,7 @@ First implementation should support:
 - Copy/export operation evidence for debugging.
 - Open recommendation receipt from chat or a memory detail row.
 - Correct a stale memory from an exclusion receipt, then rerun the plan.
-- Approve or dismiss an agent-proposed memory.
+- Approve or dismiss a Codex/tool-proposed memory.
 - Export local memory/receipt evidence.
 - Reset local KG memories behind a confirmation flow.
 
@@ -390,7 +392,7 @@ Unit tests:
 - Fact-card projection refuses unsupported claims and preserves source nodes.
 - Workout observation write-back does not change safety receipts unless it
   creates a validated health/preference operation.
-- Agent proposals do not become active memories until approved.
+- Codex/tool proposals do not become active memories until approved.
 - Corrupt overlay lines are quarantined and surfaced.
 - Base artifact upgrade replay either succeeds with a migration receipt or
   quarantines incompatible operations.
@@ -422,7 +424,8 @@ UI/model tests:
   policies.
 - Base-only backup options are visually secondary to safe member-plan results
   and cannot bypass medical hard blocks.
-- Proposed agent memories are visibly separate from approved active memories.
+- Proposed Codex/tool memories are visibly separate from approved active
+  memories.
 - Fact-card-backed chat answers show their source evidence; unsupported claims
   show an explicit no-support state.
 - Corrupt/migration-error states are visible and recoverable.
@@ -438,8 +441,8 @@ End-to-end behavioral test:
   disappears.
 - Run a completed-session write-back and verify memory/fact-card surfaces update
   while safety receipts remain unchanged.
-- Have the agent propose a memory, approve it from the panel, and verify it then
-  affects recommendations.
+- Have Codex/tooling propose a memory, approve it from the panel, and verify it
+  then affects recommendations.
 
 ## Acceptance Criteria
 
@@ -458,13 +461,14 @@ End-to-end behavioral test:
   with source nodes.
 - Completed-session memories are stored separately from health/safety facts and
   cannot accidentally relax safety.
-- Agent-created memories require an auditable source and either explicit consent
-  or an approval step before activation.
+- Codex/tool-created memories require an auditable source and either explicit
+  consent or an approval step before activation.
 - Local data export/reset and corrupt-log recovery paths are specified and
   tested.
 - Correcting/removing a memory appends a validated operation rather than editing
   or deleting the base graph.
-- Codex/Claude agents have a documented shell tool for the same operation path.
+- The Codex app server and local automation have a documented shell tool for the
+  same operation path.
 - Tests cover model projection, operation writes, recommendation receipts,
   base-vs-member comparison, CLI behavior, and the knee-pain correction loop.
 - `swift test --disable-sandbox --filter KGKitTests` and relevant
