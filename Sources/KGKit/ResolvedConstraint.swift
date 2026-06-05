@@ -5,13 +5,21 @@ public struct ResolvedConstraint: Equatable, Sendable {
     public let value: String
     public let hard: Bool
     public let sourceText: String
+    public let graphPaths: [String]
+    public let verified: Bool
     public let negated: Bool
     public let laterality: String?
+    public let resolutionStatus: String
+    public let safetyBehavior: String?
 
     public init(constraintType: String, value: String, hard: Bool, sourceText: String,
-                negated: Bool = false, laterality: String? = nil) {
+                graphPaths: [String] = [], verified: Bool = false,
+                negated: Bool = false, laterality: String? = nil,
+                resolutionStatus: String = "resolved", safetyBehavior: String? = nil) {
         self.constraintType = constraintType; self.value = value; self.hard = hard
-        self.sourceText = sourceText; self.negated = negated; self.laterality = laterality
+        self.sourceText = sourceText; self.graphPaths = graphPaths; self.verified = verified
+        self.negated = negated; self.laterality = laterality
+        self.resolutionStatus = resolutionStatus; self.safetyBehavior = safetyBehavior
     }
 
     /// Node id this constraint refers to (_constraint_node_id in kg/safety.py).
