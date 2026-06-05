@@ -1,0 +1,208 @@
+{
+  "vectors": [
+    {
+      "prompt": "lower body, knee-safe",
+      "minutes": 50,
+      "available_equipment": [
+        "Equipment:dumbbell",
+        "Equipment:flat_bench",
+        "Equipment:kettlebell",
+        "Equipment:resistance_band_loop",
+        "Equipment:yoga_mat"
+      ],
+      "member_constraints": [
+        {
+          "constraint_type": "BodyRegion",
+          "value": "left_knee",
+          "hard": true,
+          "negated": false,
+          "laterality": "left",
+          "graph_paths": [],
+          "source_text": "Left knee flare-up since 2026-05-10 active injury",
+          "safety_behavior": "block_if_safety_critical",
+          "resolution_status": "resolved"
+        }
+      ],
+      "expected": {
+        "warmup": [],
+        "main": [
+          {
+            "exercise_id": "Exercise:glute_bridge",
+            "name": "Glute Bridge",
+            "sets": 3,
+            "reps": "10-12",
+            "rest_seconds": 75
+          },
+          {
+            "exercise_id": "Exercise:kettlebell_deadlift",
+            "name": "Kettlebell Deadlift",
+            "sets": 3,
+            "reps": "10-12",
+            "rest_seconds": 75
+          }
+        ],
+        "cooldown": [],
+        "selected_ids": [
+          "Exercise:glute_bridge",
+          "Exercise:kettlebell_deadlift"
+        ],
+        "filtered_ids": [
+          "Exercise:barbell_back_squat",
+          "Exercise:goblet_squat",
+          "Exercise:jump_squat"
+        ],
+        "alternatives": [
+          {
+            "filtered_exercise_id": "Exercise:barbell_back_squat",
+            "alternative_exercise_id": "Exercise:glute_bridge",
+            "score": 0.34
+          },
+          {
+            "filtered_exercise_id": "Exercise:goblet_squat",
+            "alternative_exercise_id": "Exercise:glute_bridge",
+            "score": 0.34
+          },
+          {
+            "filtered_exercise_id": "Exercise:jump_squat",
+            "alternative_exercise_id": "Exercise:glute_bridge",
+            "score": 0.34
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "full body strength",
+      "minutes": 50,
+      "available_equipment": [
+        "Equipment:dumbbell",
+        "Equipment:flat_bench",
+        "Equipment:kettlebell",
+        "Equipment:resistance_band_loop",
+        "Equipment:yoga_mat"
+      ],
+      "member_constraints": [
+        {
+          "constraint_type": "BodyRegion",
+          "value": "left_knee",
+          "hard": true,
+          "negated": false,
+          "laterality": "left",
+          "graph_paths": [],
+          "source_text": "Left knee flare-up since 2026-05-10 active injury",
+          "safety_behavior": "block_if_safety_critical",
+          "resolution_status": "resolved"
+        }
+      ],
+      "expected": {
+        "warmup": [],
+        "main": [
+          {
+            "exercise_id": "Exercise:glute_bridge",
+            "name": "Glute Bridge",
+            "sets": 3,
+            "reps": "10-12",
+            "rest_seconds": 75
+          },
+          {
+            "exercise_id": "Exercise:kettlebell_deadlift",
+            "name": "Kettlebell Deadlift",
+            "sets": 3,
+            "reps": "10-12",
+            "rest_seconds": 75
+          },
+          {
+            "exercise_id": "Exercise:dumbbell_floor_press",
+            "name": "Dumbbell Floor Press",
+            "sets": 3,
+            "reps": "10-12",
+            "rest_seconds": 75
+          }
+        ],
+        "cooldown": [],
+        "selected_ids": [
+          "Exercise:dumbbell_floor_press",
+          "Exercise:glute_bridge",
+          "Exercise:kettlebell_deadlift"
+        ],
+        "filtered_ids": [
+          "Exercise:barbell_back_squat",
+          "Exercise:barbell_bench_press",
+          "Exercise:goblet_squat",
+          "Exercise:jump_squat"
+        ],
+        "alternatives": [
+          {
+            "filtered_exercise_id": "Exercise:barbell_back_squat",
+            "alternative_exercise_id": "Exercise:glute_bridge",
+            "score": 0.34
+          },
+          {
+            "filtered_exercise_id": "Exercise:barbell_bench_press",
+            "alternative_exercise_id": "Exercise:dumbbell_floor_press",
+            "score": 0.965
+          },
+          {
+            "filtered_exercise_id": "Exercise:goblet_squat",
+            "alternative_exercise_id": "Exercise:glute_bridge",
+            "score": 0.34
+          },
+          {
+            "filtered_exercise_id": "Exercise:jump_squat",
+            "alternative_exercise_id": "Exercise:glute_bridge",
+            "score": 0.34
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "chest and pecs",
+      "minutes": 40,
+      "available_equipment": [
+        "Equipment:dumbbell",
+        "Equipment:flat_bench",
+        "Equipment:kettlebell",
+        "Equipment:resistance_band_loop",
+        "Equipment:yoga_mat"
+      ],
+      "member_constraints": [
+        {
+          "constraint_type": "BodyRegion",
+          "value": "left_knee",
+          "hard": true,
+          "negated": false,
+          "laterality": "left",
+          "graph_paths": [],
+          "source_text": "Left knee flare-up since 2026-05-10 active injury",
+          "safety_behavior": "block_if_safety_critical",
+          "resolution_status": "resolved"
+        }
+      ],
+      "expected": {
+        "warmup": [],
+        "main": [
+          {
+            "exercise_id": "Exercise:dumbbell_floor_press",
+            "name": "Dumbbell Floor Press",
+            "sets": 3,
+            "reps": "10-12",
+            "rest_seconds": 75
+          }
+        ],
+        "cooldown": [],
+        "selected_ids": [
+          "Exercise:dumbbell_floor_press"
+        ],
+        "filtered_ids": [
+          "Exercise:barbell_bench_press"
+        ],
+        "alternatives": [
+          {
+            "filtered_exercise_id": "Exercise:barbell_bench_press",
+            "alternative_exercise_id": "Exercise:dumbbell_floor_press",
+            "score": 0.965
+          }
+        ]
+      }
+    }
+  ]
+}

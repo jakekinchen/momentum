@@ -7,6 +7,8 @@ eligibility; no LLM, no vector search. Loads a frozen graph artifact
 the Python oracle's `DecisionReceipt`s byte-for-byte — including the
 `sha256[:16]` `constraint_fingerprint` — verified by `ConformanceTests`.
 
+Includes the on-device **Workout Generator (surface A)**: resolve → safety → alternatives → structured plan (`WorkoutGenerator.generateWorkout`), verified byte-for-byte against the Python oracle by `WorkoutConformanceTests`.
+
 ## Regenerating the artifact + vectors
     FITGRAPH=/Users/kelly/Developer/fitgraph python3 scripts/gen_kg_conformance_vectors.py
     swift test --disable-sandbox --filter KGKitTests
