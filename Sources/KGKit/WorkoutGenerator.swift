@@ -113,4 +113,34 @@ public enum WorkoutGenerator {
                 mainPick.map { prescription(g, $0, "main") },
                 cooldownIDs.map { prescription(g, $0, "cooldown") })
     }
+
+    /// Port of generate_workout (exercise-side): resolve(prompt) + memberConstraints -> safety -> alternatives -> sections.
+    public static func generateWorkout(engine: SafetyEngine, prompt: String, minutes: Int,
+                                       availableEquipment: [String], memberConstraints: [ResolvedConstraint],
+                                       memberID: String = "Member:jordan") throws -> WorkoutPlan {
+        let g = engine.graph
+        let promptConstraints = try Resolver.resolveText(prompt, graph: g)
+        let constraints = promptConstraints + memberConstraints
+        let candidates = candidateIds(prompt, g)
+        let receipts = try engine.evaluateCandidates(candidates, availableEquipment: availableEquipment,
+                                                     constraints: constraints)
+        let result = try Alternatives.buildWorkoutCandidates(receipts, availableEquipment: availableEquipment, graph: g)
+        let sections = workoutSections(g, result.selectedReceipts)
+        func summary(_ r: DecisionReceipt) -> ExerciseSummary {
+            ExerciseSummary(exerciseID: r.exerciseID, name: label(g, r.exerciseID),
+                            decision: r.decision, reasonCodes: r.reasonCodes)
+        }
+        return WorkoutPlan(
+            memberID: memberID, prompt: prompt, timeWindowMinutes: minutes,
+            availableEquipment: availableEquipment.sorted(),
+            resolvedConstraints: constraints,
+            unresolvedConcepts: constraints.filter { $0.constraintType == "UnresolvedConcept" },
+            warmup: sections.warmup, main: sections.main, cooldown: sections.cooldown,
+            selectedExercises: result.selectedReceipts.map(summary),
+            filteredExercises: result.filteredReceipts.map(summary),
+            alternatives: result.alternatives.map {
+                AlternativeSummary(filteredExerciseID: $0.filteredExerciseID,
+                                   alternativeExerciseID: $0.alternativeExerciseID, score: $0.score)
+            })
+    }
 }
