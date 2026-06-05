@@ -16,6 +16,7 @@ __pycache__/
 # Autonomous workflow runtime state (local only)
 .codex-role-sessions/
 .autonomous-workflow.lock
+.codex-goal-loop.pid
 
 # Models / large artifacts (must be downloaded, never committed)
 *.task
