@@ -27,6 +27,7 @@ let package = Package(
         ),
         .target(
             name: "KGKit",
+            exclude: ["README.md"],
             resources: [
                 .copy("Resources/Artifact")
             ]
