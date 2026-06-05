@@ -33,6 +33,50 @@ public struct SafetyEngine {
         return false
     }
 
+    /// Port of _equipment_ids: normalize available equipment labels to node ids.
+    public func equipmentIDs(_ available: [String]) -> Set<String> {
+        Set(available.map { NodeID.make("Equipment", $0) })
+    }
+
+    /// Port of _equipment_reasons.
+    public func equipmentReasons(exerciseID: String, availableEquipment: [String],
+                                 constraints: [ResolvedConstraint]) -> [SafetyReason] {
+        let available = equipmentIDs(availableEquipment)
+        let disallowed = Set(constraints
+            .filter { $0.constraintType == "Equipment" && $0.hard && $0.negated }
+            .map { $0.nodeID })
+
+        var reasons: [SafetyReason] = []
+        for edge in graph.outgoing(exerciseID, predicate: "REQUIRES") {
+            let value = edge.target.split(separator: ":", maxSplits: 1).last.map(String.init) ?? edge.target
+            if !available.contains(edge.target) {
+                reasons.append(SafetyReason(severity: "EQUIPMENT_HARD_BLOCK",
+                    reasonCode: "MISSING_EQUIPMENT:\(value)", graphPaths: [edge.path()]))
+            }
+            if disallowed.contains(edge.target) {
+                reasons.append(SafetyReason(severity: "EQUIPMENT_HARD_BLOCK",
+                    reasonCode: "DISALLOWED_EQUIPMENT:\(value)", graphPaths: [edge.path()]))
+            }
+        }
+        return reasons
+    }
+
+    /// Port of _prompt_exclusion_reasons.
+    public func promptExclusionReasons(exerciseID: String, constraints: [ResolvedConstraint]) -> [SafetyReason] {
+        let excluded = Set(constraints
+            .filter { $0.constraintType == "ExerciseFamily" && $0.hard && $0.negated }
+            .map { $0.nodeID })
+        if excluded.isEmpty { return [] }
+
+        var reasons: [SafetyReason] = []
+        for edge in graph.outgoing(exerciseID, predicate: "VARIANT_OF") where excluded.contains(edge.target) {
+            let value = edge.target.split(separator: ":", maxSplits: 1).last.map(String.init) ?? edge.target
+            reasons.append(SafetyReason(severity: "PROMPT_EXCLUSION",
+                reasonCode: "PROMPT_EXCLUDED_FAMILY:\(value)", graphPaths: [edge.path()]))
+        }
+        return reasons
+    }
+
     /// Port of _medical_reasons.
     public func medicalReasons(exerciseID: String, constraints: [ResolvedConstraint]) throws -> [SafetyReason] {
         let activeRestrictions = constraints
