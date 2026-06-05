@@ -4,11 +4,51 @@ import json
 import subprocess
 import sys
 
+import pytest
+
 from kg.assessment_import import (
     SOURCE_SNAPSHOT_COMMIT,
     build_assessment_import_artifacts,
 )
 from kg.validation import validate_graph_seed
+
+
+REQUIRED_SOURCE_SPAN_PROPERTIES = {
+    "source_file",
+    "json_path",
+    "source_hash",
+    "source_snapshot_commit",
+    "synthetic_data",
+}
+REQUIRED_STRESS_PROPERTIES = {
+    "loaded",
+    "load_level",
+    "impact_level",
+    "flexion_depth",
+    "axial_load",
+    "balance_demand",
+    "laterality",
+}
+ALLOWED_STRESS_VALUES = {
+    "load_level": {"low", "medium", "high"},
+    "impact_level": {"low", "medium", "high"},
+    "flexion_depth": {"none", "limited", "moderate", "deep"},
+    "axial_load": {"none", "low", "medium", "high"},
+    "balance_demand": {"low", "medium", "high"},
+    "laterality": {
+        "left",
+        "right",
+        "bilateral",
+        "neutral",
+        "left_arm",
+        "right_arm",
+        "left_leg",
+        "right_leg",
+        "left_side",
+        "right_side",
+    },
+}
+RELATION_TARGET_PREDICATES = {"REQUIRES", "TARGETS", "HAS_PATTERN", "VARIANT_OF"}
 
 
 def test_assessment_import_preserves_fixture_counts_and_source_hashes() -> None:
@@ -76,6 +116,118 @@ def test_assessment_exercise_graph_is_valid_and_source_backed() -> None:
     )
     assert nodes["SourceSpan:assessment_exercise_019"]["properties"]["json_path"] == "$[19]"
     assert nodes["SourceSpan:assessment_exercise_019"]["properties"]["synthetic_data"] is True
+
+
+def test_every_imported_exercise_is_derived_from_source_span() -> None:
+    graph = build_assessment_import_artifacts().exercise_graph
+    nodes = {node["id"]: node for node in graph["nodes"]}
+    source_spans = {
+        node_id
+        for node_id, node in nodes.items()
+        if node["type"] == "SourceSpan"
+    }
+    derived_from = {
+        edge["source"]: edge["target"]
+        for edge in graph["edges"]
+        if edge["predicate"] == "DERIVED_FROM"
+    }
+
+    exercise_ids = sorted(
+        node_id
+        for node_id, node in nodes.items()
+        if node["type"] == "Exercise"
+    )
+    assert len(exercise_ids) == 50
+    assert sorted(derived_from) == exercise_ids
+    assert all(derived_from[exercise_id] in source_spans for exercise_id in exercise_ids)
+
+
+def test_all_generated_source_spans_have_required_provenance_properties() -> None:
+    artifacts = build_assessment_import_artifacts()
+
+    for graph in (artifacts.exercise_graph, artifacts.member_graph):
+        source_spans = [
+            node
+            for node in graph["nodes"]
+            if node["type"] == "SourceSpan"
+        ]
+        assert source_spans
+        for node in source_spans:
+            properties = node["properties"]
+            assert REQUIRED_SOURCE_SPAN_PROPERTIES <= properties.keys()
+            assert properties["source_file"].startswith("docs/external/candidate-assessment/data/")
+            assert properties["json_path"]
+            assert len(properties["source_hash"]) == 64
+            assert properties["source_snapshot_commit"] == SOURCE_SNAPSHOT_COMMIT
+            assert properties["synthetic_data"] is True
+
+
+def test_all_stress_edges_have_required_properties_with_allowed_values() -> None:
+    graph = build_assessment_import_artifacts().exercise_graph
+    stress_edges = [
+        edge
+        for edge in graph["edges"]
+        if edge["predicate"] == "STRESSES"
+    ]
+
+    assert stress_edges
+    for edge in stress_edges:
+        properties = edge["properties"]
+        assert REQUIRED_STRESS_PROPERTIES <= properties.keys()
+        assert isinstance(properties["loaded"], bool)
+        for key, allowed_values in ALLOWED_STRESS_VALUES.items():
+            assert properties[key] in allowed_values
+
+
+def test_exercise_relation_targets_exist_for_all_imported_records() -> None:
+    graph = build_assessment_import_artifacts().exercise_graph
+    node_ids = {node["id"] for node in graph["nodes"]}
+    relation_edges = [
+        edge
+        for edge in graph["edges"]
+        if edge["predicate"] in RELATION_TARGET_PREDICATES
+    ]
+
+    assert relation_edges
+    for edge in relation_edges:
+        assert edge["source"] in node_ids
+        assert edge["target"] in node_ids
+
+
+def test_high_impact_jump_records_have_high_impact_knee_stress_edge() -> None:
+    graph = build_assessment_import_artifacts().exercise_graph
+    nodes = {node["id"]: node for node in graph["nodes"]}
+    stress_edges_by_source: dict[str, list[dict[str, object]]] = {}
+    for edge in graph["edges"]:
+        if edge["predicate"] == "STRESSES":
+            stress_edges_by_source.setdefault(edge["source"], []).append(edge)
+
+    high_impact_exercise_ids = []
+    for node_id, node in nodes.items():
+        if node["type"] != "Exercise":
+            continue
+        source_fields = node["properties"]["source_fields"]
+        text = (
+            f"{source_fields.get('name', '')} "
+            f"{' '.join(source_fields.get('movement_patterns', []))}"
+        ).lower()
+        if "jump" in text or "plyometric" in text:
+            high_impact_exercise_ids.append(node_id)
+
+    assert sorted(high_impact_exercise_ids) == [
+        "Exercise:bosu_step_over",
+        "Exercise:jump_rope_single_leg",
+        "Exercise:jumping_jack",
+        "Exercise:med_ball_scoop_toss",
+        "Exercise:static_jump",
+        "Exercise:vertical_jump_to_broad_jump",
+    ]
+    for exercise_id in high_impact_exercise_ids:
+        assert any(
+            edge["target"] == "BodyRegion:knee"
+            and edge["properties"]["impact_level"] == "high"
+            for edge in stress_edges_by_source[exercise_id]
+        )
 
 
 def test_assessment_member_graph_represents_all_required_member_context() -> None:
@@ -169,3 +321,29 @@ def test_assessment_import_command_writes_generated_artifacts(tmp_path) -> None:
     for path in paths.values():
         payload = json.loads(open(path, encoding="utf-8").read())
         assert isinstance(payload, dict)
+
+
+def test_assessment_import_rejects_malformed_temp_exercise_fixture(tmp_path) -> None:
+    exercises_path = tmp_path / "exercises.json"
+    member_path = tmp_path / "member-context.json"
+    exercises_path.write_text(json.dumps({"not": "a list"}), encoding="utf-8")
+    member_path.write_text(json.dumps({"profile": {"name": "Synthetic"}}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="exercises.json must contain a list"):
+        build_assessment_import_artifacts(
+            exercises_path=exercises_path,
+            member_context_path=member_path,
+        )
+
+
+def test_assessment_import_rejects_malformed_temp_member_fixture(tmp_path) -> None:
+    exercises_path = tmp_path / "exercises.json"
+    member_path = tmp_path / "member-context.json"
+    exercises_path.write_text(json.dumps([]), encoding="utf-8")
+    member_path.write_text(json.dumps(["not", "an", "object"]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="member-context.json must contain an object"):
+        build_assessment_import_artifacts(
+            exercises_path=exercises_path,
+            member_context_path=member_path,
+        )

@@ -11,11 +11,11 @@ receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-Full candidate-assessment delivery complete
+Test quality hardening complete
 
 ## Current Slice
 
-docs/briefs/015-full-assessment-delivery.md
+docs/briefs/016-test-quality-hardening.md
 
 ## Stop Conditions
 
