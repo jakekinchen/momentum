@@ -3,6 +3,13 @@ import KGKit
 @testable import CamiFitApp
 
 final class KGMemoryPanelModelTests: XCTestCase {
+    private func temporaryAppSupportDirectory() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("KGMemoryPanelModelTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
     func testInspectorModeStatePreservesChatModelBoundary() {
         var state = AppInspectorState()
 
@@ -82,5 +89,77 @@ final class KGMemoryPanelModelTests: XCTestCase {
         XCTAssertEqual(items[1].reason, "resolved")
 
         print("kg-memory-model active=\(items[0].operationID) corrected=\(items[1].operationID)")
+    }
+
+    func testCoachProposalParsesAndAppendsHealthMemoryArtifact() throws {
+        let directory = try temporaryAppSupportDirectory()
+        let store = KGMemoryStore(applicationSupportDirectory: directory)
+        store.load()
+
+        let assistantText = """
+        I will remember that so future coaching avoids loading that area.
+
+        ```camifit-kg-operation
+        {
+          "operation_type": "AddMedicalConstraint",
+          "constraint_type": "BodyRegion",
+          "value": "left_knee",
+          "source_text": "I have left knee pain",
+          "hard": true,
+          "reason": "The user reported left knee pain, so knee-stressing workouts should be avoided."
+        }
+        ```
+        """
+
+        let artifacts = KGMemoryChatBridge.applyProposals(
+            in: assistantText,
+            sourceUserText: "I have left knee pain",
+            store: store
+        )
+
+        XCTAssertEqual(artifacts.count, 1)
+        XCTAssertEqual(artifacts[0].status, .saved)
+        XCTAssertEqual(artifacts[0].title, "Memory saved")
+        XCTAssertEqual(store.state.phase, .loaded)
+        XCTAssertEqual(store.state.overlayRevision, 1)
+        XCTAssertEqual(store.state.items.count, 1)
+        XCTAssertEqual(store.state.items[0].title, "Left Knee")
+        XCTAssertEqual(store.state.items[0].actor, .agent)
+        XCTAssertEqual(store.state.items[0].sourceText, "I have left knee pain")
+
+        let context = KGMemoryChatBridge.coachContext(from: store)
+        XCTAssertNotNil(context)
+        XCTAssertTrue(context?.contains("Left Knee") ?? false)
+        XCTAssertTrue(context?.contains("I have left knee pain") ?? false)
+        XCTAssertEqual(
+            KGMemoryProposalParser.displayText(removingProposalBlocks: assistantText),
+            "I will remember that so future coaching avoids loading that area."
+        )
+
+        print("kg-memory-chat-bridge artifact=saved title=\(store.state.items[0].title) context=true")
+    }
+
+    func testMalformedCoachProposalDoesNotAppendMemory() throws {
+        let directory = try temporaryAppSupportDirectory()
+        let store = KGMemoryStore(applicationSupportDirectory: directory)
+        store.load()
+
+        let assistantText = """
+        ```camifit-kg-operation
+        {"operation_type":"AddPreference","value":"likes squats"}
+        ```
+        """
+
+        let artifacts = KGMemoryChatBridge.applyProposals(
+            in: assistantText,
+            sourceUserText: "I like squats",
+            store: store
+        )
+
+        XCTAssertEqual(artifacts, [])
+        XCTAssertEqual(store.state.phase, .empty)
+        XCTAssertEqual(store.state.overlayRevision, 0)
+
+        print("kg-memory-chat-bridge malformed_ignored=true revision=\(store.state.overlayRevision)")
     }
 }

@@ -66,11 +66,13 @@ struct ContentView: View {
             viewModel.loadRecordedRuns()
             liveSession.refreshCameras()
             chat.codex = codex
+            chat.memoryStore = memoryStore
             codex.start()
             memoryStore.load()
         }
         .onDisappear {
             liveSession.stop()
+            codex.stop()
         }
     }
 }
@@ -643,6 +645,7 @@ struct ChatMessage: Identifiable, Equatable {
     let role: Role
     var text: String
     var regimen: [RegimenResult] = []
+    var memoryArtifacts: [KGMemoryChatArtifact] = []
 }
 
 /// UI-shell chat model: the transcript and composer are real; the responder is a
@@ -653,6 +656,7 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var isResponding = false
 
     weak var codex: CodexAppServerClient?
+    weak var memoryStore: KGMemoryStore?
 
     var canSend: Bool {
         !isResponding && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -675,10 +679,11 @@ final class ChatViewModel: ObservableObject {
         let replyID = reply.id
         isResponding = true
 
-        codex.startTurn(text: text, onDelta: { [weak self] delta in
+        let codexInput = promptForCodex(userText: text)
+        codex.startTurn(text: codexInput, onDelta: { [weak self] delta in
             self?.append(delta, to: replyID)
         }, onComplete: { [weak self] in
-            self?.finish(replyID)
+            self?.finish(replyID, sourceUserText: text)
         }, onError: { [weak self] message in
             self?.setError(message, on: replyID)
         })
@@ -694,11 +699,18 @@ final class ChatViewModel: ObservableObject {
         messages[idx].text += text
     }
 
-    private func finish(_ id: UUID) {
+    private func finish(_ id: UUID, sourceUserText: String) {
         isResponding = false
         guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
         if messages[idx].text.isEmpty { messages[idx].text = "(No response.)" }
-        messages[idx].regimen = RegimenBlockParser.parse(message: messages[idx].text)
+        let rawAssistantText = messages[idx].text
+        messages[idx].regimen = RegimenBlockParser.parse(message: rawAssistantText)
+        messages[idx].memoryArtifacts = KGMemoryChatBridge.applyProposals(
+            in: rawAssistantText,
+            sourceUserText: sourceUserText,
+            store: memoryStore
+        )
+        messages[idx].text = KGMemoryProposalParser.displayText(removingProposalBlocks: rawAssistantText)
     }
 
     private func setError(_ message: String, on id: UUID) {
@@ -706,6 +718,17 @@ final class ChatViewModel: ObservableObject {
         guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
         let prefix = messages[idx].text.isEmpty ? "" : "\n\n"
         messages[idx].text += "\(prefix)⚠️ \(message)"
+    }
+
+    private func promptForCodex(userText: String) -> String {
+        guard let context = KGMemoryChatBridge.coachContext(from: memoryStore) else {
+            return userText
+        }
+        return """
+        \(userText)
+
+        \(context)
+        """
     }
 }
 
@@ -758,6 +781,9 @@ private struct ChatPanel: View {
                                 ForEach(Array(message.regimen.enumerated()), id: \.offset) { _, result in
                                     RegimenCard(result: result)
                                 }
+                                ForEach(message.memoryArtifacts) { artifact in
+                                    ChatMemoryArtifactCard(artifact: artifact)
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
                             .id(message.id)
@@ -775,6 +801,40 @@ private struct ChatPanel: View {
                 }
             }
         }
+    }
+}
+
+private struct ChatMemoryArtifactCard: View {
+    let artifact: KGMemoryChatArtifact
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: artifact.status == .saved ? "brain.head.profile.fill" : "exclamationmark.triangle.fill")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(artifact.status == .saved ? .pink : .orange)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(artifact.title)
+                    .font(.caption.weight(.semibold))
+                Text(artifact.detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.pink.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.pink.opacity(0.16), lineWidth: 1)
+                )
+        )
+        .frame(maxWidth: 250, alignment: .leading)
     }
 }
 

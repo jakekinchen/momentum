@@ -16,6 +16,10 @@ APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
 for process_name in "$APP_NAME" "CamiFit"; do
+  while IFS= read -r app_pid; do
+    [[ -n "$app_pid" ]] || continue
+    pkill -TERM -P "$app_pid" >/dev/null 2>&1 || true
+  done < <(pgrep -x "$process_name" || true)
   pkill -x "$process_name" >/dev/null 2>&1 || true
 done
 

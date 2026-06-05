@@ -28,6 +28,8 @@ final class CodexAppServerClient: ObservableObject {
 
     private var process: Process?
     private var stdin: FileHandle?
+    private var stdout: FileHandle?
+    private var stderr: FileHandle?
     private var readBuffer = Data()
     private var nextID = 1
     private var threadID: String?
@@ -42,6 +44,8 @@ final class CodexAppServerClient: ObservableObject {
     private var activeTurn: ActiveTurn?
     private var turnToken = 0
     private var queuedText: String?
+
+    private static let turnWatchdogSeconds: TimeInterval = 300
 
     /// The chat coach must NOT freehand-author exercise programs. Per the FitGraph/KG synthesis
     /// (docs/design/2026-06-04-camifit-fitgraph-synthesis.md), "the graph decides; the LLM never
@@ -163,6 +167,17 @@ final class CodexAppServerClient: ObservableObject {
         You are CamiFit's friendly fitness coach. Answer questions about exercise form, reps, \
         holds, and general workout guidance in clear, encouraging text. Never run shell commands, \
         edit files, or use tools — only reply with text (the text may contain code blocks).
+
+        If the user states a current health or safety limitation in first-person terms, such as \
+        knee pain, shoulder pain, a back issue, or an injury, include a short normal reply and \
+        exactly one fenced code block tagged camifit-kg-operation. The block must be JSON:
+        {"operation_type":"AddMedicalConstraint","constraint_type":"BodyRegion","value":"left_knee","source_text":"the user's exact limitation text","hard":true,"reason":"why this should affect coaching"}.
+        Use lower_snake_case body-region values such as left_knee, right_knee, shoulder, back, \
+        wrist, or ankle. Do not say the memory is saved; the CamiFit app will validate and save \
+        it locally if allowed.
+
+        If the app provides CamiFit local KG fact cards in the user message, treat them as active \
+        health/safety constraints for that reply.
         """
         guard Self.exerciseAuthoringEnabled else { return persona }
         return persona + "\n\n" + """
@@ -213,11 +228,16 @@ final class CodexAppServerClient: ObservableObject {
         proc.standardOutput = stdoutPipe
         proc.standardError = stderrPipe
         stdin = stdinPipe.fileHandleForWriting
+        stdout = stdoutPipe.fileHandleForReading
+        stderr = stderrPipe.fileHandleForReading
 
-        stdoutPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        stdout?.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             guard !data.isEmpty else { return }
             DispatchQueue.main.async { self?.ingest(data) }
+        }
+        stderr?.readabilityHandler = { handle in
+            _ = handle.availableData
         }
         proc.terminationHandler = { [weak self] _ in
             DispatchQueue.main.async { self?.handleTermination() }
@@ -243,8 +263,12 @@ final class CodexAppServerClient: ObservableObject {
     func stop() {
         process?.terminationHandler = nil
         process?.terminate()
+        stdout?.readabilityHandler = nil
+        stderr?.readabilityHandler = nil
         process = nil
         stdin = nil
+        stdout = nil
+        stderr = nil
         threadID = nil
         activeTurn = nil
         responseHandlers.removeAll()
@@ -255,9 +279,10 @@ final class CodexAppServerClient: ObservableObject {
     private func startThread() {
         sendRequest(method: "thread/start",
                     params: ["approvalPolicy": "never",
+                             "personality": "friendly",
                              "sandbox": "read-only",
                              "baseInstructions": baseInstructions,
-                             "cwd": NSTemporaryDirectory()]) { [weak self] result in
+                             "cwd": "/tmp"]) { [weak self] result in
             guard let self else { return }
             if let thread = result["thread"] as? [String: Any], let id = thread["id"] as? String {
                 self.threadID = id
@@ -273,8 +298,12 @@ final class CodexAppServerClient: ObservableObject {
     }
 
     private func handleTermination() {
+        stdout?.readabilityHandler = nil
+        stderr?.readabilityHandler = nil
         process = nil
         stdin = nil
+        stdout = nil
+        stderr = nil
         threadID = nil
         if case .failed = state {} else { state = .idle }
         if let turn = activeTurn {
@@ -310,11 +339,13 @@ final class CodexAppServerClient: ObservableObject {
         guard let threadID else { queuedText = text; return }
         sendRequest(method: "turn/start",
                     params: ["threadId": threadID,
+                             "effort": "minimal",
+                             "summary": "none",
                              "input": [["type": "text", "text": text]]])
     }
 
     private func scheduleWatchdog(token: Int) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 120) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.turnWatchdogSeconds) { [weak self] in
             guard let self, let turn = self.activeTurn, turn.token == token else { return }
             self.activeTurn = nil
             turn.onError("Codex did not respond in time.")

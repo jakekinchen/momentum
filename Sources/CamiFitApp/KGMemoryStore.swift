@@ -21,12 +21,7 @@ final class KGMemoryStore: ObservableObject {
     func load() {
         state.phase = .loading
         do {
-            let prepared = try KGWorkspace.prepare(
-                applicationSupportDirectory: applicationSupportDirectory,
-                baseArtifactData: try baseArtifactData(),
-                fileManager: fileManager
-            )
-            workspace = prepared
+            let prepared = try preparedWorkspace()
             try reload(from: prepared)
         } catch {
             state = KGMemoryViewState(
@@ -39,10 +34,44 @@ final class KGMemoryStore: ObservableObject {
         }
     }
 
-    func correctHealthMemory(operationID: String, reason: String) throws {
-        guard let workspace else {
-            throw StoreError.workspaceNotLoaded
+    @discardableResult
+    func addHealthMemory(value: String,
+                         sourceText: String,
+                         reason: String,
+                         actor: GraphOperationActor) throws -> KGMemoryItem {
+        let workspace = try preparedWorkspace()
+        let log = GraphOperationLog(url: workspace.memberOverlayURL, fileManager: fileManager)
+        let operations = try log.readOperations()
+        let operationID = "op-medical-\(Self.slug(value))-\(UUID().uuidString)"
+        let operation = GraphOperation(
+            operationID: operationID,
+            operationType: .addMedicalConstraint,
+            actor: actor,
+            createdAt: Self.iso8601Now(),
+            baseArtifactSHA256: workspace.baseArtifactSHA256,
+            preconditionRevision: operations.count,
+            scope: .member,
+            sourceSpanIDs: ["ChatTurn:\(UUID().uuidString)"],
+            effect: GraphOperationEffect(
+                constraintType: "BodyRegion",
+                value: value,
+                sourceText: sourceText,
+                hard: true,
+                negated: false,
+                reason: reason
+            )
+        )
+        let validator = OverlayValidator(baseArtifactSHA256: workspace.baseArtifactSHA256)
+        _ = try log.append(operation, validator: validator)
+        try reload(from: workspace)
+        guard let item = state.items.first(where: { $0.operationID == operationID }) else {
+            throw StoreError.memoryNotFound(operationID)
         }
+        return item
+    }
+
+    func correctHealthMemory(operationID: String, reason: String) throws {
+        let workspace = try preparedWorkspace()
         let operations = try GraphOperationLog(url: workspace.memberOverlayURL, fileManager: fileManager).readOperations()
         guard operations.contains(where: { $0.operationID == operationID && $0.operationType == .addMedicalConstraint }) else {
             throw StoreError.memoryNotFound(operationID)
@@ -66,6 +95,17 @@ final class KGMemoryStore: ObservableObject {
         let validator = OverlayValidator(baseArtifactSHA256: workspace.baseArtifactSHA256)
         _ = try log.append(operation, validator: validator)
         try reload(from: workspace)
+    }
+
+    private func preparedWorkspace() throws -> KGWorkspace {
+        if let workspace { return workspace }
+        let prepared = try KGWorkspace.prepare(
+            applicationSupportDirectory: applicationSupportDirectory,
+            baseArtifactData: try baseArtifactData(),
+            fileManager: fileManager
+        )
+        workspace = prepared
+        return prepared
     }
 
     private func reload(from workspace: KGWorkspace) throws {
@@ -124,6 +164,19 @@ final class KGMemoryStore: ObservableObject {
 
     private static func shortHash(_ hash: String) -> String {
         String(hash.prefix(12))
+    }
+
+    private static func slug(_ value: String) -> String {
+        value
+            .lowercased()
+            .map { character in
+                character.isLetter || character.isNumber ? character : "-"
+            }
+            .reduce(into: "") { partial, character in
+                if character == "-", partial.last == "-" { return }
+                partial.append(character)
+            }
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
     }
 
     private static func iso8601Now() -> String {
