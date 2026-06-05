@@ -108,4 +108,51 @@ public enum Resolver {
             return [unresolved(sourceText: text, normalizedText: normalized)]
         }
     }
+
+    private static let requestVerbs = ["build ", "create ", "make ", "plan ", "program "]
+    private static let requestNouns = ["session", "workout", "routine", "plan"]
+
+    /// Port of _prompt_clauses: split on . ; ! ? keeping the delimiter; keep clauses that normalize non-empty.
+    private static func promptClauses(_ text: String) -> [String] {
+        let regex = try! NSRegularExpression(pattern: "[^.;!?]+[.;!?]*")
+        let ns = text as NSString
+        var out: [String] = []
+        for m in regex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            let clause = ns.substring(with: m.range).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalize(clause).isEmpty { out.append(clause) }
+        }
+        return out
+    }
+
+    private static func isRequestShapeClause(_ normalized: String) -> Bool {
+        requestVerbs.contains { normalized.hasPrefix($0) } && requestNouns.contains { normalized.contains($0) }
+    }
+
+    /// Port of _resolve_prompt_clauses.
+    private static func resolvePromptClauses(_ text: String, graph: LocalGraph) throws -> [ResolvedConstraint]? {
+        let clauses = promptClauses(text)
+        if clauses.count <= 1 { return nil }
+        var resolved: [ResolvedConstraint] = []
+        var unresolved: [ResolvedConstraint] = []
+        for clause in clauses {
+            if isRequestShapeClause(normalize(clause)) { continue }
+            let cs = try resolveSingleClause(clause, graph: graph)
+            if cs.count == 1 && cs[0].constraintType == "UnresolvedConcept" {
+                unresolved.append(contentsOf: cs)
+            } else {
+                resolved.append(contentsOf: cs)
+            }
+        }
+        if !resolved.isEmpty { return resolved + unresolved }
+        if !unresolved.isEmpty { return unresolved }
+        return nil
+    }
+
+    /// Port of resolve_text: single-clause first; fall back to multi-clause only if the single result is one UnresolvedConcept.
+    public static func resolveText(_ text: String, graph: LocalGraph) throws -> [ResolvedConstraint] {
+        let single = try resolveSingleClause(text, graph: graph)
+        if !(single.count == 1 && single[0].constraintType == "UnresolvedConcept") { return single }
+        if let prompt = try resolvePromptClauses(text, graph: graph) { return prompt }
+        return single
+    }
 }
