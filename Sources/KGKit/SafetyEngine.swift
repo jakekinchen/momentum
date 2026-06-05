@@ -77,6 +77,46 @@ public struct SafetyEngine {
         return reasons
     }
 
+    /// Port of _receipt.
+    private func receipt(exerciseID: String, reasons: [SafetyReason],
+                         availableEquipment: Set<String>, constraints: [ResolvedConstraint]) -> DecisionReceipt {
+        let decision: String, severity: String, reasonCodes: [String], primaryReason: String, graphPaths: [String]
+        if !reasons.isEmpty {
+            severity = Severity.primary(reasons.map { $0.severity }) ?? "SOFT_PENALTY"
+            primaryReason = reasons.first { $0.severity == severity }!.reasonCode
+            decision = Severity.isHardBlock(severity) ? "filtered" : "downranked"
+            reasonCodes = reasons.map { $0.reasonCode }
+            graphPaths = reasons.flatMap { $0.graphPaths }
+        } else {
+            severity = "BOOST"; decision = "selected"
+            reasonCodes = ["PASSED_SAFETY"]; primaryReason = "PASSED_SAFETY"; graphPaths = []
+        }
+        let fingerprint = CanonicalJSON.fingerprint(
+            availableEquipment: Array(availableEquipment), constraints: constraints, exerciseID: exerciseID)
+        return DecisionReceipt(
+            exerciseID: exerciseID, decision: decision, primarySeverity: severity,
+            reasonCodes: reasonCodes, primaryReasonCode: primaryReason, graphPaths: graphPaths,
+            constraintFingerprint: fingerprint, graphVersion: KGVersion.graphVersion,
+            rulesetVersion: KGVersion.rulesetVersion, ontologyLockVersion: KGVersion.ontologyLockVersion)
+    }
+
+    /// Port of evaluate_candidates. When candidateIDs is nil, evaluate all Exercise nodes sorted by id.
+    public func evaluateCandidates(_ candidateIDs: [String]? = nil, availableEquipment: [String],
+                                   constraints: [ResolvedConstraint]) throws -> [DecisionReceipt] {
+        let available = equipmentIDs(availableEquipment)
+        let exercises = candidateIDs ?? graph.nodesByType("Exercise").map { $0.id }
+        var receipts: [DecisionReceipt] = []
+        for exerciseID in exercises {
+            try graph.requireNode(exerciseID)
+            let reasons = try medicalReasons(exerciseID: exerciseID, constraints: constraints)
+                + equipmentReasons(exerciseID: exerciseID, availableEquipment: availableEquipment, constraints: constraints)
+                + promptExclusionReasons(exerciseID: exerciseID, constraints: constraints)
+            receipts.append(receipt(exerciseID: exerciseID, reasons: reasons,
+                                    availableEquipment: available, constraints: constraints))
+        }
+        return receipts
+    }
+
     /// Port of _medical_reasons.
     public func medicalReasons(exerciseID: String, constraints: [ResolvedConstraint]) throws -> [SafetyReason] {
         let activeRestrictions = constraints
