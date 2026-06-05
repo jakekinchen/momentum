@@ -1226,7 +1226,7 @@
       "label": "$.adherence.weekly_completion_pct[0]",
       "properties": {
         "json_path": "$.adherence.weekly_completion_pct[0]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1240,7 +1240,7 @@
       "label": "$.adherence.weekly_completion_pct[1]",
       "properties": {
         "json_path": "$.adherence.weekly_completion_pct[1]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1254,7 +1254,7 @@
       "label": "$.adherence.weekly_completion_pct[2]",
       "properties": {
         "json_path": "$.adherence.weekly_completion_pct[2]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1268,7 +1268,7 @@
       "label": "$.adherence.weekly_completion_pct[3]",
       "properties": {
         "json_path": "$.adherence.weekly_completion_pct[3]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1282,7 +1282,7 @@
       "label": "$.biomarkers",
       "properties": {
         "json_path": "$.biomarkers",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1296,7 +1296,7 @@
       "label": "$.chat_history[0]",
       "properties": {
         "json_path": "$.chat_history[0]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1311,7 +1311,7 @@
       "label": "$.chat_history[1]",
       "properties": {
         "json_path": "$.chat_history[1]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1326,7 +1326,7 @@
       "label": "$.chat_history[2]",
       "properties": {
         "json_path": "$.chat_history[2]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1341,7 +1341,7 @@
       "label": "$.chat_history[3]",
       "properties": {
         "json_path": "$.chat_history[3]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1356,7 +1356,7 @@
       "label": "$.coach_brief",
       "properties": {
         "json_path": "$.coach_brief",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1371,7 +1371,7 @@
       "label": "$.equipment_available",
       "properties": {
         "json_path": "$.equipment_available",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1385,7 +1385,7 @@
       "label": "$.goals[0]",
       "properties": {
         "json_path": "$.goals[0]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1399,7 +1399,7 @@
       "label": "$.goals[1]",
       "properties": {
         "json_path": "$.goals[1]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1413,7 +1413,7 @@
       "label": "$.goals[2]",
       "properties": {
         "json_path": "$.goals[2]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1427,7 +1427,7 @@
       "label": "$.injuries[0]",
       "properties": {
         "json_path": "$.injuries[0]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1441,7 +1441,7 @@
       "label": "$.labs.blood_panel",
       "properties": {
         "json_path": "$.labs.blood_panel",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1456,7 +1456,7 @@
       "label": "$.labs.dexa_scan",
       "properties": {
         "json_path": "$.labs.dexa_scan",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1471,7 +1471,7 @@
       "label": "$.profile",
       "properties": {
         "json_path": "$.profile",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1485,7 +1485,7 @@
       "label": "$.preferences",
       "properties": {
         "json_path": "$.preferences",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1499,7 +1499,7 @@
       "label": "$.workout_history[0]",
       "properties": {
         "json_path": "$.workout_history[0]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1514,7 +1514,7 @@
       "label": "$.workout_history[1]",
       "properties": {
         "json_path": "$.workout_history[1]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1529,7 +1529,7 @@
       "label": "$.workout_history[2]",
       "properties": {
         "json_path": "$.workout_history[2]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1544,7 +1544,7 @@
       "label": "$.workout_history[3]",
       "properties": {
         "json_path": "$.workout_history[3]",
-        "source_file": "docs/external/candidate-assessment/data/member-context.json",
+        "source_file": "data/golden/candidate-assessment/data/member-context.json",
         "source_hash": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
         "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9",
         "synthetic_data": true,
@@ -1628,7 +1628,7 @@
   ],
   "schema_version": "0.1.0",
   "source": {
-    "path": "docs/external/candidate-assessment/data/member-context.json",
+    "path": "data/golden/candidate-assessment/data/member-context.json",
     "sha256": "c2e6373eaeb10c889d06e46b5ceb7a5f5a5df463d68198dc615d2ee9099675d2",
     "source_snapshot_commit": "4b8c67246a659c26bd222079c5c7829d295acad9"
   },

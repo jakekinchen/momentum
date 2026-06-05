@@ -12,12 +12,17 @@ from typing import Any
 from kg.graph_store import REPO_ROOT
 
 
-ASSESSMENT_DIR = REPO_ROOT / "docs" / "external" / "candidate-assessment"
+MONOREPO_ROOT = REPO_ROOT.parent
+ASSESSMENT_SOURCE_ROOT = "data/golden/candidate-assessment"
+ASSESSMENT_DATA_SOURCE_ROOT = f"{ASSESSMENT_SOURCE_ROOT}/data"
+ASSESSMENT_DIR = MONOREPO_ROOT / ASSESSMENT_SOURCE_ROOT
 DATA_DIR = ASSESSMENT_DIR / "data"
 EXERCISES_PATH = DATA_DIR / "exercises.json"
 MEMBER_CONTEXT_PATH = DATA_DIR / "member-context.json"
 GENERATED_DIR = REPO_ROOT / "graph" / "generated"
 SOURCE_SNAPSHOT_COMMIT = "4b8c67246a659c26bd222079c5c7829d295acad9"
+EXERCISES_SOURCE_FILE = f"{ASSESSMENT_DATA_SOURCE_ROOT}/exercises.json"
+MEMBER_CONTEXT_SOURCE_FILE = f"{ASSESSMENT_DATA_SOURCE_ROOT}/member-context.json"
 
 
 @dataclass(frozen=True)
@@ -202,7 +207,7 @@ def _build_exercise_graph(exercises: list[dict[str, Any]], source_hash: str) -> 
     nodes: dict[str, dict[str, Any]] = {}
     edges: list[dict[str, Any]] = []
 
-    source_file = "docs/external/candidate-assessment/data/exercises.json"
+    source_file = EXERCISES_SOURCE_FILE
     family_labels = {
         "deadlift_family": "Deadlift Family",
         "squat_family": "Squat Family",
@@ -408,7 +413,7 @@ def _member_source_span(
         nodes,
         _source_span(
             span_id,
-            source_file="docs/external/candidate-assessment/data/member-context.json",
+            source_file=MEMBER_CONTEXT_SOURCE_FILE,
             json_path=json_path,
             source_hash=source_hash,
             text=json.dumps(value, sort_keys=True),
@@ -736,7 +741,7 @@ def _build_member_graph(member: dict[str, Any], source_hash: str) -> dict[str, A
         "status": "generated",
         "description": "Generated from the frozen candidate-assessment synthetic member fixture.",
         "source": {
-            "path": "docs/external/candidate-assessment/data/member-context.json",
+            "path": MEMBER_CONTEXT_SOURCE_FILE,
             "sha256": source_hash,
             "source_snapshot_commit": SOURCE_SNAPSHOT_COMMIT,
         },

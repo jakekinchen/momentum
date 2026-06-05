@@ -7,6 +7,7 @@ import sys
 import pytest
 
 from kg.assessment_import import (
+    ASSESSMENT_DATA_SOURCE_ROOT,
     SOURCE_SNAPSHOT_COMMIT,
     build_assessment_import_artifacts,
 )
@@ -155,7 +156,7 @@ def test_all_generated_source_spans_have_required_provenance_properties() -> Non
         for node in source_spans:
             properties = node["properties"]
             assert REQUIRED_SOURCE_SPAN_PROPERTIES <= properties.keys()
-            assert properties["source_file"].startswith("docs/external/candidate-assessment/data/")
+            assert properties["source_file"].startswith(f"{ASSESSMENT_DATA_SOURCE_ROOT}/")
             assert properties["json_path"]
             assert len(properties["source_hash"]) == 64
             assert properties["source_snapshot_commit"] == SOURCE_SNAPSHOT_COMMIT

@@ -8,7 +8,7 @@ This document plans how to synthesize three workstreams into one coherent
 delivery path:
 
 1. The upstream `future-research/candidate-assessment` repository, now vendored
-   under `docs/external/candidate-assessment/`, which defines the take-home
+   under `data/golden/candidate-assessment/`, which defines the take-home
    requirements and provides the synthetic data fixtures.
 2. The local `/Users/kelly/Developer/fitgraph` repository, which is already
    building the deterministic knowledge graph module in the background.
@@ -29,15 +29,15 @@ Source snapshot:
 
 - Source URL: `https://github.com/future-research/candidate-assessment/tree/main`
 - Commit: `4b8c67246a659c26bd222079c5c7829d295acad9`
-- Local path: `docs/external/candidate-assessment/`
-- Snapshot metadata: `docs/external/candidate-assessment/SOURCE.md`
+- Local path: `data/golden/candidate-assessment/`
+- Snapshot metadata: `data/golden/candidate-assessment/SOURCE.md`
 
 Imported files:
 
-- `docs/external/candidate-assessment/README.md`
-- `docs/external/candidate-assessment/ASSESSMENT.md`
-- `docs/external/candidate-assessment/data/exercises.json`
-- `docs/external/candidate-assessment/data/member-context.json`
+- `data/golden/candidate-assessment/README.md`
+- `data/golden/candidate-assessment/ASSESSMENT.md`
+- `data/golden/candidate-assessment/data/exercises.json`
+- `data/golden/candidate-assessment/data/member-context.json`
 
 The assessment requires a coach-facing dashboard with two surfaces:
 
@@ -279,8 +279,8 @@ data.
 
 FitGraph should provide a repeatable importer that:
 
-- Reads `docs/external/candidate-assessment/data/exercises.json`.
-- Reads `docs/external/candidate-assessment/data/member-context.json`.
+- Reads `data/golden/candidate-assessment/data/exercises.json`.
+- Reads `data/golden/candidate-assessment/data/member-context.json`.
 - Preserves the upstream source ID, source file, JSON path, source hash, and
   import snapshot commit on graph nodes or `SourceSpan` nodes.
 - Produces normalized graph seeds or generated fixture graph snapshots.
@@ -732,8 +732,8 @@ Status: done in this pass.
 Deliverables:
 
 - Imported assessment docs and data under
-  `docs/external/candidate-assessment/`.
-- Source metadata in `docs/external/candidate-assessment/SOURCE.md`.
+  `data/golden/candidate-assessment/`.
+- Source metadata in `data/golden/candidate-assessment/SOURCE.md`.
 - This synthesis plan.
 
 ### Phase 1: Fixture Conformance Importer

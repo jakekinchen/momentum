@@ -13,7 +13,7 @@ This directory has three kinds of material:
 | Current KG + CamiFit integration direction | [`design/2026-06-04-camifit-fitgraph-synthesis.md`](design/2026-06-04-camifit-fitgraph-synthesis.md) |
 | Core exercise engine architecture | [`design/2026-06-03-camifit-exercise-engine-design.md`](design/2026-06-03-camifit-exercise-engine-design.md) |
 | Product north star and pose-stack decisions | [`prd/2026-06-03-camifit-prd.md`](prd/2026-06-03-camifit-prd.md) |
-| Candidate-assessment requirements floor | [`requirements/candidate-assessment/`](requirements/candidate-assessment/) |
+| Candidate-assessment requirements floor | [`../data/golden/candidate-assessment/`](../data/golden/candidate-assessment/) |
 | Research prompt, response, and source links | [`research/`](research/) |
 | Chat-generated regimen implementation plan | [`superpowers/plans/2026-06-04-chat-regimen-authoring.md`](superpowers/plans/2026-06-04-chat-regimen-authoring.md) |
 
@@ -23,7 +23,7 @@ This directory has three kinds of material:
 |---|---|---|
 | [`design/`](design/) | Durable technical architecture and synthesis docs. | Treat the CamiFit x FitGraph synthesis doc as canonical for KG integration. |
 | [`prd/`](prd/) | Product requirements and north-star product framing. | Drafts should point back to their source research. |
-| [`requirements/`](requirements/) | Vendored or copied external specs and golden data. | Keep source snapshots byte-identical; add provenance beside them. |
+| [`requirements/`](requirements/) | Routing notes for external requirements and golden data. | The canonical candidate-assessment snapshot now lives under `data/golden/`. |
 | [`research/`](research/) | Research prompts, responses, source links, and generated protocol references. | Separate research evidence from implementation commitments. |
 | [`superpowers/`](superpowers/) | Implementation specs/plans written for agentic execution. | These are tactical plans, not product-level canonical docs. |
 | [`manual-verification/`](manual-verification/) | Human-run verification handoffs and visible-app checks. | Use when local tests are not enough to prove user-visible behavior. |
