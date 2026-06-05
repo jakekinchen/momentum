@@ -78,4 +78,55 @@ public enum Alternatives {
     static func equipmentIDs(_ available: [String]) -> Set<String> {
         Set(available.map { NodeID.make("Equipment", $0) })
     }
+
+    /// Port of _alternative_paths.
+    static func alternativePaths(_ g: LocalGraph, _ filtered: String, _ alt: String) -> [String] {
+        var paths: [String] = []
+        let sharedTargets = targets(g, filtered).intersection(targets(g, alt))
+        let sharedPatterns = patterns(g, filtered).intersection(patterns(g, alt))
+        for e in g.outgoing(filtered, predicate: "TARGETS") where sharedTargets.contains(e.target) { paths.append(e.path()) }
+        for e in g.outgoing(alt, predicate: "TARGETS") where sharedTargets.contains(e.target) { paths.append(e.path()) }
+        for e in g.outgoing(filtered, predicate: "HAS_PATTERN") where sharedPatterns.contains(e.target) { paths.append(e.path()) }
+        for e in g.outgoing(alt, predicate: "HAS_PATTERN") where sharedPatterns.contains(e.target) { paths.append(e.path()) }
+        for predicate in ["REQUIRES", "STRESSES"] {
+            paths.append(contentsOf: g.outgoing(alt, predicate: predicate).map { $0.path() })
+        }
+        return paths
+    }
+
+    /// Port of select_alternatives: one best alternative per filtered receipt, drawn only from selected receipts.
+    public static func selectAlternatives(_ receipts: [DecisionReceipt], availableEquipment: [String],
+                                          graph: LocalGraph) throws -> [AlternativeRecord] {
+        let safeIDs = receipts.filter { $0.decision == "selected" }.map { $0.exerciseID }
+        if safeIDs.isEmpty { return [] }
+        let available = equipmentIDs(availableEquipment)
+        let sortedSafe = safeIDs.sorted()
+        let filtered = receipts.filter { $0.decision == "filtered" }.sorted { $0.exerciseID < $1.exerciseID }
+        var out: [AlternativeRecord] = []
+        for f in filtered {
+            var scored: [AlternativeRecord] = []
+            for altID in sortedSafe {
+                let comps = scoreComponents(graph, f.exerciseID, altID, available)
+                scored.append(AlternativeRecord(
+                    filteredExerciseID: f.exerciseID, alternativeExerciseID: altID, derivedFrom: f.exerciseID,
+                    score: weightedScore(comps), scoreComponents: comps,
+                    graphPaths: alternativePaths(graph, f.exerciseID, altID)))
+            }
+            scored.sort { a, b in
+                if a.score != b.score { return a.score > b.score }          // higher score first
+                return a.alternativeExerciseID < b.alternativeExerciseID     // tie -> smaller id (Python (-score, id))
+            }
+            out.append(scored[0])
+        }
+        return out
+    }
+
+    /// Port of build_workout_candidates.
+    public static func buildWorkoutCandidates(_ receipts: [DecisionReceipt], availableEquipment: [String],
+                                              graph: LocalGraph) throws -> WorkoutCandidateResult {
+        WorkoutCandidateResult(
+            selectedReceipts: receipts.filter { $0.decision == "selected" },
+            filteredReceipts: receipts.filter { $0.decision == "filtered" },
+            alternatives: try selectAlternatives(receipts, availableEquipment: availableEquipment, graph: graph))
+    }
 }
