@@ -21,6 +21,9 @@ let package = Package(
             targets: ["KGKit"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/warrenm/GLTFKit2.git", exact: "0.5.15")
+    ],
     targets: [
         .target(
             name: "CamiFitEngine"
@@ -41,8 +44,13 @@ let package = Package(
         ),
         .executableTarget(
             name: "CamiFitApp",
-            dependencies: ["CamiFitEngine", "KGKit"],
+            dependencies: [
+                "CamiFitEngine",
+                "KGKit",
+                .product(name: "GLTFKit2", package: "GLTFKit2")
+            ],
             resources: [
+                .copy("Resources/Avatars"),
                 .copy("Resources/Brand"),
                 .copy("Resources/Presets"),
                 .copy("Resources/RecordedRuns"),
@@ -59,7 +67,12 @@ let package = Package(
         ),
         .testTarget(
             name: "CamiFitAppTests",
-            dependencies: ["CamiFitApp", "CamiFitEngine", "KGKit"]
+            dependencies: [
+                "CamiFitApp",
+                "CamiFitEngine",
+                "KGKit",
+                .product(name: "GLTFKit2", package: "GLTFKit2")
+            ]
         )
     ]
 )

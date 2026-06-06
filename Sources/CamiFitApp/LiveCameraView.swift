@@ -42,6 +42,10 @@ final class LiveSession: ObservableObject {
     private let shotDir = ProcessInfo.processInfo.environment["CAMIFIT_SHOT_DIR"]
     private var shotCounter = 0
 
+    var routesPoseFramesExternally: Bool {
+        onPoseFrame != nil
+    }
+
     /// Renders the current overlay + HUD to a PNG via ImageRenderer (no screen-recording
     /// permission needed) when CAMIFIT_SHOT_DIR is set — for deterministic GUI captures.
     init() {

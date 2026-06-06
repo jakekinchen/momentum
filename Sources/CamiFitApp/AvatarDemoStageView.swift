@@ -1,5 +1,6 @@
 import AppKit
 import CamiFitEngine
+import GLTFKit2
 import SceneKit
 import simd
 import SwiftUI
@@ -199,34 +200,35 @@ private struct AvatarSceneView: NSViewRepresentable {
 }
 
 private final class NeutralMannequinRig {
-    let root = SCNNode()
+    let root: SCNNode
 
-    private let head = SCNNode(geometry: SCNSphere(radius: 1))
-    private let neck = SCNNode()
-    private let chest = SCNNode(geometry: SCNSphere(radius: 1))
-    private let torso = SCNNode()
-    private let abdomen = SCNNode(geometry: SCNSphere(radius: 1))
-    private let pelvis = SCNNode(geometry: SCNSphere(radius: 1))
-    private let shoulderBridge = SCNNode()
-    private let hipBridge = SCNNode()
-    private let nearUpperArm = SCNNode()
-    private let nearForearm = SCNNode()
-    private let farUpperArm = SCNNode()
-    private let farForearm = SCNNode()
-    private let nearUpperLeg = SCNNode()
-    private let nearLowerLeg = SCNNode()
-    private let farUpperLeg = SCNNode()
-    private let farLowerLeg = SCNNode()
-    private let nearFoot = SCNNode()
-    private let farFoot = SCNNode()
-    private let nearHand = SCNNode(geometry: SCNSphere(radius: 1))
-    private let farHand = SCNNode(geometry: SCNSphere(radius: 1))
-    private let nearElbow = SCNNode(geometry: SCNSphere(radius: 1))
-    private let farElbow = SCNNode(geometry: SCNSphere(radius: 1))
-    private let nearKnee = SCNNode(geometry: SCNSphere(radius: 1))
-    private let farKnee = SCNNode(geometry: SCNSphere(radius: 1))
-    private let nearAnkle = SCNNode(geometry: SCNSphere(radius: 1))
-    private let farAnkle = SCNNode(geometry: SCNSphere(radius: 1))
+    private let head: SCNNode
+    private let neck: SCNNode
+    private let chest: SCNNode
+    private let torso: SCNNode
+    private let abdomen: SCNNode
+    private let pelvis: SCNNode
+    private let shoulderBridge: SCNNode
+    private let hipBridge: SCNNode
+    private let nearUpperArm: SCNNode
+    private let nearForearm: SCNNode
+    private let farUpperArm: SCNNode
+    private let farForearm: SCNNode
+    private let nearUpperLeg: SCNNode
+    private let nearLowerLeg: SCNNode
+    private let farUpperLeg: SCNNode
+    private let farLowerLeg: SCNNode
+    private let nearFoot: SCNNode
+    private let farFoot: SCNNode
+    private let nearHand: SCNNode
+    private let farHand: SCNNode
+    private let nearElbow: SCNNode
+    private let farElbow: SCNNode
+    private let nearKnee: SCNNode
+    private let farKnee: SCNNode
+    private let nearAnkle: SCNNode
+    private let farAnkle: SCNNode
+    private let usesAssetGeometry: Bool
 
     private let torsoMaterial = NeutralMannequinRig.material(
         color: NSColor(calibratedRed: 0.86, green: 0.93, blue: 0.92, alpha: 1),
@@ -246,10 +248,72 @@ private final class NeutralMannequinRig {
     )
 
     init() {
-        root.name = "camifit.avatar.mannequinRig"
+        if let asset = AvatarHumanoidGLBAsset.loadNeutralRig() {
+            root = asset.root
+            head = asset.head
+            neck = asset.neck
+            chest = asset.chest
+            torso = asset.torso
+            abdomen = asset.abdomen
+            pelvis = asset.pelvis
+            shoulderBridge = asset.shoulderBridge
+            hipBridge = asset.hipBridge
+            nearUpperArm = asset.nearUpperArm
+            nearForearm = asset.nearForearm
+            farUpperArm = asset.farUpperArm
+            farForearm = asset.farForearm
+            nearUpperLeg = asset.nearUpperLeg
+            nearLowerLeg = asset.nearLowerLeg
+            farUpperLeg = asset.farUpperLeg
+            farLowerLeg = asset.farLowerLeg
+            nearFoot = asset.nearFoot
+            farFoot = asset.farFoot
+            nearHand = asset.nearHand
+            farHand = asset.farHand
+            nearElbow = asset.nearElbow
+            farElbow = asset.farElbow
+            nearKnee = asset.nearKnee
+            farKnee = asset.farKnee
+            nearAnkle = asset.nearAnkle
+            farAnkle = asset.farAnkle
+            usesAssetGeometry = true
+        } else {
+            root = SCNNode()
+            head = SCNNode(geometry: SCNSphere(radius: 1))
+            neck = SCNNode()
+            chest = SCNNode(geometry: SCNSphere(radius: 1))
+            torso = SCNNode()
+            abdomen = SCNNode(geometry: SCNSphere(radius: 1))
+            pelvis = SCNNode(geometry: SCNSphere(radius: 1))
+            shoulderBridge = SCNNode()
+            hipBridge = SCNNode()
+            nearUpperArm = SCNNode()
+            nearForearm = SCNNode()
+            farUpperArm = SCNNode()
+            farForearm = SCNNode()
+            nearUpperLeg = SCNNode()
+            nearLowerLeg = SCNNode()
+            farUpperLeg = SCNNode()
+            farLowerLeg = SCNNode()
+            nearFoot = SCNNode()
+            farFoot = SCNNode()
+            nearHand = SCNNode(geometry: SCNSphere(radius: 1))
+            farHand = SCNNode(geometry: SCNSphere(radius: 1))
+            nearElbow = SCNNode(geometry: SCNSphere(radius: 1))
+            farElbow = SCNNode(geometry: SCNSphere(radius: 1))
+            nearKnee = SCNNode(geometry: SCNSphere(radius: 1))
+            farKnee = SCNNode(geometry: SCNSphere(radius: 1))
+            nearAnkle = SCNNode(geometry: SCNSphere(radius: 1))
+            farAnkle = SCNNode(geometry: SCNSphere(radius: 1))
+            usesAssetGeometry = false
+            for node in allNodes {
+                root.addChildNode(node)
+            }
+        }
+
+        root.name = usesAssetGeometry ? "camifit.avatar.glbHumanoidRig" : "camifit.avatar.mannequinRig"
         for node in allNodes {
             node.castsShadow = false
-            root.addChildNode(node)
         }
         head.name = "rig.head"
         neck.name = "rig.neck"
@@ -399,6 +463,22 @@ private final class NeutralMannequinRig {
             return
         }
 
+        if usesAssetGeometry {
+            node.simdPosition = SIMD3<Float>(
+                Float((start.x + end.x) / 2),
+                Float((start.y + end.y) / 2),
+                Float((start.z + end.z) / 2)
+            )
+            node.simdScale = SIMD3<Float>(
+                Float(radius) / Self.assetCapsuleRadius,
+                length / Self.assetCapsuleHeight,
+                Float(radius) / Self.assetCapsuleRadius
+            )
+            node.simdOrientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: simd_normalize(vector))
+            node.isHidden = false
+            return
+        }
+
         let geometry = SCNCapsule(capRadius: radius, height: CGFloat(length))
         geometry.radialSegmentCount = 24
         geometry.heightSegmentCount = 8
@@ -440,6 +520,14 @@ private final class NeutralMannequinRig {
             Float((heel.y + toe.y) / 2),
             Float((heel.z + toe.z) / 2)
         )
+
+        if usesAssetGeometry {
+            node.simdPosition = center
+            node.simdScale = SIMD3<Float>(Float(length), Float(thickness), Float(depth))
+            node.simdOrientation = simd_quatf(from: SIMD3<Float>(1, 0, 0), to: direction)
+            node.isHidden = false
+            return
+        }
 
         let geometry = SCNBox(
             width: length,
@@ -488,6 +576,125 @@ private final class NeutralMannequinRig {
         material.metalness.contents = 0.02
         material.transparency = color.alphaComponent
         return material
+    }
+
+    private static let assetCapsuleRadius: Float = 0.18
+    private static let assetCapsuleHeight: Float = 1.0
+}
+
+private struct AvatarHumanoidGLBAsset {
+    let root: SCNNode
+    let head: SCNNode
+    let neck: SCNNode
+    let chest: SCNNode
+    let torso: SCNNode
+    let abdomen: SCNNode
+    let pelvis: SCNNode
+    let shoulderBridge: SCNNode
+    let hipBridge: SCNNode
+    let nearUpperArm: SCNNode
+    let nearForearm: SCNNode
+    let farUpperArm: SCNNode
+    let farForearm: SCNNode
+    let nearUpperLeg: SCNNode
+    let nearLowerLeg: SCNNode
+    let farUpperLeg: SCNNode
+    let farLowerLeg: SCNNode
+    let nearFoot: SCNNode
+    let farFoot: SCNNode
+    let nearHand: SCNNode
+    let farHand: SCNNode
+    let nearElbow: SCNNode
+    let farElbow: SCNNode
+    let nearKnee: SCNNode
+    let farKnee: SCNNode
+    let nearAnkle: SCNNode
+    let farAnkle: SCNNode
+
+    static func loadNeutralRig() -> AvatarHumanoidGLBAsset? {
+        guard let url = Bundle.module.url(
+            forResource: "neutral_humanoid",
+            withExtension: "glb",
+            subdirectory: "Avatars"
+        ) else {
+            return nil
+        }
+
+        do {
+            let asset = try GLTFAsset(url: url)
+            let source = GLTFSCNSceneSource(asset: asset)
+            guard let sceneRoot = source.defaultScene?.rootNode else {
+                return nil
+            }
+            let importedRoot = node("avatar.root", in: sceneRoot) ?? sceneRoot
+            let root = importedRoot.clone()
+
+            guard let head = node("avatar.head", in: root),
+                  let neck = node("avatar.neck", in: root),
+                  let chest = node("avatar.chest", in: root),
+                  let torso = node("avatar.spine", in: root),
+                  let abdomen = node("avatar.abdomen", in: root),
+                  let pelvis = node("avatar.pelvis", in: root),
+                  let shoulderBridge = node("avatar.shoulderBridge", in: root),
+                  let hipBridge = node("avatar.hipBridge", in: root),
+                  let nearUpperArm = node("avatar.near.upperArm", in: root),
+                  let nearForearm = node("avatar.near.forearm", in: root),
+                  let farUpperArm = node("avatar.far.upperArm", in: root),
+                  let farForearm = node("avatar.far.forearm", in: root),
+                  let nearUpperLeg = node("avatar.near.upperLeg", in: root),
+                  let nearLowerLeg = node("avatar.near.lowerLeg", in: root),
+                  let farUpperLeg = node("avatar.far.upperLeg", in: root),
+                  let farLowerLeg = node("avatar.far.lowerLeg", in: root),
+                  let nearFoot = node("avatar.near.foot", in: root),
+                  let farFoot = node("avatar.far.foot", in: root),
+                  let nearHand = node("avatar.near.hand", in: root),
+                  let farHand = node("avatar.far.hand", in: root),
+                  let nearElbow = node("avatar.near.elbow", in: root),
+                  let farElbow = node("avatar.far.elbow", in: root),
+                  let nearKnee = node("avatar.near.knee", in: root),
+                  let farKnee = node("avatar.far.knee", in: root),
+                  let nearAnkle = node("avatar.near.ankle", in: root),
+                  let farAnkle = node("avatar.far.ankle", in: root) else {
+                return nil
+            }
+
+            return AvatarHumanoidGLBAsset(
+                root: root,
+                head: head,
+                neck: neck,
+                chest: chest,
+                torso: torso,
+                abdomen: abdomen,
+                pelvis: pelvis,
+                shoulderBridge: shoulderBridge,
+                hipBridge: hipBridge,
+                nearUpperArm: nearUpperArm,
+                nearForearm: nearForearm,
+                farUpperArm: farUpperArm,
+                farForearm: farForearm,
+                nearUpperLeg: nearUpperLeg,
+                nearLowerLeg: nearLowerLeg,
+                farUpperLeg: farUpperLeg,
+                farLowerLeg: farLowerLeg,
+                nearFoot: nearFoot,
+                farFoot: farFoot,
+                nearHand: nearHand,
+                farHand: farHand,
+                nearElbow: nearElbow,
+                farElbow: farElbow,
+                nearKnee: nearKnee,
+                farKnee: farKnee,
+                nearAnkle: nearAnkle,
+                farAnkle: farAnkle
+            )
+        } catch {
+            return nil
+        }
+    }
+
+    private static func node(_ name: String, in root: SCNNode) -> SCNNode? {
+        root.childNode(withName: name, recursively: true)
+            ?? root.childNode(withName: name.replacingOccurrences(of: ".", with: "_"), recursively: true)
     }
 }
 

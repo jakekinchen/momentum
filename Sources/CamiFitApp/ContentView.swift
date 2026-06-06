@@ -20,16 +20,23 @@ struct ContentView: View {
     @ObservedObject var viewModel: AppExerciseSessionViewModel
     @ObservedObject var codex: CodexAppServerClient
     @AppStorage("camifit.onboarding.completed") private var didCompleteOnboarding = false
+    @StateObject private var routineRunner: RoutineRunner
     @StateObject private var liveSession = LiveSession()
     @StateObject private var chat = ChatViewModel()
     @StateObject private var memoryStore = KGMemoryStore()
     @StateObject private var routineLibrary = RoutineLibraryStore()
     @State private var inspectorState = AppInspectorState()
 
+    init(viewModel: AppExerciseSessionViewModel, codex: CodexAppServerClient) {
+        self.viewModel = viewModel
+        self.codex = codex
+        _routineRunner = StateObject(wrappedValue: RoutineRunner(viewModel: viewModel))
+    }
+
     var body: some View {
         NavigationSplitView {
             SessionSidebar()
-                .navigationSplitViewColumnWidth(min: 248, ideal: 286, max: 320)
+                .navigationSplitViewColumnWidth(min: 280, ideal: 390, max: 480)
         } detail: {
             DetailScene()
                 .toolbar {
@@ -93,6 +100,7 @@ struct ContentView: View {
         .environmentObject(chat)
         .environmentObject(codex)
         .environmentObject(routineLibrary)
+        .environmentObject(routineRunner)
         .onAppear {
             viewModel.loadAvailablePresets()
             if let guideExerciseID = CamiFitLaunchEnvironment.guideExerciseID {
@@ -107,6 +115,8 @@ struct ContentView: View {
             chat.memoryStore = memoryStore
             codex.start()
             memoryStore.load()
+            routineRunner.updateCameraReadiness(liveSession.camera.readiness)
+            routineRunner.updatePoseReadiness(liveSession.poseReadiness)
             if !didCompleteOnboarding {
                 DispatchQueue.main.async {
                     onboarding.showTour()
@@ -114,6 +124,7 @@ struct ContentView: View {
             }
         }
         .onDisappear {
+            routineRunner.cancel()
             liveSession.stop()
             codex.stop()
         }
@@ -161,7 +172,6 @@ struct AppInspectorState: Equatable {
 // MARK: - Detail
 
 private struct DetailScene: View {
-    @EnvironmentObject private var model: AppExerciseSessionViewModel
     @EnvironmentObject private var liveSession: LiveSession
 
     var body: some View {
@@ -201,16 +211,27 @@ private struct DetailBackdrop: View {
 
 private struct HeroPreviewCard: View {
     @EnvironmentObject private var model: AppExerciseSessionViewModel
+    @EnvironmentObject private var routineRunner: RoutineRunner
     @ObservedObject var liveSession: LiveSession
     @State private var feedMode: HeroFeedMode = CamiFitLaunchEnvironment.startsInGuideMode ? .avatarGuide : .tracking
     @State private var showsSkeletonOverlay = true
-    @State private var routineTimer: Timer?
+
+    private var displayedFeedMode: HeroFeedMode {
+        routineRunner.phase.usesGuide ? .avatarGuide : feedMode
+    }
+
+    private var overlayBlockName: String? {
+        if case .rest = routineRunner.phase {
+            return routineRunner.nextBlockTitle
+        }
+        return routineRunner.currentBlock?.title
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            PoseStage(liveSession: liveSession, feedMode: feedMode, showsSkeletonOverlay: showsSkeletonOverlay)
+            PoseStage(liveSession: liveSession, feedMode: displayedFeedMode, showsSkeletonOverlay: showsSkeletonOverlay)
 
-            if feedMode != .avatarGuide {
+            if displayedFeedMode != .avatarGuide {
                 VStack(alignment: .leading) {
                     HStack(alignment: .top, spacing: 10) {
                         StatTile(label: "Reps", value: "\(model.state.repCount)", systemImage: "repeat")
@@ -228,7 +249,7 @@ private struct HeroPreviewCard: View {
                     Spacer(minLength: 0)
                     Button {
                         withAnimation(.smooth) {
-                            if feedMode == .avatarGuide {
+                            if displayedFeedMode == .avatarGuide {
                                 feedMode = .tracking
                             } else {
                                 liveSession.stop()
@@ -237,24 +258,30 @@ private struct HeroPreviewCard: View {
                             }
                         }
                     } label: {
-                        Label(feedMode == .avatarGuide ? "Camera" : "Guide",
-                              systemImage: feedMode == .avatarGuide ? "video.fill" : "figure.strengthtraining.functional")
+                        Label(displayedFeedMode == .avatarGuide ? "Camera" : "Guide",
+                              systemImage: displayedFeedMode == .avatarGuide ? "video.fill" : "figure.strengthtraining.functional")
                     }
                     .buttonStyle(.glassProminent)
-                    .tint(feedMode == .avatarGuide ? .cyan : .secondary)
-                    .help(feedMode == .avatarGuide ? "Return to camera tracking" : "Show the avatar guide for the selected exercise")
+                    .tint(displayedFeedMode == .avatarGuide ? .cyan : .secondary)
+                    .help(displayedFeedMode == .avatarGuide ? "Return to camera tracking" : "Show the avatar guide for the selected exercise")
                 }
                 Spacer()
             }
             .padding(14)
 
-            if let routine = model.activeRoutine {
+            if let routine = routineRunner.currentRoutine {
                 VStack {
                     HStack(spacing: 8) {
                         Text(routine.name).font(.caption.weight(.semibold))
-                        Text("Step \(model.activeRoutineBlockIndex + 1) of \(routine.blocks.count)")
-                            .font(.caption2).foregroundStyle(.secondary)
-                        if let progress = model.activeRoutineProgressText {
+                        if let step = routineRunner.routineStepText {
+                            Text(step)
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        if let set = routineRunner.setText {
+                            Text(set)
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        if let progress = routineRunner.progressText {
                             Text(progress)
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(.primary)
@@ -268,8 +295,20 @@ private struct HeroPreviewCard: View {
             }
 
             RoutinePhaseOverlay(
-                phase: model.routineSession.phase,
-                cameraStatus: liveSession.camera.statusText
+                phase: routineRunner.phase,
+                pipelineStatus: liveSession.poseReadiness.displayText,
+                currentBlockName: overlayBlockName,
+                progressText: routineRunner.progressText,
+                onResume: { routineRunner.resume() },
+                onEnd: {
+                    routineRunner.cancel()
+                    liveSession.stop()
+                },
+                onRestart: { routineRunner.restartCurrentSet() },
+                onReplayGuide: { routineRunner.replayGuide() },
+                onSkipGuide: { routineRunner.skipGuide() },
+                onSkipRest: { routineRunner.skipRest() },
+                onAddRest: { routineRunner.addRest(seconds: 15) }
             )
 
             if let cueText = model.state.cueText {
@@ -303,84 +342,44 @@ private struct HeroPreviewCard: View {
                 .stroke(.white.opacity(0.06), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.14), radius: 10, y: 4)
-        .onChange(of: model.routineSession.phase) { _, phase in
-            handleRoutinePhaseChange(phase)
+        .onChange(of: routineRunner.phase) { _, phase in
+            syncLivePipeline(for: phase)
         }
-        .onReceive(liveSession.camera.$statusText) { status in
-            handleCameraStatus(status)
+        .onReceive(liveSession.camera.$readiness) { readiness in
+            routineRunner.updateCameraReadiness(readiness)
         }
-        .onDisappear {
-            routineTimer?.invalidate()
-            routineTimer = nil
+        .onReceive(liveSession.$poseReadiness) { readiness in
+            routineRunner.updatePoseReadiness(readiness)
         }
-    }
-
-    private func handleRoutinePhaseChange(_ phase: RoutineSessionPhase) {
-        routineTimer?.invalidate()
-        routineTimer = nil
-
-        switch phase {
-        case .idle:
-            break
-        case .starting:
-            liveSession.stop()
-            feedMode = .avatarGuide
-            scheduleRoutineTick(after: 0.45) {
-                model.beginRoutineGuide(seconds: 6)
-            }
-        case .guide:
-            liveSession.stop()
-            feedMode = .avatarGuide
-            scheduleRoutineTick(after: 1) {
-                model.tickRoutineGuide()
-            }
-        case .waitingForCamera:
-            feedMode = .tracking
-            ensureLiveCamera()
-            handleCameraStatus(liveSession.camera.statusText)
-        case .countdown:
-            feedMode = .tracking
-            ensureLiveCamera()
-            scheduleRoutineTick(after: 1) {
-                model.tickRoutineCountdown()
-            }
-        case .working:
-            feedMode = .tracking
-            ensureLiveCamera()
-        case .resting:
-            feedMode = .tracking
-            scheduleRoutineTick(after: 1) {
-                model.tickRoutineRest()
-            }
-        case .paused:
-            break
-        case .complete:
-            liveSession.stop()
-            scheduleRoutineTick(after: 2.5) {
-                model.cancelRoutine()
-            }
+        .onAppear {
+            syncLivePipeline(for: routineRunner.phase)
         }
     }
 
-    private func handleCameraStatus(_ status: String) {
-        guard case .waitingForCamera = model.routineSession.phase,
-              status == "Camera running" else {
+    private func syncLivePipeline(for phase: RoutineRunPhase) {
+        if phase.usesGuide {
+            liveSession.stop()
+            feedMode = .avatarGuide
             return
         }
-        model.beginRoutineCountdown(seconds: 3)
+
+        if phase.needsCamera {
+            feedMode = .tracking
+            ensureRoutineLiveCamera()
+        } else if case .complete = phase {
+            liveSession.stop()
+        } else if case .failed = phase {
+            liveSession.stop()
+        }
     }
 
-    private func ensureLiveCamera() {
-        guard !(liveSession.running && liveSession.isLiveCamera) else { return }
+    private func ensureRoutineLiveCamera() {
+        if liveSession.running, liveSession.isLiveCamera, liveSession.routesPoseFramesExternally {
+            return
+        }
         liveSession.stop()
-        liveSession.start(viewModel: model)
-    }
-
-    private func scheduleRoutineTick(after seconds: TimeInterval, _ action: @escaping () -> Void) {
-        routineTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { _ in
-            DispatchQueue.main.async {
-                action()
-            }
+        liveSession.start(viewModel: model) { frame in
+            routineRunner.ingest(frame)
         }
     }
 }
@@ -477,31 +476,95 @@ private struct CueBanner: View {
 }
 
 private struct RoutinePhaseOverlay: View {
-    let phase: RoutineSessionPhase
-    let cameraStatus: String
+    let phase: RoutineRunPhase
+    let pipelineStatus: String
+    let currentBlockName: String?
+    let progressText: String?
+    let onResume: () -> Void
+    let onEnd: () -> Void
+    let onRestart: () -> Void
+    let onReplayGuide: () -> Void
+    let onSkipGuide: () -> Void
+    let onSkipRest: () -> Void
+    let onAddRest: () -> Void
 
     var body: some View {
         switch phase {
         case .idle, .working:
             EmptyView()
-        case .starting:
+        case .preparing:
             overlay(title: "Routine starting", detail: nil, symbol: "play.circle.fill")
         case let .guide(secondsRemaining):
-            overlay(title: "Watch the guide", detail: "\(secondsRemaining)s", symbol: "figure.strengthtraining.functional")
-        case .waitingForCamera:
-            overlay(title: "Waiting for camera", detail: cameraStatus, symbol: "video.fill")
+            overlay(
+                title: currentBlockName ?? "Watch the guide",
+                detail: "\(secondsRemaining)s",
+                symbol: "figure.strengthtraining.functional",
+                actions: {
+                    Button("Replay", action: onReplayGuide)
+                    Button("Skip", action: onSkipGuide)
+                }
+            )
+        case let .awaitingCamera(readiness):
+            overlay(title: "Waiting for camera", detail: readiness.displayText, symbol: "video.fill")
+        case let .awaitingPose(message):
+            overlay(title: message ?? "Step into frame", detail: pipelineStatus, symbol: "figure.walk.motion")
         case let .countdown(secondsRemaining):
             overlay(title: "\(secondsRemaining)", detail: "Get ready", symbol: "timer")
-        case let .resting(secondsRemaining):
-            overlay(title: "Rest", detail: "\(secondsRemaining)s", symbol: "timer")
+        case let .rest(secondsRemaining):
+            overlay(
+                title: "Rest",
+                detail: nextDetail(secondsRemaining: secondsRemaining),
+                symbol: "timer",
+                actions: {
+                    Button("Skip Rest", action: onSkipRest)
+                    Button("+15s", action: onAddRest)
+                }
+            )
         case .paused:
-            overlay(title: "Paused", detail: "Resume when ready", symbol: "pause.circle.fill")
-        case .complete:
-            overlay(title: "Routine complete", detail: nil, symbol: "checkmark.circle.fill")
+            overlay(
+                title: "Paused",
+                detail: progressText ?? "Resume when ready",
+                symbol: "pause.circle.fill",
+                actions: {
+                    Button("Resume", action: onResume)
+                    Button("Restart Exercise", action: onRestart)
+                    Button("End Routine", role: .destructive, action: onEnd)
+                }
+            )
+        case let .complete(summary):
+            overlay(
+                title: "Routine complete",
+                detail: summary.displayText,
+                symbol: "checkmark.circle.fill",
+                actions: {
+                    Button("Done", action: onEnd)
+                }
+            )
+        case let .failed(message):
+            overlay(
+                title: "Routine unavailable",
+                detail: message,
+                symbol: "exclamationmark.triangle.fill",
+                actions: {
+                    Button("Done", action: onEnd)
+                }
+            )
         }
     }
 
-    private func overlay(title: String, detail: String?, symbol: String) -> some View {
+    private func nextDetail(secondsRemaining: Int) -> String {
+        if let currentBlockName {
+            return "\(secondsRemaining)s • Next: \(currentBlockName)"
+        }
+        return "\(secondsRemaining)s"
+    }
+
+    private func overlay<Actions: View>(
+        title: String,
+        detail: String?,
+        symbol: String,
+        @ViewBuilder actions: () -> Actions
+    ) -> some View {
         VStack(spacing: 8) {
             Image(systemName: symbol)
                 .font(.system(size: 28, weight: .semibold))
@@ -514,6 +577,12 @@ private struct RoutinePhaseOverlay: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
+            HStack(spacing: 8) {
+                actions()
+            }
+            .buttonStyle(.glass)
+            .controlSize(.small)
+            .padding(.top, 4)
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 18)
@@ -522,15 +591,23 @@ private struct RoutinePhaseOverlay: View {
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    private func overlay(title: String, detail: String?, symbol: String) -> some View {
+        overlay(title: title, detail: detail, symbol: symbol) {
+            EmptyView()
+        }
+    }
 }
 
 private struct ActionControlBar: View {
     @EnvironmentObject private var model: AppExerciseSessionViewModel
+    @EnvironmentObject private var routineRunner: RoutineRunner
     @ObservedObject var liveSession: LiveSession
     @Binding var feedMode: HeroFeedMode
     @Binding var showsSkeletonOverlay: Bool
 
     private var liveActive: Bool { liveSession.running && liveSession.isLiveCamera }
+    private var routineOwnsCamera: Bool { routineRunner.phase.needsCamera }
 
     var body: some View {
         GlassEffectContainer(spacing: 12) {
@@ -549,6 +626,7 @@ private struct ActionControlBar: View {
                 }
                 .buttonStyle(.glassProminent)
                 .tint(liveActive ? .red : .accentColor)
+                .disabled(routineOwnsCamera)
                 .help(liveActive ? "Stop the live camera" : "Track reps from your webcam, in this window")
 
                 Toggle(isOn: $showsSkeletonOverlay) {
@@ -574,9 +652,9 @@ private struct ActionControlBar: View {
 
                 Spacer(minLength: 12)
 
-                if model.activeRoutine != nil || model.routineSession.phase == .paused {
+                if routineRunner.phase.isActive || routineRunner.isPaused {
                     Button {
-                        model.toggleRoutinePause()
+                        routineRunner.togglePause()
                     } label: {
                         Label(pauseTitle, systemImage: pauseIcon)
                     }
@@ -586,7 +664,11 @@ private struct ActionControlBar: View {
                 }
 
                 Button {
-                    model.resetLiveSession()
+                    if routineRunner.phase.isActive || routineRunner.isPaused {
+                        routineRunner.restartCurrentSet()
+                    } else {
+                        model.resetLiveSession()
+                    }
                 } label: {
                     Label("Reset", systemImage: "arrow.counterclockwise")
                 }
@@ -600,15 +682,15 @@ private struct ActionControlBar: View {
     }
 
     private var canTogglePause: Bool {
-        model.routineSession.phase.canPause || model.routineSession.phase == .paused
+        routineRunner.canTogglePause
     }
 
     private var pauseTitle: String {
-        model.routineSession.phase == .paused ? "Resume" : "Pause"
+        routineRunner.isPaused ? "Resume" : "Pause"
     }
 
     private var pauseIcon: String {
-        model.routineSession.phase == .paused ? "play.fill" : "pause.fill"
+        routineRunner.isPaused ? "play.fill" : "pause.fill"
     }
 }
 
@@ -750,94 +832,39 @@ private struct SessionSettingsSidebar: View {
 }
 
 private struct RoutineLibrarySidebar: View {
-    @EnvironmentObject private var model: AppExerciseSessionViewModel
     @EnvironmentObject private var routineLibrary: RoutineLibraryStore
-    @State private var startError: String?
-    @State private var expandedRoutineIDs: Set<String> = []
 
     var body: some View {
-        List {
-            if let startError {
-                Text(startError)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-
-            if routineLibrary.routines.isEmpty {
-                Text("No saved routines")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(routineLibrary.routines) { routine in
-                    DisclosureGroup(isExpanded: expandedBinding(for: routine.id)) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button {
-                                start(routine)
-                            } label: {
-                                Label("Start full routine", systemImage: "play.fill")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-
-                            ForEach(Array(routine.blocks.enumerated()), id: \.offset) { index, block in
-                                Button {
-                                    start(routine, atBlock: index)
-                                } label: {
-                                    RoutineBlockSidebarRow(
-                                        index: index,
-                                        block: block,
-                                        exerciseName: exerciseName(for: block.exerciseRef)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
+        NavigationStack {
+            List {
+                if routineLibrary.routines.isEmpty {
+                    Text("No saved routines")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(routineLibrary.routines) { routine in
+                        NavigationLink(value: routine.id) {
+                            RoutineSidebarRow(routine: routine)
                         }
-                        .padding(.top, 6)
-                    } label: {
-                        RoutineSidebarRow(routine: routine)
+                        .simultaneousGesture(TapGesture().onEnded {
+                            routineLibrary.select(routine)
+                        })
                     }
                 }
             }
-        }
-        .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
-        .onAppear { routineLibrary.load() }
-    }
-
-    private func start(_ routine: WorkoutRoutine) {
-        start(routine, atBlock: 0)
-    }
-
-    private func start(_ routine: WorkoutRoutine, atBlock index: Int) {
-        do {
-            try model.startRoutine(routine, atBlock: index)
-            startError = nil
-            expandedRoutineIDs.insert(routine.id)
-        } catch {
-            startError = String(describing: error)
-        }
-    }
-
-    private func expandedBinding(for routineID: String) -> Binding<Bool> {
-        Binding {
-            expandedRoutineIDs.contains(routineID)
-        } set: { isExpanded in
-            if isExpanded {
-                expandedRoutineIDs.insert(routineID)
-            } else {
-                expandedRoutineIDs.remove(routineID)
+            .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
+            .navigationDestination(for: String.self) { routineID in
+                if let routine = routineLibrary.routines.first(where: { $0.id == routineID }) {
+                    RoutineDetailPanel(routine: routine)
+                } else {
+                    Text("Routine unavailable")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
-    }
-
-    private func exerciseName(for ref: ExerciseRef) -> String {
-        switch ref {
-        case let .preset(id):
-            return model.availablePresets.first { $0.id == id }?.name ?? id.replacingOccurrences(of: "_", with: " ")
-        case let .inline(program):
-            return program.name
-        }
+        .onAppear { routineLibrary.load() }
     }
 }
 
@@ -864,7 +891,7 @@ private struct RoutineSidebarRow: View {
 
             Spacer(minLength: 0)
 
-            Image(systemName: "chevron.down")
+            Image(systemName: "chevron.right")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.tertiary)
         }
@@ -882,42 +909,212 @@ private struct RoutineSidebarRow: View {
     }
 }
 
-private struct RoutineBlockSidebarRow: View {
+private enum RoutineBlockRunStatus: Equatable {
+    case ready(String)
+    case unavailable(String)
+
+    var label: String {
+        switch self {
+        case .ready:
+            return "Ready"
+        case .unavailable:
+            return "Unavailable"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case let .ready(target):
+            return target
+        case let .unavailable(message):
+            return message
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .ready:
+            return .green
+        case .unavailable:
+            return .orange
+        }
+    }
+
+    var isReady: Bool {
+        if case .ready = self { return true }
+        return false
+    }
+}
+
+private struct RoutineDetailPanel: View {
+    @EnvironmentObject private var model: AppExerciseSessionViewModel
+    @EnvironmentObject private var routineRunner: RoutineRunner
+    let routine: WorkoutRoutine
+    @State private var actionError: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+
+            if let actionError {
+                Text(actionError)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.red)
+            }
+
+            VStack(spacing: 8) {
+                ForEach(Array(routine.blocks.enumerated()), id: \.offset) { index, block in
+                    RoutineDetailBlockRow(
+                        index: index,
+                        block: block,
+                        exerciseName: exerciseName(for: block.exerciseRef),
+                        status: status(for: block),
+                        onPractice: { practice(index) },
+                        onStartFromHere: { startFrom(index) }
+                    )
+                }
+            }
+        }
+        .padding(14)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14, style: .continuous))
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(routine.name)
+                    .font(.title3.weight(.semibold))
+                if let description = routine.description, !description.isEmpty {
+                    Text(description)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text("\(routine.blocks.count) \(routine.blocks.count == 1 ? "exercise" : "exercises")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
+                startFrom(0)
+            } label: {
+                Label("Start Routine", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(!isRunnable)
+        }
+    }
+
+    private var isRunnable: Bool {
+        (try? compiler().compile(routine)) != nil
+    }
+
+    private func status(for block: RoutineBlock) -> RoutineBlockRunStatus {
+        let single = WorkoutRoutine(
+            id: "\(routine.id)-block",
+            name: routine.name,
+            blocks: [block]
+        )
+        do {
+            let compiled = try compiler().compile(single)
+            let target = compiled.blocks.first?.targetText ?? "Ready"
+            return .ready(target)
+        } catch {
+            return .unavailable(String(describing: error))
+        }
+    }
+
+    private func startFrom(_ index: Int) {
+        do {
+            try routineRunner.start(routine, atBlock: index)
+            actionError = nil
+        } catch {
+            actionError = String(describing: error)
+        }
+    }
+
+    private func practice(_ index: Int) {
+        do {
+            try routineRunner.practice(routine, blockIndex: index)
+            actionError = nil
+        } catch {
+            actionError = String(describing: error)
+        }
+    }
+
+    private func compiler() -> RoutineCompiler {
+        RoutineCompiler { presetID in
+            try model.programForPreset(id: presetID)
+        }
+    }
+
+    private func exerciseName(for ref: ExerciseRef) -> String {
+        switch ref {
+        case let .preset(id):
+            return model.availablePresets.first { $0.id == id }?.name ?? id.replacingOccurrences(of: "_", with: " ")
+        case let .inline(program):
+            return program.name
+        }
+    }
+}
+
+private struct RoutineDetailBlockRow: View {
     let index: Int
     let block: RoutineBlock
     let exerciseName: String
+    let status: RoutineBlockRunStatus
+    let onPractice: () -> Void
+    let onStartFromHere: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 9) {
-            Text("\(index + 1)")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 18, height: 18)
-                .background(
-                    Circle().fill(Color.primary.opacity(0.06))
-                )
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(exerciseName)
-                    .font(.system(size: 12.5, weight: .medium, design: .rounded))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Text(detailText)
-                    .font(.caption2)
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .top, spacing: 10) {
+                Text("\(index + 1)")
+                    .font(.caption.weight(.semibold))
+                    .monospacedDigit()
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .frame(width: 24, height: 24)
+                    .background(Circle().fill(Color.primary.opacity(0.06)))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(exerciseName)
+                        .font(.system(size: 13.5, weight: .semibold, design: .rounded))
+                    Text(detailText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Label(status.detail, systemImage: status.isReady ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(status.tint)
+                        .lineLimit(3)
+                }
+
+                Spacer(minLength: 0)
             }
 
-            Spacer(minLength: 0)
+            HStack(spacing: 8) {
+                Button {
+                    onPractice()
+                } label: {
+                    Label("Practice", systemImage: "scope")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+                .controlSize(.small)
+                .disabled(!status.isReady)
 
-            Image(systemName: "play.circle")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                Button {
+                    onStartFromHere()
+                } label: {
+                    Label("Start From Here", systemImage: "play.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+                .controlSize(.small)
+                .disabled(!status.isReady)
+            }
         }
-        .contentShape(Rectangle())
-        .padding(.vertical, 5)
-        .padding(.horizontal, 6)
+        .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Color.primary.opacity(0.035))
@@ -937,7 +1134,7 @@ private struct RoutineBlockSidebarRow: View {
         guard let restSeconds = block.restSeconds, restSeconds > 0 else {
             return target
         }
-        return "\(target) · \(restSeconds)s rest"
+        return "\(target) • \(restSeconds)s rest"
     }
 }
 

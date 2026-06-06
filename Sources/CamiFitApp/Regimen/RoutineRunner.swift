@@ -225,6 +225,14 @@ public final class RoutineRunner: ObservableObject {
         currentSet?.target.displayText
     }
 
+    public var nextBlockTitle: String? {
+        guard let activeRoutine,
+              let nextCursor = activeRoutine.nextCursor(after: cursor, practiceOnly: practiceOnly) else {
+            return nil
+        }
+        return activeRoutine.block(at: nextCursor)?.title
+    }
+
     public var canTogglePause: Bool {
         phase.canPause || isPaused
     }
@@ -239,7 +247,17 @@ public final class RoutineRunner: ObservableObject {
     }
 
     public func practice(_ routine: WorkoutRoutine, blockIndex: Int) throws {
-        try start(routine, cursor: RoutineCursor(blockIndex: blockIndex, setIndex: 0), mode: .practiceBlock)
+        guard routine.blocks.indices.contains(blockIndex) else {
+            throw AppExerciseSessionError.routineBlockOutOfRange(blockIndex)
+        }
+        let block = routine.blocks[blockIndex]
+        let practiceRoutine = WorkoutRoutine(
+            id: "\(routine.id)-practice-\(blockIndex + 1)",
+            name: blockPracticeName(for: block, fallback: routine.name),
+            description: "Practice from \(routine.name)",
+            blocks: [block]
+        )
+        try start(practiceRoutine, cursor: RoutineCursor(blockIndex: 0, setIndex: 0), mode: .practiceBlock)
     }
 
     public func start(
@@ -578,5 +596,13 @@ public final class RoutineRunner: ObservableObject {
             return "0/\(Int(seconds)) sec"
         }
     }
-}
 
+    private func blockPracticeName(for block: RoutineBlock, fallback: String) -> String {
+        switch block.exerciseRef {
+        case let .preset(id):
+            return viewModel.availablePresets.first { $0.id == id }?.name ?? fallback
+        case let .inline(program):
+            return program.name
+        }
+    }
+}

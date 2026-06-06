@@ -13,6 +13,7 @@ APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
 APP_RESOURCES="$APP_CONTENTS/Resources"
+APP_FRAMEWORKS="$APP_CONTENTS/Frameworks"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
@@ -30,7 +31,7 @@ BUILD_DIR="$(swift build --show-bin-path)"
 BUILD_BINARY="$BUILD_DIR/$APP_NAME"
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_MACOS" "$APP_RESOURCES"
+mkdir -p "$APP_MACOS" "$APP_RESOURCES" "$APP_FRAMEWORKS"
 cp "$BUILD_BINARY" "$APP_BINARY"
 chmod +x "$APP_BINARY"
 
@@ -39,6 +40,18 @@ for resource_bundle in CamiFit_CamiFitApp.bundle CamiFit_KGKit.bundle; do
     cp -R "$BUILD_DIR/$resource_bundle" "$APP_RESOURCES/"
   fi
 done
+
+for framework in "$BUILD_DIR"/*.framework; do
+  [[ -e "$framework" ]] || continue
+  cp -R "$framework" "$APP_FRAMEWORKS/"
+done
+
+for dylib in "$BUILD_DIR"/*.dylib; do
+  [[ -e "$dylib" ]] || continue
+  cp "$dylib" "$APP_FRAMEWORKS/"
+done
+
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BINARY" 2>/dev/null || true
 
 cat >"$INFO_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

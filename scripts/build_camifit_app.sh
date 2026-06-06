@@ -7,10 +7,12 @@ BUNDLE_ID="com.camifit.app"
 swift build --disable-sandbox --product CamiFitApp >/dev/null
 BIN="$(swift build --disable-sandbox --product CamiFitApp --show-bin-path)"
 pkill -x CamiFit 2>/dev/null || true; sleep 0.3
-rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN/CamiFitApp" "$APP/Contents/MacOS/CamiFit"; chmod +x "$APP/Contents/MacOS/CamiFit"
 # SwiftPM resource bundle must sit next to the binary so Bundle.module resolves.
 for b in "$BIN"/*CamiFitApp*.bundle; do [ -e "$b" ] && cp -R "$b" "$APP/Contents/MacOS/"; done
+for f in "$BIN"/*.framework; do [ -e "$f" ] && cp -R "$f" "$APP/Contents/Frameworks/"; done
+for d in "$BIN"/*.dylib; do [ -e "$d" ] && cp "$d" "$APP/Contents/Frameworks/"; done
 # Bundle the *native* Codex binary (not the node shim) so the GUI app can drive
 # `codex app-server` without node or the user's PATH. ~200MB; notarize for distribution.
 NATIVE_CODEX="$(node -e '
