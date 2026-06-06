@@ -5,7 +5,7 @@
   "archetype": "static_hold",
   "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
   "compiler": "scripts/motion_reference/compile_archetype_trace.py",
-  "output_trace": "/Users/kelly/Developer/camifit-app/Sources/CamiFitApp/Resources/MotionDemos/bodyweight_plank.jsonl",
+  "output_trace": "Sources/CamiFitApp/Resources/MotionDemos/bodyweight_plank.jsonl",
   "interval_ms": 100,
   "retarget": "static-hold",
   "required_contacts": [

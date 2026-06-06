@@ -36,8 +36,8 @@ source .venv/bin/activate
 pip install mediapipe pytest
 ```
 
-> In this workspace a prepared interpreter already has mediapipe 0.10.35:
-> `/Users/kelly/Developer/camifit-pose-venv/bin/python`.
+> For the macOS app, prefer a repo-local `.venv` at the project root. The app
+> will automatically find `.venv/bin/python` when Live Camera starts.
 
 ### Download the model bundle
 
@@ -121,7 +121,8 @@ printf '%s\n' \
 ## Tests
 
 ```bash
-/Users/kelly/Developer/camifit-pose-venv/bin/python -m pytest pose_worker/tests -q
+source .venv/bin/activate
+python -m pytest pose_worker/tests -q
 ```
 
 Tests cover health readiness (mediapipe with/without the model bundle),

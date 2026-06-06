@@ -36,4 +36,13 @@ final class LiveWorkerPathsTests: XCTestCase {
 
         print("live-worker-paths-project-venv command=\(paths.python.displayName)")
     }
+
+    func testDefaultRepoRootDoesNotAssumeDeveloperCamifitPath() {
+        let paths = LiveWorkerPaths.resolve(environment: [:])
+
+        XCTAssertFalse(paths.script.path.contains("~/Developer/camifit"))
+        XCTAssertFalse(paths.script.path.contains("/Developer/camifit/pose_worker"))
+
+        print("live-worker-paths-default-script=\(paths.script.path)")
+    }
 }

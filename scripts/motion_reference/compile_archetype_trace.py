@@ -17,6 +17,14 @@ SUPPORTED_ARCHETYPES = {
 }
 
 
+def repo_relative(path: Path) -> str:
+    repo_root = Path(__file__).resolve().parents[2]
+    try:
+        return str(path.resolve().relative_to(repo_root))
+    except ValueError:
+        return str(path)
+
+
 def landmark(x: float, y: float, z: float = 0.0, visibility: float = 1.0, presence: float = 1.0) -> dict[str, float]:
     return {
         "x": round(float(x), 6),
@@ -280,7 +288,7 @@ def write_trace(profile: dict[str, Any], output: Path, interval_ms: int) -> None
         "archetype": profile["archetype"],
         "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
         "compiler": "scripts/motion_reference/compile_archetype_trace.py",
-        "output_trace": str(output),
+        "output_trace": repo_relative(output),
         "interval_ms": interval_ms,
         "retarget": normalizer.get("retarget"),
         "required_contacts": profile.get("required_contacts", []),

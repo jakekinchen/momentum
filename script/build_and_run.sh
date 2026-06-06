@@ -129,12 +129,11 @@ sign_app_bundle() {
 sign_app_bundle
 
 open_app() {
-  local open_env_args=()
+  local open_env_args=(--env "CAMIFIT_REPO_ROOT=${CAMIFIT_REPO_ROOT:-$ROOT_DIR}")
   for env_name in \
     CAMIFIT_SYNTHETIC \
     CAMIFIT_SYNTHETIC_EXERCISE \
     CAMIFIT_SHOT_DIR \
-    CAMIFIT_REPO_ROOT \
     CAMIFIT_PYTHON \
     CAMIFIT_FRAME_DIR \
     CAMIFIT_GUIDE_EXERCISE \

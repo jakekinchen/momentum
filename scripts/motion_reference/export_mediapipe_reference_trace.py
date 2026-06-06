@@ -16,14 +16,14 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_ROOT = ROOT / "dist" / "motion-reference"
 DEFAULT_WORKER = ROOT / "pose_worker" / "pose_worker.py"
 DEFAULT_MODEL = ROOT / "pose_worker" / "models" / "pose_landmarker_lite.task"
-PREPARED_PYTHON = Path("/Users/kelly/Developer/camifit-pose-venv/bin/python")
+REPO_PYTHON = ROOT / ".venv" / "bin" / "python"
 
 
 def default_python() -> Path:
     if os.environ.get("CAMIFIT_PYTHON"):
         return Path(os.environ["CAMIFIT_PYTHON"]).expanduser()
-    if PREPARED_PYTHON.exists():
-        return PREPARED_PYTHON
+    if REPO_PYTHON.exists():
+        return REPO_PYTHON
     return Path(sys.executable)
 
 
@@ -37,9 +37,12 @@ def python_worker_env(python: Path) -> dict[str, str]:
     # child venv and make site-packages such as mediapipe disappear.
     for key in ("__PYVENV_LAUNCHER__", "PYTHONHOME", "PYTHONPATH"):
         env.pop(key, None)
-    venv = python.parent.parent
-    env["VIRTUAL_ENV"] = str(venv)
-    env["PATH"] = str(python.parent) + os.pathsep + env.get("PATH", "")
+    if python.parent.name == "bin" and (python.parent.parent / "pyvenv.cfg").exists():
+        venv = python.parent.parent
+        env["VIRTUAL_ENV"] = str(venv)
+        env["PATH"] = str(python.parent) + os.pathsep + env.get("PATH", "")
+    elif python.is_absolute() and python.parent.exists():
+        env["PATH"] = str(python.parent) + os.pathsep + env.get("PATH", "")
     return env
 
 

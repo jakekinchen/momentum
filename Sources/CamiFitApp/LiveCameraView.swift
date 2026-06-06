@@ -21,7 +21,7 @@ enum LiveWorkerPaths {
         func expand(_ path: String) -> URL {
             URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
         }
-        let repo = environment["CAMIFIT_REPO_ROOT"].map(expand) ?? expand("~/Developer/camifit")
+        let repo = environment["CAMIFIT_REPO_ROOT"].map(expand) ?? defaultRepoRoot()
         return (
             resolvePython(environment: environment, repo: repo, fileManager: fileManager),
             repo.appendingPathComponent("pose_worker/pose_worker.py"),
@@ -41,7 +41,6 @@ enum LiveWorkerPaths {
 
         let candidates = [
             repo.appendingPathComponent(".venv/bin/python"),
-            URL(fileURLWithPath: ("~/Developer/camifit-pose-venv/bin/python" as NSString).expandingTildeInPath),
             URL(fileURLWithPath: "/opt/homebrew/bin/python3"),
             URL(fileURLWithPath: "/usr/local/bin/python3"),
             URL(fileURLWithPath: "/usr/bin/python3")
@@ -50,6 +49,14 @@ enum LiveWorkerPaths {
             return LiveWorkerPythonCommand(executableURL: candidate, argumentsPrefix: [])
         }
         return pythonCommand(for: "python3")
+    }
+
+    private static func defaultRepoRoot() -> URL {
+        let bundleURL = Bundle.main.bundleURL
+        if bundleURL.pathExtension == "app" {
+            return bundleURL.deletingLastPathComponent().deletingLastPathComponent()
+        }
+        return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     }
 
     private static func pythonCommand(for configured: String) -> LiveWorkerPythonCommand {
