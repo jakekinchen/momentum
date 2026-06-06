@@ -55,15 +55,34 @@ PY
 
 install_with_local_venv() {
   local python_for_venv=""
-  for candidate in python3.12 /opt/homebrew/bin/python3.12 /usr/local/bin/python3.12 python3; do
+  for candidate in "$HOME/.local/bin/python3.12" python3.12 /opt/homebrew/bin/python3.12 /usr/local/bin/python3.12; do
     if command -v "$candidate" >/dev/null 2>&1; then
       python_for_venv="$(command -v "$candidate")"
       break
     fi
   done
 
+  if [[ -z "$python_for_venv" && "$(command -v uv || true)" != "" ]]; then
+    echo "Python 3.12 not found; asking uv to install/find Python 3.12."
+    uv python install 3.12
+    python_for_venv="$(uv python find 3.12)"
+  fi
+
+  if [[ -z "$python_for_venv" && "$(command -v brew || true)" != "" ]]; then
+    echo "Python 3.12 not found; asking Homebrew to install python@3.12."
+    brew install python@3.12
+    for candidate in /opt/homebrew/bin/python3.12 /usr/local/bin/python3.12; do
+      if [[ -x "$candidate" ]]; then
+        python_for_venv="$candidate"
+        break
+      fi
+    done
+  fi
+
   if [[ -z "$python_for_venv" ]]; then
-    echo "No Python 3 found. Install Python 3.12, then rerun: script/doctor_live_camera.sh --fix" >&2
+    echo "No supported Python 3.12 found." >&2
+    echo "Install Python 3.12, then rerun: script/doctor_live_camera.sh --fix" >&2
+    echo "Examples: brew install python@3.12  OR  uv python install 3.12" >&2
     exit 1
   fi
 
