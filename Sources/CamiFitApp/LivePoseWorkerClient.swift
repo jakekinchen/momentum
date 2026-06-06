@@ -21,7 +21,7 @@ final class LivePoseWorkerClient {
         }
     }
 
-    private let pythonURL: URL
+    private let python: LiveWorkerPythonCommand
     private let scriptURL: URL
     private let modelURL: URL
     private let queue = DispatchQueue(label: "camifit.live-pose-worker")
@@ -31,8 +31,8 @@ final class LivePoseWorkerClient {
     private var stdoutFD: Int32 = -1
     private var buffer = Data()
 
-    init(pythonURL: URL, scriptURL: URL, modelURL: URL) {
-        self.pythonURL = pythonURL
+    init(python: LiveWorkerPythonCommand, scriptURL: URL, modelURL: URL) {
+        self.python = python
         self.scriptURL = scriptURL
         self.modelURL = modelURL
     }
@@ -40,8 +40,8 @@ final class LivePoseWorkerClient {
     func start() throws {
         try queue.sync {
             let process = Process()
-            process.executableURL = pythonURL
-            process.arguments = [scriptURL.path, "--mode", "mediapipe", "--model", modelURL.path]
+            process.executableURL = python.executableURL
+            process.arguments = python.argumentsPrefix + [scriptURL.path, "--mode", "mediapipe", "--model", modelURL.path]
             process.currentDirectoryURL = scriptURL.deletingLastPathComponent().deletingLastPathComponent()
             let stdin = Pipe()
             let stdout = Pipe()

@@ -41,6 +41,24 @@ swift test
 
 ## Build And Run The Mac App
 
+For Live Camera webcam tracking, set up the pose-worker dependency once after
+cloning:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install mediapipe pytest
+
+mkdir -p pose_worker/models
+curl -L -o pose_worker/models/pose_landmarker_lite.task \
+  https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
+```
+
+The app first looks for `CAMIFIT_PYTHON`, then `.venv/bin/python`, then common
+system Python 3 locations. On a fresh macOS install, do not set
+`CAMIFIT_PYTHON=python`; use the local venv above or `CAMIFIT_PYTHON=python3`.
+
 Use the project run script for the actual macOS app bundle. It builds the
 SwiftPM executable, stages `dist/CamiFitApp.app`, signs it, and opens it as
 **Future Coach**:

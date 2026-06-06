@@ -4,16 +4,71 @@ import Combine
 import Foundation
 import SwiftUI
 
+struct LiveWorkerPythonCommand: Equatable {
+    let executableURL: URL
+    let argumentsPrefix: [String]
+
+    var displayName: String {
+        ([executableURL.path] + argumentsPrefix).joined(separator: " ")
+    }
+}
+
 enum LiveWorkerPaths {
-    static func resolve() -> (python: URL, script: URL, model: URL) {
-        let env = ProcessInfo.processInfo.environment
-        func expand(_ path: String) -> URL { URL(fileURLWithPath: (path as NSString).expandingTildeInPath) }
-        let repo = env["CAMIFIT_REPO_ROOT"].map(expand) ?? expand("~/Developer/camifit")
-        let python = env["CAMIFIT_PYTHON"].map(expand) ?? expand("~/Developer/camifit-pose-venv/bin/python")
+    static func resolve(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        fileManager: FileManager = .default
+    ) -> (python: LiveWorkerPythonCommand, script: URL, model: URL) {
+        func expand(_ path: String) -> URL {
+            URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+        }
+        let repo = environment["CAMIFIT_REPO_ROOT"].map(expand) ?? expand("~/Developer/camifit")
         return (
-            python,
+            resolvePython(environment: environment, repo: repo, fileManager: fileManager),
             repo.appendingPathComponent("pose_worker/pose_worker.py"),
             repo.appendingPathComponent("pose_worker/models/pose_landmarker_lite.task")
+        )
+    }
+
+    private static func resolvePython(
+        environment: [String: String],
+        repo: URL,
+        fileManager: FileManager
+    ) -> LiveWorkerPythonCommand {
+        if let configured = environment["CAMIFIT_PYTHON"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !configured.isEmpty {
+            return pythonCommand(for: configured)
+        }
+
+        let candidates = [
+            repo.appendingPathComponent(".venv/bin/python"),
+            URL(fileURLWithPath: ("~/Developer/camifit-pose-venv/bin/python" as NSString).expandingTildeInPath),
+            URL(fileURLWithPath: "/opt/homebrew/bin/python3"),
+            URL(fileURLWithPath: "/usr/local/bin/python3"),
+            URL(fileURLWithPath: "/usr/bin/python3")
+        ]
+        for candidate in candidates where fileManager.isExecutableFile(atPath: candidate.path) {
+            return LiveWorkerPythonCommand(executableURL: candidate, argumentsPrefix: [])
+        }
+        return pythonCommand(for: "python3")
+    }
+
+    private static func pythonCommand(for configured: String) -> LiveWorkerPythonCommand {
+        let expanded = (configured as NSString).expandingTildeInPath
+        let looksLikePath = expanded.contains("/") || expanded.hasPrefix(".")
+        if looksLikePath {
+            return LiveWorkerPythonCommand(
+                executableURL: URL(fileURLWithPath: expanded),
+                argumentsPrefix: []
+            )
+        }
+
+        // macOS no longer guarantees a `python` shim. Treat that override as
+        // intent to use Python 3 so Live Camera fails at health-check time with
+        // actionable MediaPipe/model setup diagnostics, not at process launch.
+        let command = configured == "python" ? "python3" : configured
+        return LiveWorkerPythonCommand(
+            executableURL: URL(fileURLWithPath: "/usr/bin/env"),
+            argumentsPrefix: [command]
         )
     }
 }
@@ -131,7 +186,7 @@ final class LiveSession: ObservableObject {
         viewModel.resetLiveSession()
 
         let paths = LiveWorkerPaths.resolve()
-        let client = LivePoseWorkerClient(pythonURL: paths.python, scriptURL: paths.script, modelURL: paths.model)
+        let client = LivePoseWorkerClient(python: paths.python, scriptURL: paths.script, modelURL: paths.model)
         poseReadiness = .workerStarting
         do {
             try client.start()

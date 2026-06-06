@@ -57,12 +57,12 @@ with `--model`.)
 
 ```bash
 # real inference
-python pose_worker/pose_worker.py --mode mediapipe \
+python3 pose_worker/pose_worker.py --mode mediapipe \
   --model pose_worker/models/pose_landmarker_lite.task
 
 # deterministic synthetic landmarks (no camera, no model load)
-python pose_worker/pose_worker.py --mode mock
-python pose_worker/pose_worker.py --mode fixture
+python3 pose_worker/pose_worker.py --mode mock
+python3 pose_worker/pose_worker.py --mode fixture
 ```
 
 Send one JSON request per line on stdin; read one JSON response per line on
@@ -115,7 +115,7 @@ Bad input never crashes the loop — it is reported as
 printf '%s\n' \
   '{"type":"health"}' \
   '{"type":"predict","frame_id":1,"timestamp_ms":1000,"image_path":"pose_worker/models/test_assets/standing.jpg"}' \
-  | python pose_worker/pose_worker.py --mode mediapipe
+  | python3 pose_worker/pose_worker.py --mode mediapipe
 ```
 
 ## Tests
