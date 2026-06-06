@@ -66,6 +66,32 @@ final class PoseOverlayViewTests: XCTestCase {
         print("pose-overlay-empty viewport=200x100 points=0 segments=0")
     }
 
+    func testStoppedCameraDoesNotShowCachedPoseOverlay() {
+        let display = PoseStageDisplayState(
+            feedMode: .tracking,
+            isRunning: false,
+            isLiveCamera: false
+        )
+
+        XCTAssertFalse(display.showsStoredPoseOverlay)
+        XCTAssertTrue(display.showsStoppedPlaceholder)
+
+        print("pose-stage-stopped-camera hides_cached_overlay=true shows_placeholder=true")
+    }
+
+    func testActiveLiveCameraUsesLiveOverlayPathOnly() {
+        let display = PoseStageDisplayState(
+            feedMode: .tracking,
+            isRunning: true,
+            isLiveCamera: true
+        )
+
+        XCTAssertFalse(display.showsStoredPoseOverlay)
+        XCTAssertFalse(display.showsStoppedPlaceholder)
+
+        print("pose-stage-live-camera hides_cached_overlay=true shows_placeholder=false")
+    }
+
     func testCleanRecordedRunOverlayStateFeedsGeometryMapper() throws {
         let viewModel = AppExerciseSessionViewModel()
 

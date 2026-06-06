@@ -558,9 +558,23 @@ private struct HeroPreviewCard: View {
     }
 }
 
-private enum HeroFeedMode: Equatable {
+enum HeroFeedMode: Equatable {
     case tracking
     case avatarGuide
+}
+
+struct PoseStageDisplayState: Equatable {
+    let feedMode: HeroFeedMode
+    let isRunning: Bool
+    let isLiveCamera: Bool
+
+    var showsStoredPoseOverlay: Bool {
+        feedMode == .tracking && isRunning && !isLiveCamera
+    }
+
+    var showsStoppedPlaceholder: Bool {
+        feedMode == .tracking && !isRunning
+    }
 }
 
 private struct PoseStage: View {
@@ -570,6 +584,14 @@ private struct PoseStage: View {
     let showsSkeletonOverlay: Bool
     let showsFormTarget: Bool
     let formMatchProgress: Double
+
+    private var displayState: PoseStageDisplayState {
+        PoseStageDisplayState(
+            feedMode: feedMode,
+            isRunning: liveSession.running,
+            isLiveCamera: liveSession.isLiveCamera
+        )
+    }
 
     var body: some View {
         ZStack {
@@ -589,10 +611,12 @@ private struct PoseStage: View {
                     endPoint: .bottom
                 )
 
-                PoseOverlayView(state: model.latestPoseOverlayState)
-                    .padding(18)
+                if displayState.showsStoredPoseOverlay {
+                    PoseOverlayView(state: model.latestPoseOverlayState)
+                        .padding(18)
+                }
 
-                if model.latestPoseOverlayState.points.isEmpty && !liveSession.running {
+                if displayState.showsStoppedPlaceholder {
                     placeholderOverlay
                 }
             }
