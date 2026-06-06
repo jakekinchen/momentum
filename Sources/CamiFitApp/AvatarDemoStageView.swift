@@ -435,17 +435,9 @@ private final class NeutralMannequinRig {
         updateCapsule(neck, from: neckBottom, to: neckTop, radius: 0.034, material: torsoMaterial)
         updateSphere(head, at: headCenter)
 
-        if usesAssetGeometry {
-            updateOrientedBodyMass(chest, at: chestPoint, along: torsoAxis)
-            updateOrientedBodyMass(pelvis, at: hipCenter, along: torsoAxis)
-            hide(torso, abdomen, shoulderBridge, hipBridge)
-        } else {
-            let abdomenPoint = midpoint(shoulderCenter, hipCenter, factor: 0.66)
-            updateCapsule(torso, from: shoulderCenter, to: hipCenter, radius: 0.118, material: torsoMaterial)
-            updateSphere(chest, at: chestPoint)
-            updateSphere(abdomen, at: abdomenPoint)
-            updateSphere(pelvis, at: hipCenter)
-        }
+        updateOrientedBodyMass(chest, at: chestPoint, along: torsoAxis)
+        updateOrientedBodyMass(pelvis, at: hipCenter, along: torsoAxis)
+        hide(torso, abdomen, shoulderBridge, hipBridge)
 
         if let elbow = primary.elbow, let wrist = primary.wrist {
             updateCapsule(nearUpperArm, from: primary.shoulder, to: elbow, radius: 0.050, material: limbMaterial)
@@ -467,12 +459,7 @@ private final class NeutralMannequinRig {
         }
 
         if let secondary, let visualSecondary {
-            if usesAssetGeometry {
-                hide(shoulderBridge, hipBridge)
-            } else {
-                updateCapsule(shoulderBridge, from: secondary.shoulder, to: primary.shoulder, radius: 0.052, material: torsoMaterial)
-                updateCapsule(hipBridge, from: secondary.hip, to: primary.hip, radius: 0.060, material: torsoMaterial)
-            }
+            hide(shoulderBridge, hipBridge)
             if let elbow = secondary.elbow, let wrist = secondary.wrist {
                 updateCapsule(farUpperArm, from: secondary.shoulder, to: elbow, radius: 0.040, material: farLimbMaterial)
                 updateCapsule(farForearm, from: elbow, to: wrist, radius: 0.036, material: farLimbMaterial)
