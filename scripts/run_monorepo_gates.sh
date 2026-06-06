@@ -50,6 +50,12 @@ echo "== motion-reference-coverage =="
   scripts/motion_reference/audit_motion_coverage.py --strict
 )
 
+echo "== kg-motion-readiness =="
+(
+  cd "$ROOT"
+  scripts/motion_reference/audit_kg_motion_readiness.py --summary-only
+)
+
 if [[ -d "$ROOT/contracts" ]]; then
   echo "== contracts-compat =="
   find "$ROOT/contracts" -name '*.schema.json' -print | sort

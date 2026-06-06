@@ -98,6 +98,7 @@ monorepo pass:
 ```bash
 swift test --disable-sandbox --filter MediaPipePoseProviderTests
 scripts/motion_reference/audit_motion_coverage.py --strict
+scripts/motion_reference/audit_kg_motion_readiness.py --summary-only
 git diff --check
 ```
 

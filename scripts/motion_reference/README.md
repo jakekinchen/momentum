@@ -22,6 +22,18 @@ explicitly marked as `needs_reference_capture`. Use `--require-all-demos` when
 the product milestone requires every preset to have a bundled trainer-reference
 trace.
 
+Check the KG-to-viewer boundary with:
+
+```bash
+scripts/motion_reference/audit_kg_motion_readiness.py --summary-only
+```
+
+This audit separates app-runnable exercises from graph recommendation nodes. A
+KG exercise is viewer-ready only when it maps to a packaged preset and that
+preset has a valid motion profile plus bundled demo trace. Use
+`--require-all-kg-viewer-ready` only for a future milestone where every KG
+exercise must be displayable and measurable in the app.
+
 For exercises without first-party clips yet, compile a deterministic archetype
 trace:
 

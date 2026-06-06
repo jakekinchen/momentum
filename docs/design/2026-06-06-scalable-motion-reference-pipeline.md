@@ -1,9 +1,10 @@
 # Scalable Motion Reference Pipeline
 
 **Date:** 2026-06-06
-**Status:** Initial implementation scaffold
+**Status:** Active baseline with KG readiness audit
 **Scope:** Make avatar guide motion scalable across every exercise the app can
-measure.
+measure, while keeping KG recommendation nodes separate from app-runnable
+exercise presets.
 
 ## Decision
 
@@ -57,23 +58,54 @@ side-view retargeting.
 
 ## Current Coverage
 
-- `bodyweight_lunge`: bundled interim reference trace, normalized through
-  `normalize_lunge_trace.py`, with a canonical stationary-lunge display retarget.
-- `bodyweight_squat`: bundled canonical archetype trace exists; still needs
-  first-party reference capture to replace the deterministic interim trace.
-- `bodyweight_pushup`: preset and engine tests exist; needs first-party
-  reference capture to replace the bundled horizontal-press archetype trace.
-- `bodyweight_plank`: bundled canonical hold trace exists; still needs
-  first-party hold capture to replace the deterministic interim trace.
+- `bodyweight_squat`: packaged preset, motion profile, bundled trace, and
+  manifest are present.
+- `bodyweight_lunge`: packaged preset, motion profile, bundled stationary-lunge
+  trace, and manifest are present.
+- `bodyweight_pushup`: packaged preset, motion profile, bundled trace, and
+  manifest are present.
+- `bodyweight_plank`: packaged preset, motion profile, bundled canonical hold
+  trace, and manifest are present.
+
+Those four IDs are the current app-runnable exercise set. They can be selected
+in the UI, displayed in the avatar guide, and measured by the engine.
+
+The KG has a broader exercise vocabulary. The shipped KG artifact currently has
+seven `Exercise:*` nodes used for safety, alternatives, and workout generation.
+The generated candidate-assessment KG imports the 50 assignment exercise
+records. Those graph exercises are recommendation data unless they map to a
+packaged app preset with a motion profile and bundled demo trace. Do not treat a
+KG node as displayable or measurable just because it appears in the graph.
 
 Run the audit:
 
 ```bash
 scripts/motion_reference/audit_motion_coverage.py --strict
+scripts/motion_reference/audit_kg_motion_readiness.py --summary-only
 ```
 
 Use `--require-all-demos` when we are ready to fail CI until every packaged
-exercise has a valid bundled demo.
+exercise has a valid bundled demo. Use `--require-all-kg-viewer-ready` only
+when the product milestone requires every KG exercise node to be converted into
+an exact app preset plus motion demo.
+
+## KG To App Readiness Contract
+
+An exercise is guide/measurement-ready only if all of these are true:
+
+- the app ships `Sources/CamiFitApp/Resources/Presets/<exercise_id>.json`;
+- `scripts/motion_reference/exercise_motion_profiles.json` has a profile for
+  that exact app exercise id;
+- the app ships
+  `Sources/CamiFitApp/Resources/MotionDemos/<exercise_id>.jsonl`;
+- the demo has a matching manifest;
+- the coverage audit accepts required landmarks, contacts, and loop closure;
+- if the exercise came from KG, the KG node explicitly maps to that app preset
+  through a future property such as `camifit_preset_id`.
+
+Without that mapping, KG exercises stay recommend-only. Approximate archetype
+reuse is allowed for internal prototyping, but it is not an exact exercise guide
+and should not be surfaced as "show me how to do this exercise."
 
 ## Acceptance Gates
 
