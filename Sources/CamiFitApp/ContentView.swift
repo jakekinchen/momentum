@@ -253,16 +253,11 @@ private struct HeroPreviewCard: View {
     @ObservedObject var formCheck: FormCheckController
     @State private var feedMode: HeroFeedMode = CamiFitLaunchEnvironment.startsInGuideMode ? .avatarGuide : .tracking
     @State private var showsSkeletonOverlay = true
+    @State private var repPulseStrength: CGFloat = 0
+    @State private var repPulseGeneration = 0
 
     private var displayedFeedMode: HeroFeedMode {
         routineRunner.phase.usesGuide ? .avatarGuide : feedMode
-    }
-
-    private var overlayBlockName: String? {
-        if case .rest = routineRunner.phase {
-            return routineRunner.nextBlockTitle
-        }
-        return routineRunner.currentBlock?.title
     }
 
     private var guideToggleTitle: String {
@@ -335,16 +330,13 @@ private struct HeroPreviewCard: View {
             RoutinePhaseOverlay(
                 phase: routineRunner.phase,
                 pipelineStatus: liveSession.poseReadiness.displayText,
-                currentBlockName: overlayBlockName,
                 progressText: routineRunner.progressText,
                 onResume: { routineRunner.resume() },
                 onEnd: {
                     routineRunner.cancel()
                     liveSession.stop()
                 },
-                onRestart: { routineRunner.restartCurrentSet() },
-                onSkipRest: { routineRunner.skipRest() },
-                onAddRest: { routineRunner.addRest(seconds: 15) }
+                onRestart: { routineRunner.restartCurrentSet() }
             )
 
             if let cueText = model.state.cueText {
@@ -377,9 +369,16 @@ private struct HeroPreviewCard: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(.white.opacity(0.06), lineWidth: 1)
         )
+        .overlay(
+            HeroRepPulseOverlay(strength: repPulseStrength)
+        )
         .shadow(color: .black.opacity(0.14), radius: 10, y: 4)
         .onChange(of: routineRunner.phase) { _, phase in
             syncLivePipeline(for: phase)
+        }
+        .onChange(of: model.state.repCount) { oldValue, newValue in
+            guard newValue > oldValue else { return }
+            triggerRepPulse()
         }
         .onReceive(liveSession.camera.$readiness) { readiness in
             routineRunner.updateCameraReadiness(readiness)
@@ -509,6 +508,23 @@ private struct HeroPreviewCard: View {
         liveSession.stop()
         liveSession.start(viewModel: model) { frame in
             routineRunner.ingest(frame)
+        }
+    }
+
+    private func triggerRepPulse() {
+        repPulseGeneration += 1
+        let generation = repPulseGeneration
+
+        withAnimation(.easeOut(duration: 0.16)) {
+            repPulseStrength = 1
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 520_000_000)
+            guard generation == repPulseGeneration else { return }
+            withAnimation(.easeOut(duration: 0.55)) {
+                repPulseStrength = 0
+            }
         }
     }
 
@@ -645,16 +661,32 @@ private struct CueBanner: View {
     }
 }
 
+private struct HeroRepPulseOverlay: View {
+    let strength: CGFloat
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.green.opacity(0.54 * Double(strength)), lineWidth: 2.5)
+                .shadow(color: .green.opacity(0.26 * Double(strength)), radius: 18 * strength)
+
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.green.opacity(0.22 * Double(strength)), lineWidth: 9)
+                .blur(radius: 4)
+                .padding(1)
+        }
+        .opacity(Double(strength))
+        .allowsHitTesting(false)
+    }
+}
+
 private struct RoutinePhaseOverlay: View {
     let phase: RoutineRunPhase
     let pipelineStatus: String
-    let currentBlockName: String?
     let progressText: String?
     let onResume: () -> Void
     let onEnd: () -> Void
     let onRestart: () -> Void
-    let onSkipRest: () -> Void
-    let onAddRest: () -> Void
 
     var body: some View {
         switch phase {
@@ -670,16 +702,8 @@ private struct RoutinePhaseOverlay: View {
             overlay(title: message ?? "Step into frame", detail: pipelineStatus, symbol: "figure.walk.motion")
         case let .countdown(secondsRemaining):
             overlay(title: "\(secondsRemaining)", detail: "Get ready", symbol: "timer")
-        case let .rest(secondsRemaining):
-            overlay(
-                title: "Rest",
-                detail: nextDetail(secondsRemaining: secondsRemaining),
-                symbol: "timer",
-                actions: {
-                    Button("Skip Rest", action: onSkipRest)
-                    Button("+15s", action: onAddRest)
-                }
-            )
+        case .rest:
+            EmptyView()
         case .paused:
             overlay(
                 title: "Paused",
@@ -710,13 +734,6 @@ private struct RoutinePhaseOverlay: View {
                 }
             )
         }
-    }
-
-    private func nextDetail(secondsRemaining: Int) -> String {
-        if let currentBlockName {
-            return "\(secondsRemaining)s • Next: \(currentBlockName)"
-        }
-        return "\(secondsRemaining)s"
     }
 
     private func overlay<Actions: View>(
@@ -771,6 +788,12 @@ private struct ActionControlBar: View {
     private var routineOwnsCamera: Bool { routineRunner.phase.needsCamera }
     private var guideSecondsRemaining: Int? {
         if case let .guide(secondsRemaining) = routineRunner.phase {
+            return secondsRemaining
+        }
+        return nil
+    }
+    private var restSecondsRemaining: Int? {
+        if case let .rest(secondsRemaining) = routineRunner.phase {
             return secondsRemaining
         }
         return nil
@@ -867,6 +890,29 @@ private struct ActionControlBar: View {
 
                 Spacer(minLength: 12)
 
+                if let restSecondsRemaining {
+                    Label("\(restSecondsRemaining)s Rest", systemImage: "timer")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .help(restHelpText)
+
+                    Button {
+                        routineRunner.skipRest()
+                    } label: {
+                        Label("Skip", systemImage: "forward.fill")
+                    }
+                    .buttonStyle(.glass)
+                    .help("Skip rest")
+
+                    Button {
+                        routineRunner.addRest(seconds: 15)
+                    } label: {
+                        Label("+15s", systemImage: "plus")
+                    }
+                    .buttonStyle(.glass)
+                    .help("Add 15 seconds")
+                }
+
                 if !guideActive && (routineRunner.phase.isActive || routineRunner.isPaused) {
                     Button {
                         routineRunner.togglePause()
@@ -898,6 +944,13 @@ private struct ActionControlBar: View {
 
     private var canTogglePause: Bool {
         routineRunner.canTogglePause
+    }
+
+    private var restHelpText: String {
+        guard let nextBlockTitle = routineRunner.nextBlockTitle else {
+            return "Rest timer"
+        }
+        return "Next: \(nextBlockTitle)"
     }
 
     private var pauseTitle: String {
