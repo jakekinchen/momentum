@@ -15,23 +15,6 @@ struct AvatarDemoStage: View {
             if let program = model.activeExerciseProgram {
                 AvatarDemoTimelineView(program: program)
                     .padding(.vertical, 24)
-
-                VStack {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Guide")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.cyan)
-                            Text(program.name)
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                        }
-                        Spacer()
-                    }
-                    Spacer()
-                }
-                .padding(18)
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "figure.strengthtraining.functional")
@@ -88,16 +71,29 @@ private struct AvatarDemoTimelineView: View {
     }
 
     var body: some View {
-        TimelineView(.animation) { context in
-            let elapsedMS = elapsedMilliseconds(from: context.date)
-            AvatarSceneView(frame: timeline.frame(atElapsedMS: elapsedMS))
+        if let fixedElapsedMS = Self.fixedGuideElapsedMS {
+            AvatarSceneView(frame: timeline.frame(atElapsedMS: fixedElapsedMS))
                 .allowsHitTesting(false)
+        } else {
+            TimelineView(.animation) { context in
+                let elapsedMS = elapsedMilliseconds(from: context.date)
+                AvatarSceneView(frame: timeline.frame(atElapsedMS: elapsedMS))
+                    .allowsHitTesting(false)
+            }
         }
     }
 
     private func elapsedMilliseconds(from date: Date) -> Int64 {
         let raw = date.timeIntervalSinceReferenceDate * 1000
         return Int64(raw.truncatingRemainder(dividingBy: Double(timeline.durationMS)))
+    }
+
+    private static var fixedGuideElapsedMS: Int64? {
+        guard let raw = ProcessInfo.processInfo.environment["CAMIFIT_GUIDE_FRAME_MS"],
+              let elapsedMS = Int64(raw.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return nil
+        }
+        return elapsedMS
     }
 }
 
@@ -112,6 +108,9 @@ private struct AvatarSceneView: NSViewRepresentable {
         let view = SCNView()
         view.scene = context.coordinator.scene
         view.backgroundColor = .clear
+        view.wantsLayer = true
+        view.layer?.isOpaque = false
+        view.layer?.backgroundColor = NSColor.clear.cgColor
         view.allowsCameraControl = false
         view.autoenablesDefaultLighting = false
         view.preferredFramesPerSecond = 30
@@ -199,6 +198,26 @@ private struct AvatarSceneView: NSViewRepresentable {
     }
 }
 
+struct AvatarReferencePoseView: View {
+    let frame: PoseFrame
+    let opacity: Double
+    let matchProgress: Double
+
+    init(frame: PoseFrame, opacity: Double = 0.42, matchProgress: Double = 0) {
+        self.frame = frame
+        self.opacity = opacity
+        self.matchProgress = matchProgress
+    }
+
+    var body: some View {
+        AvatarSceneView(frame: frame)
+            .opacity(min(max(opacity + (matchProgress * 0.14), 0.24), 0.70))
+            .saturation(0.82 + (matchProgress * 0.18))
+            .shadow(color: .green.opacity(0.22 * matchProgress), radius: 18 * matchProgress, y: 4)
+            .compositingGroup()
+    }
+}
+
 private final class NeutralMannequinRig {
     let root: SCNNode
 
@@ -239,7 +258,7 @@ private final class NeutralMannequinRig {
         emission: 0.03
     )
     private let farLimbMaterial = NeutralMannequinRig.material(
-        color: NSColor(calibratedRed: 0.68, green: 0.78, blue: 0.77, alpha: 0.54),
+        color: NSColor(calibratedRed: 0.62, green: 0.74, blue: 0.73, alpha: 1),
         emission: 0.015
     )
     private let accentMaterial = NeutralMannequinRig.material(
@@ -343,13 +362,13 @@ private final class NeutralMannequinRig {
         farAnkle.name = "rig.far.ankle"
 
         head.geometry?.firstMaterial = accentMaterial
-        head.simdScale = SIMD3<Float>(0.16, 0.20, 0.15)
+        head.simdScale = usesAssetGeometry ? SIMD3<Float>(0.15, 0.19, 0.14) : SIMD3<Float>(0.16, 0.20, 0.15)
         chest.geometry?.firstMaterial = torsoMaterial
-        chest.simdScale = SIMD3<Float>(0.17, 0.22, 0.12)
+        chest.simdScale = usesAssetGeometry ? SIMD3<Float>(0.18, 0.34, 0.12) : SIMD3<Float>(0.17, 0.22, 0.12)
         abdomen.geometry?.firstMaterial = torsoMaterial
         abdomen.simdScale = SIMD3<Float>(0.14, 0.18, 0.11)
         pelvis.geometry?.firstMaterial = torsoMaterial
-        pelvis.simdScale = SIMD3<Float>(0.18, 0.13, 0.12)
+        pelvis.simdScale = usesAssetGeometry ? SIMD3<Float>(0.18, 0.11, 0.12) : SIMD3<Float>(0.18, 0.13, 0.12)
         nearHand.geometry?.firstMaterial = limbMaterial
         nearHand.simdScale = SIMD3<Float>(0.055, 0.055, 0.045)
         farHand.geometry?.firstMaterial = farLimbMaterial
@@ -368,15 +387,65 @@ private final class NeutralMannequinRig {
             ?? AvatarRig.oppositePrimarySide(primary: primary, in: points)
         let headPoint = points["nose"] ?? SCNVector3(primary.shoulder.x, primary.shoulder.y + 0.34, primary.shoulder.z)
 
-        let chestPoint = midpoint(primary.shoulder, primary.hip, factor: 0.28)
-        let abdomenPoint = midpoint(primary.shoulder, primary.hip, factor: 0.66)
+        let shoulderCenter = secondary.map { midpoint($0.shoulder, primary.shoulder, factor: 0.5) } ?? primary.shoulder
+        let hipCenter = secondary.map { midpoint($0.hip, primary.hip, factor: 0.5) } ?? primary.hip
+        let visualPrimary = usesAssetGeometry
+            ? retargetVisualLowerLeg(primary, maxRatio: Self.primaryLowerLegMaxRatio)
+            : primary
+        let visualSecondary = secondary.map {
+            usesAssetGeometry
+                ? retargetVisualLowerLeg($0, maxRatio: Self.secondaryLowerLegMaxRatio)
+                : $0
+        }
 
-        updateCapsule(neck, from: primary.shoulder, to: headPoint, radius: 0.045, material: torsoMaterial)
-        updateCapsule(torso, from: primary.shoulder, to: primary.hip, radius: 0.118, material: torsoMaterial)
-        updateSphere(head, at: SCNVector3(headPoint.x, headPoint.y + 0.065, headPoint.z + 0.02))
-        updateSphere(chest, at: chestPoint)
-        updateSphere(abdomen, at: abdomenPoint)
-        updateSphere(pelvis, at: primary.hip)
+        let chestPoint = midpoint(
+            shoulderCenter,
+            hipCenter,
+            factor: usesAssetGeometry ? Self.assetChestCenterFactor : 0.28
+        )
+        let torsoAxis = SCNVector3(
+            hipCenter.x - shoulderCenter.x,
+            hipCenter.y - shoulderCenter.y,
+            hipCenter.z - shoulderCenter.z
+        )
+        let isHorizontalPose = abs(torsoAxis.x) > abs(torsoAxis.y) * 1.15
+        let rawHeadCenter = SCNVector3(headPoint.x, headPoint.y + 0.005, headPoint.z + 0.02)
+        let headCenter = usesAssetGeometry && !isHorizontalPose
+            ? headAnchoredToTorso(rawHeadCenter, chestCenter: chestPoint)
+            : rawHeadCenter
+        let neckBottom: SCNVector3
+        let neckTop: SCNVector3
+        if usesAssetGeometry && isHorizontalPose {
+            neckBottom = midpoint(shoulderCenter, headCenter, factor: 0.20)
+            neckTop = midpoint(shoulderCenter, headCenter, factor: 0.58)
+        } else {
+            if usesAssetGeometry {
+                neckBottom = midpoint(shoulderCenter, chestPoint, factor: 0.18)
+                neckTop = midpoint(neckBottom, headCenter, factor: 0.72)
+            } else {
+                neckBottom = SCNVector3(shoulderCenter.x, shoulderCenter.y + 0.050, shoulderCenter.z)
+                neckTop = SCNVector3(
+                    neckBottom.x,
+                    max(neckBottom.y + 0.035, headCenter.y - Self.assetNeckHeadAttachmentOffset),
+                    neckBottom.z + 0.01
+                )
+            }
+        }
+
+        updateCapsule(neck, from: neckBottom, to: neckTop, radius: 0.034, material: torsoMaterial)
+        updateSphere(head, at: headCenter)
+
+        if usesAssetGeometry {
+            updateOrientedBodyMass(chest, at: chestPoint, along: torsoAxis)
+            updateOrientedBodyMass(pelvis, at: hipCenter, along: torsoAxis)
+            hide(torso, abdomen, shoulderBridge, hipBridge)
+        } else {
+            let abdomenPoint = midpoint(shoulderCenter, hipCenter, factor: 0.66)
+            updateCapsule(torso, from: shoulderCenter, to: hipCenter, radius: 0.118, material: torsoMaterial)
+            updateSphere(chest, at: chestPoint)
+            updateSphere(abdomen, at: abdomenPoint)
+            updateSphere(pelvis, at: hipCenter)
+        }
 
         if let elbow = primary.elbow, let wrist = primary.wrist {
             updateCapsule(nearUpperArm, from: primary.shoulder, to: elbow, radius: 0.050, material: limbMaterial)
@@ -387,19 +456,23 @@ private final class NeutralMannequinRig {
             hide(nearUpperArm, nearForearm, nearHand, nearElbow)
         }
 
-        updateCapsule(nearUpperLeg, from: primary.hip, to: primary.knee, radius: 0.078, material: limbMaterial)
-        updateCapsule(nearLowerLeg, from: primary.knee, to: primary.ankle, radius: 0.064, material: limbMaterial)
-        updateJoint(nearKnee, at: primary.knee, radius: 0.064)
-        updateJoint(nearAnkle, at: primary.ankle, radius: 0.048)
+        updateCapsule(nearUpperLeg, from: visualPrimary.hip, to: visualPrimary.knee, radius: 0.078, material: limbMaterial)
+        updateCapsule(nearLowerLeg, from: visualPrimary.knee, to: visualPrimary.ankle, radius: 0.064, material: limbMaterial)
+        updateJoint(nearKnee, at: visualPrimary.knee, radius: 0.064)
+        updateJoint(nearAnkle, at: visualPrimary.ankle, radius: 0.048)
         if let heel = primary.heel, let toe = primary.footIndex {
             updateFoot(nearFoot, from: heel, to: toe, maxLength: 0.28, thickness: 0.075, depth: 0.14, material: accentMaterial)
         } else {
             nearFoot.isHidden = true
         }
 
-        if let secondary {
-            updateCapsule(shoulderBridge, from: secondary.shoulder, to: primary.shoulder, radius: 0.052, material: torsoMaterial)
-            updateCapsule(hipBridge, from: secondary.hip, to: primary.hip, radius: 0.060, material: torsoMaterial)
+        if let secondary, let visualSecondary {
+            if usesAssetGeometry {
+                hide(shoulderBridge, hipBridge)
+            } else {
+                updateCapsule(shoulderBridge, from: secondary.shoulder, to: primary.shoulder, radius: 0.052, material: torsoMaterial)
+                updateCapsule(hipBridge, from: secondary.hip, to: primary.hip, radius: 0.060, material: torsoMaterial)
+            }
             if let elbow = secondary.elbow, let wrist = secondary.wrist {
                 updateCapsule(farUpperArm, from: secondary.shoulder, to: elbow, radius: 0.040, material: farLimbMaterial)
                 updateCapsule(farForearm, from: elbow, to: wrist, radius: 0.036, material: farLimbMaterial)
@@ -409,10 +482,10 @@ private final class NeutralMannequinRig {
                 hide(farUpperArm, farForearm, farHand, farElbow)
             }
 
-            updateCapsule(farUpperLeg, from: secondary.hip, to: secondary.knee, radius: 0.054, material: farLimbMaterial)
-            updateCapsule(farLowerLeg, from: secondary.knee, to: secondary.ankle, radius: 0.046, material: farLimbMaterial)
-            updateJoint(farKnee, at: secondary.knee, radius: 0.050)
-            updateJoint(farAnkle, at: secondary.ankle, radius: 0.040)
+            updateCapsule(farUpperLeg, from: visualSecondary.hip, to: visualSecondary.knee, radius: 0.054, material: farLimbMaterial)
+            updateCapsule(farLowerLeg, from: visualSecondary.knee, to: visualSecondary.ankle, radius: 0.046, material: farLimbMaterial)
+            updateJoint(farKnee, at: visualSecondary.knee, radius: 0.050)
+            updateJoint(farAnkle, at: visualSecondary.ankle, radius: 0.040)
             if let heel = secondary.heel, let toe = secondary.footIndex {
                 updateFoot(farFoot, from: heel, to: toe, maxLength: 0.24, thickness: 0.060, depth: 0.11, material: farLimbMaterial)
             } else {
@@ -550,6 +623,13 @@ private final class NeutralMannequinRig {
         node.isHidden = false
     }
 
+    private func updateOrientedBodyMass(_ node: SCNNode, at position: SCNVector3, along axis: SCNVector3) {
+        updateSphere(node, at: position)
+        let vector = SIMD3<Float>(Float(axis.x), Float(axis.y), Float(axis.z))
+        guard simd_length(vector) > 0.0001 else { return }
+        node.simdOrientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: simd_normalize(vector))
+    }
+
     private func updateJoint(_ node: SCNNode, at position: SCNVector3, radius: Float) {
         node.position = position
         node.simdScale = SIMD3<Float>(radius, radius, radius)
@@ -561,6 +641,80 @@ private final class NeutralMannequinRig {
         let y = a.y + ((b.y - a.y) * factor)
         let z = a.z + ((b.z - a.z) * factor)
         return SCNVector3(x, y, z)
+    }
+
+    private func headAnchoredToTorso(_ rawHeadCenter: SCNVector3, chestCenter: SCNVector3) -> SCNVector3 {
+        SCNVector3(
+            rawHeadCenter.x,
+            chestCenter.y + Self.assetHeadHeightAboveChestCenter,
+            rawHeadCenter.z
+        )
+    }
+
+    private func retargetVisualLowerLeg(_ side: AvatarRig.Side, maxRatio: CGFloat) -> AvatarRig.Side {
+        let lowerLegLength = distance(side.knee, side.ankle)
+        let upperLegLength = distance(side.hip, side.knee)
+        guard upperLegLength > 0.0001,
+              lowerLegLength > 0.0001,
+              lowerLegLength / upperLegLength > maxRatio else {
+            return side
+        }
+
+        let direction = unitVector(from: side.ankle, to: side.knee)
+        var low: CGFloat = 0
+        var high = lowerLegLength
+        for _ in 0..<18 {
+            let candidateLength = (low + high) / 2
+            let candidateKnee = point(from: side.ankle, along: direction, distance: candidateLength)
+            let candidateUpperLegLength = distance(side.hip, candidateKnee)
+            guard candidateUpperLegLength > 0.0001 else {
+                high = candidateLength
+                continue
+            }
+
+            if candidateLength / candidateUpperLegLength > maxRatio {
+                high = candidateLength
+            } else {
+                low = candidateLength
+            }
+        }
+
+        let adjustedKnee = point(from: side.ankle, along: direction, distance: low)
+        return AvatarRig.Side(
+            shoulder: side.shoulder,
+            hip: side.hip,
+            knee: adjustedKnee,
+            ankle: side.ankle,
+            elbow: side.elbow,
+            wrist: side.wrist,
+            heel: side.heel,
+            footIndex: side.footIndex
+        )
+    }
+
+    private func distance(_ a: SCNVector3, _ b: SCNVector3) -> CGFloat {
+        let dx = a.x - b.x
+        let dy = a.y - b.y
+        let dz = a.z - b.z
+        return sqrt((dx * dx) + (dy * dy) + (dz * dz))
+    }
+
+    private func unitVector(from start: SCNVector3, to end: SCNVector3) -> SCNVector3 {
+        let length = distance(start, end)
+        guard length > 0.0001 else { return SCNVector3(0, 1, 0) }
+        return SCNVector3(
+            (end.x - start.x) / length,
+            (end.y - start.y) / length,
+            (end.z - start.z) / length
+        )
+    }
+
+    private func point(from start: SCNVector3, along direction: SCNVector3, distance: CGFloat) -> SCNVector3 {
+        SCNVector3(
+            start.x + (direction.x * distance),
+            start.y + (direction.y * distance),
+            start.z + (direction.z * distance)
+        )
     }
 
     private func hide(_ nodes: SCNNode...) {
@@ -580,6 +734,12 @@ private final class NeutralMannequinRig {
 
     private static let assetCapsuleRadius: Float = 0.18
     private static let assetCapsuleHeight: Float = 1.0
+    private static let primaryLowerLegMaxRatio: CGFloat = 0.90
+    private static let secondaryLowerLegMaxRatio: CGFloat = 0.84
+    private static let assetChestCenterFactor: CGFloat = 0.42
+    private static let assetNeckChestAttachmentOffset: CGFloat = 0.30
+    private static let assetNeckHeadAttachmentOffset: CGFloat = 0.155
+    private static let assetHeadHeightAboveChestCenter: CGFloat = 0.60
 }
 
 private struct AvatarHumanoidGLBAsset {
@@ -755,7 +915,7 @@ private enum AvatarRig {
     }
 }
 
-private enum MotionDemoBundleStore {
+enum MotionDemoBundleStore {
     static func timeline(for program: ExerciseProgram) -> MotionDemoTimeline? {
         guard let url = Bundle.module.url(
             forResource: program.id,
@@ -769,15 +929,48 @@ private enum MotionDemoBundleStore {
             let frames = try MediaPipePoseJSONLDecoder.decode(contentsOf: url)
             guard !frames.isEmpty else { return nil }
             let duration = (frames.last?.timestampMS ?? 0) + 100
+            let manifest = MotionDemoManifest.load(nextTo: url)
             return MotionDemoTimeline(
                 programID: program.id,
                 programName: program.name,
-                source: .trainerReferenceTrace(provenance: "Bundled reference trace: \(url.lastPathComponent)"),
+                source: manifest.source(for: url),
                 frames: frames,
                 durationMS: duration
             )
         } catch {
             return nil
+        }
+    }
+}
+
+private struct MotionDemoManifest: Decodable {
+    let sourceKind: MotionDemoSourceKind?
+    let sourceLabel: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case sourceKind = "source_kind"
+        case sourceLabel = "source_label"
+    }
+
+    static func load(nextTo traceURL: URL) -> MotionDemoManifest {
+        let manifestURL = traceURL
+            .deletingPathExtension()
+            .appendingPathExtension("manifest.json")
+        guard let data = try? Data(contentsOf: manifestURL),
+              let manifest = try? JSONDecoder().decode(MotionDemoManifest.self, from: data) else {
+            return MotionDemoManifest(sourceKind: .trainerReferenceTrace, sourceLabel: nil)
+        }
+        return manifest
+    }
+
+    func source(for traceURL: URL) -> MotionDemoSource {
+        let label = sourceLabel.map { "\($0): \(traceURL.lastPathComponent)" }
+            ?? traceURL.lastPathComponent
+        switch sourceKind {
+        case .canonicalArchetypeTrace:
+            return .canonicalArchetypeTrace(provenance: "Bundled canonical archetype trace: \(label)")
+        case .trainerReferenceTrace, .proceduralFallback, .none:
+            return .trainerReferenceTrace(provenance: "Bundled reference trace: \(label)")
         }
     }
 }

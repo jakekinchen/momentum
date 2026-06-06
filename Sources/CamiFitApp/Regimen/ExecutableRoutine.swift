@@ -234,6 +234,10 @@ public struct RoutineCompiler {
             return .holdSeconds(holdSeconds)
         }
 
+        if let hold = program.hold {
+            return .holdSeconds(program.set.targetSeconds ?? hold.targetSeconds)
+        }
+
         if let targetReps = program.set.targetReps {
             guard program.rep != nil else {
                 throw RoutineValidationError.incompatibleTarget(block: blockIndex, message: "program target reps require a rep-counting exercise")

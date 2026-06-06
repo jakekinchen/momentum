@@ -2,9 +2,10 @@
 set -euo pipefail
 
 MODE="${1:-run}"
-APP_NAME="CamiFitApp"
-DISPLAY_NAME="Future Coach"
-BUNDLE_ID="com.camifit.app"
+EXERCISE_ID="${2:-${CAMIFIT_CAPTURE_EXERCISE_ID:-bodyweight_pushup}}"
+APP_NAME="MotionReferenceRecorder"
+DISPLAY_NAME="Motion Reference Recorder"
+BUNDLE_ID="com.camifit.motion-reference-recorder"
 MIN_SYSTEM_VERSION="14.0"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -12,15 +13,17 @@ DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
-APP_RESOURCES="$APP_CONTENTS/Resources"
-APP_FRAMEWORKS="$APP_CONTENTS/Frameworks"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
-ICON_SOURCE="$ROOT_DIR/Sources/CamiFitApp/Resources/Brand/future.svg"
-ICON_GENERATOR="$ROOT_DIR/scripts/generate_future_app_icon.swift"
-ICON_FILE="$APP_RESOURCES/AppIcon.icns"
 
-for process_name in "$APP_NAME" "CamiFit" "$DISPLAY_NAME"; do
+case "$MODE" in
+  bodyweight_*)
+    EXERCISE_ID="$MODE"
+    MODE="run"
+    ;;
+esac
+
+for process_name in "$APP_NAME" "$DISPLAY_NAME"; do
   while IFS= read -r app_pid; do
     [[ -n "$app_pid" ]] || continue
     pkill -TERM -P "$app_pid" >/dev/null 2>&1 || true
@@ -34,31 +37,9 @@ BUILD_DIR="$(swift build --show-bin-path)"
 BUILD_BINARY="$BUILD_DIR/$APP_NAME"
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_MACOS" "$APP_RESOURCES" "$APP_FRAMEWORKS"
+mkdir -p "$APP_MACOS"
 cp "$BUILD_BINARY" "$APP_BINARY"
 chmod +x "$APP_BINARY"
-
-for resource_bundle in CamiFit_CamiFitApp.bundle CamiFit_KGKit.bundle; do
-  if [[ -d "$BUILD_DIR/$resource_bundle" ]]; then
-    cp -R "$BUILD_DIR/$resource_bundle" "$APP_RESOURCES/"
-  fi
-done
-
-for framework in "$BUILD_DIR"/*.framework; do
-  [[ -e "$framework" ]] || continue
-  cp -R "$framework" "$APP_FRAMEWORKS/"
-done
-
-for dylib in "$BUILD_DIR"/*.dylib; do
-  [[ -e "$dylib" ]] || continue
-  cp "$dylib" "$APP_FRAMEWORKS/"
-done
-
-if [[ -f "$ICON_SOURCE" && -f "$ICON_GENERATOR" ]]; then
-  xcrun swift "$ICON_GENERATOR" --brand "$ICON_SOURCE" --output "$ICON_FILE"
-fi
-
-install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BINARY" 2>/dev/null || true
 
 cat >"$INFO_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -73,16 +54,12 @@ cat >"$INFO_PLIST" <<PLIST
   <string>$DISPLAY_NAME</string>
   <key>CFBundleDisplayName</key>
   <string>$DISPLAY_NAME</string>
-  <key>CFBundleIconFile</key>
-  <string>AppIcon</string>
-  <key>CFBundleIconName</key>
-  <string>AppIcon</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSCameraUsageDescription</key>
-  <string>Future Coach uses the camera to track exercise form locally.</string>
+  <string>CamiFit records a short local trainer reference video for MediaPipe pose extraction.</string>
   <key>LSMinimumSystemVersion</key>
   <string>$MIN_SYSTEM_VERSION</string>
   <key>NSPrincipalClass</key>
@@ -126,53 +103,31 @@ sign_app_bundle() {
   fi
 }
 
-sign_app_bundle
-
 open_app() {
-  local open_env_args=()
-  for env_name in \
-    CAMIFIT_SYNTHETIC \
-    CAMIFIT_SYNTHETIC_EXERCISE \
-    CAMIFIT_SHOT_DIR \
-    CAMIFIT_REPO_ROOT \
-    CAMIFIT_PYTHON \
-    CAMIFIT_FRAME_DIR \
-    CAMIFIT_GUIDE_EXERCISE \
-    CAMIFIT_GUIDE_FRAME_MS
-  do
-    if env_value="$(printenv "$env_name")"; then
-      open_env_args+=(--env "$env_name=$env_value")
-    fi
-  done
-  if [[ ${#open_env_args[@]} -gt 0 ]]; then
-    /usr/bin/open -n "${open_env_args[@]}" "$APP_BUNDLE"
-  else
-    /usr/bin/open -n "$APP_BUNDLE"
-  fi
+  CAMIFIT_REPO_ROOT="$ROOT_DIR" \
+    CAMIFIT_CAPTURE_EXERCISE_ID="$EXERCISE_ID" \
+    /usr/bin/open -n \
+      --env "CAMIFIT_REPO_ROOT=$ROOT_DIR" \
+      --env "CAMIFIT_CAPTURE_EXERCISE_ID=$EXERCISE_ID" \
+      "$APP_BUNDLE"
 }
+
+sign_app_bundle
 
 case "$MODE" in
   run)
     open_app
-    ;;
-  --debug|debug)
-    lldb -- "$APP_BINARY"
-    ;;
-  --logs|logs)
-    open_app
-    /usr/bin/log stream --info --style compact --predicate "process == \"$APP_NAME\""
-    ;;
-  --telemetry|telemetry)
-    open_app
-    /usr/bin/log stream --info --style compact --predicate "subsystem == \"$BUNDLE_ID\""
     ;;
   --verify|verify)
     open_app
     sleep 3
     pgrep -x "$APP_NAME" >/dev/null
     ;;
+  --debug|debug)
+    CAMIFIT_REPO_ROOT="$ROOT_DIR" CAMIFIT_CAPTURE_EXERCISE_ID="$EXERCISE_ID" lldb -- "$APP_BINARY"
+    ;;
   *)
-    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify]" >&2
+    echo "usage: $0 [run|--verify|--debug|bodyweight_squat|bodyweight_pushup|bodyweight_lunge|bodyweight_plank] [exercise_id]" >&2
     exit 2
     ;;
 esac

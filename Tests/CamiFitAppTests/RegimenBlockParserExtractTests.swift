@@ -33,4 +33,26 @@ final class RegimenBlockParserExtractTests: XCTestCase {
         let blocks = RegimenBlockParser.extractBlocks(from: text)
         XCTAssertEqual(blocks.map(\.kind), [.routine])
     }
+
+    func testDisplayTextRemovesRoutineAndExerciseBlocks() {
+        let text = """
+        Here is a plan.
+        ```future-routine
+        {"id":"r1"}
+        ```
+        And a move:
+        ```future-exercise
+        {"id":"e1"}
+        ```
+        Use controlled reps.
+        """
+
+        let visible = RegimenBlockParser.displayText(removingBlocks: text)
+
+        XCTAssertTrue(visible.contains("Here is a plan."))
+        XCTAssertTrue(visible.contains("Use controlled reps."))
+        XCTAssertFalse(visible.contains("future-routine"))
+        XCTAssertFalse(visible.contains("future-exercise"))
+        XCTAssertFalse(visible.contains("\"id\""))
+    }
 }

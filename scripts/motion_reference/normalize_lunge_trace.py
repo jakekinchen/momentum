@@ -237,6 +237,11 @@ def point_lerp(top: tuple[float, float, float], bottom: tuple[float, float, floa
     )
 
 
+def smoothstep(factor: float) -> float:
+    factor = max(0.0, min(1.0, factor))
+    return factor * factor * (3 - (2 * factor))
+
+
 def add_foot_landmarks(
     landmarks: dict[str, dict[str, float]],
     prefix: str,
@@ -269,7 +274,7 @@ def canonical_lunge_landmarks(factor: float) -> dict[str, dict[str, float]]:
         "elbow": point_lerp((0.55, 0.37, 0.03), (0.56, 0.50, 0.03), factor),
         "wrist": point_lerp((0.58, 0.50, 0.08), (0.58, 0.58, 0.08), factor),
         "hip": point_lerp((0.53, 0.45, 0.0), (0.53, 0.64, 0.0), factor),
-        "knee": point_lerp((0.63, 0.66, 0.02), (0.76, 0.66, 0.02), factor),
+        "knee": point_lerp((0.65, 0.645, 0.02), (0.76, 0.66, 0.02), factor),
         "ankle": landmark(0.77, 0.84, 0.05),
     }
     rear_ankle = point_lerp((0.35, 0.84, -0.18), (0.36, 0.815, -0.18), factor)
@@ -300,14 +305,36 @@ def canonical_lunge_landmarks(factor: float) -> dict[str, dict[str, float]]:
     return landmarks
 
 
-def canonical_lunge_retarget(frames: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def lunge_angle_phase_factors(frames: list[dict[str, Any]]) -> list[float]:
     angles = [primary_knee_angle(frame) for frame in frames]
     top = max(angles)
     bottom = min(angles)
     span = max(top - bottom, 1e-6)
+    return [max(0.0, min(1.0, (top - angle) / span)) for angle in angles]
+
+
+def mirrored_smoothstep_phase_factors(frames: list[dict[str, Any]]) -> list[float]:
+    if len(frames) <= 1:
+        return [0.0 for _ in frames]
+
+    bottom_index = (len(frames) - 1) // 2
+    if bottom_index <= 0:
+        return lunge_angle_phase_factors(frames)
+
+    factors: list[float] = []
+    for index in range(len(frames)):
+        if index <= bottom_index:
+            progress = index / bottom_index
+        else:
+            progress = (len(frames) - 1 - index) / bottom_index
+        factors.append(smoothstep(progress))
+    return factors
+
+
+def canonical_lunge_retarget(frames: list[dict[str, Any]], mirrored_cycle: bool = False) -> list[dict[str, Any]]:
+    factors = mirrored_smoothstep_phase_factors(frames) if mirrored_cycle else lunge_angle_phase_factors(frames)
     retargeted: list[dict[str, Any]] = []
-    for frame, angle in zip(frames, angles):
-        factor = max(0.0, min(1.0, (top - angle) / span))
+    for frame, factor in zip(frames, factors):
         next_frame = copy.deepcopy(frame)
         next_frame["phase"] = "canonical_lunge_retarget"
         next_frame["landmarks"] = canonical_lunge_landmarks(factor)
@@ -319,7 +346,7 @@ def apply_retarget_mode(args: argparse.Namespace, frames: list[dict[str, Any]]) 
     if args.retarget == "raw":
         return frames
     if args.retarget == "canonical-lunge":
-        return canonical_lunge_retarget(frames)
+        return canonical_lunge_retarget(frames, mirrored_cycle=args.cycle_mode == "descent-mirror")
     raise SystemExit(f"unsupported retarget mode: {args.retarget}")
 
 
@@ -479,7 +506,9 @@ def main() -> int:
     frames = apply_cycle_mode(args, frames)
     frames = apply_retarget_mode(args, frames)
     anchors = contact_anchors(args)
-    smooth_frames(frames, args.smooth_alpha, exclude=anchors)
+    uses_clean_canonical_cycle = args.retarget == "canonical-lunge" and args.cycle_mode == "descent-mirror"
+    if not uses_clean_canonical_cycle:
+        smooth_frames(frames, args.smooth_alpha, exclude=anchors)
     solved_contacts = anchor_contacts(frames, sorted(anchors), args.min_confidence)
     write_outputs(args, frames, solved_contacts)
     summary = lunge_summary(frames)

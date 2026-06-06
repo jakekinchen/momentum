@@ -4,6 +4,36 @@ This folder is the capture-to-viewer path for exercise demo motion. It starts
 with `bodyweight_lunge` because the lunge is the first motion where procedural
 keyframes were visibly wrong.
 
+## Scalable Coverage
+
+Every packaged exercise should have a motion profile in
+`exercise_motion_profiles.json` before we ship a guide trace for it. The profile
+declares the exercise archetype, capture instructions, contact landmarks, phase
+driver, required output landmarks, and QA gates.
+
+Check the current coverage with:
+
+```bash
+scripts/motion_reference/audit_motion_coverage.py --strict
+```
+
+`--strict` fails for invalid bundled traces while allowing profiles that are
+explicitly marked as `needs_reference_capture`. Use `--require-all-demos` when
+the product milestone requires every preset to have a bundled trainer-reference
+trace.
+
+For exercises without first-party clips yet, compile a deterministic archetype
+trace:
+
+```bash
+scripts/motion_reference/compile_archetype_trace.py \
+  --exercise-id bodyweight_plank
+```
+
+These traces are pipeline artifacts, not final trainer-reference data. Their
+manifests stay marked as `canonical_archetype_trace` so they can be replaced by
+captured trainer clips without changing the app viewer.
+
 ## Contract
 
 The app can render two motion sources:
@@ -43,6 +73,15 @@ For the current app preset, pick the visually front leg as `primary` and the rea
 support leg as `secondary`.
 
 ## Commands
+
+Open the local webcam recorder for a first-party capture:
+
+```bash
+script/run_motion_reference_recorder.sh bodyweight_squat
+```
+
+The recorder saves each clip under
+`dist/motion-reference/<exercise_id>/user_capture_<timestamp>/`.
 
 Extract raw MediaPipe records:
 
@@ -84,8 +123,8 @@ scripts/motion_reference/normalize_lunge_trace.py \
   --front-side right \
   --contact-policy lunge \
   --cycle-mode descent-mirror \
-  --cycle-start-index 30 \
-  --cycle-bottom-index 83 \
+  --cycle-start-index 40 \
+  --cycle-bottom-index 84 \
   --retarget canonical-lunge
 ```
 
@@ -99,6 +138,11 @@ keeps the reference-derived timing while mapping the avatar onto a stationary
 side-view lunge rig with stable foot contact and explicit `secondary.*`
 support-leg landmarks.
 
+For `bodyweight_lunge`, the mirrored canonical retarget uses a smooth mirrored
+phase inside the selected cycle. The raw MediaPipe knee angle is too noisy near
+the top of the rep to drive display landmarks directly; using it there creates a
+visible top-position double take.
+
 Inspect it in the app before bundling:
 
 ```bash
@@ -110,6 +154,73 @@ CAMIFIT_GUIDE_EXERCISE=bodyweight_lunge ./script/build_and_run.sh --verify
 
 Remove or replace the bundled JSONL if visual review fails. Once accepted, the
 app will prefer this trace over `MotionDemoCompiler` for Bodyweight Lunge.
+
+## Bodyweight Squat Capture
+
+For a side-view squat capture, extract raw MediaPipe records from the saved
+webcam movie, let the squat normalizer detect the clean bottom/top, and render
+the review:
+
+```bash
+scripts/motion_reference/export_mediapipe_reference_trace.py \
+  --video dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/bodyweight_squat_reference.mov \
+  --exercise-id bodyweight_squat \
+  --output-dir dist/motion-reference/bodyweight_squat/user_capture_20260606-013521 \
+  --fps 15
+
+scripts/motion_reference/normalize_squat_trace.py \
+  --raw dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/raw_mediapipe.jsonl \
+  --video dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/bodyweight_squat_reference.mov \
+  --output dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/bodyweight_squat.normalized.jsonl \
+  --exercise-id bodyweight_squat
+
+scripts/motion_reference/render_mediapipe_trace_review.py \
+  --raw dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/bodyweight_squat.normalized.jsonl \
+  --video dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/bodyweight_squat_reference.mov \
+  --output-dir dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/normalized_review
+```
+
+The squat normalizer uses the high-confidence camera-side landmarks to detect a
+clean bottom/top window, repairs short MediaPipe knee/ankle teleports for phase
+estimation, and mirrors the captured ascent into a top-bottom-top loop. By
+default it retargets that phase onto a canonical side-view squat rig with
+planted feet and realistic segment lengths. Use `--retarget raw` only for
+debugging the capture; raw MediaPipe coordinates are not suitable as the final
+avatar display body.
+
+## Bodyweight Push-up Capture
+
+For a side-view push-up capture, extract raw MediaPipe records from the saved
+webcam movie, normalize the clean top-bottom-top cycle, and render the review:
+
+```bash
+scripts/motion_reference/export_mediapipe_reference_trace.py \
+  --video dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup_reference.mov \
+  --exercise-id bodyweight_pushup \
+  --output-dir dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504 \
+  --fps 15
+
+scripts/motion_reference/normalize_pushup_trace.py \
+  --raw dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/raw_mediapipe.jsonl \
+  --video dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup_reference.mov \
+  --output dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup.normalized.jsonl \
+  --exercise-id bodyweight_pushup \
+  --cycle-start-index 54 \
+  --cycle-end-index 104 \
+  --close-loop \
+  --mirror-x
+
+scripts/motion_reference/render_mediapipe_trace_review.py \
+  --raw dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup.normalized.jsonl \
+  --video dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup_reference.mov \
+  --output-dir dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/normalized_review
+```
+
+The push-up normalizer uses the high-confidence camera-side landmarks as
+`primary.*`, pins the planted wrist/heel/toe contacts, smooths the captured
+cycle, mirrors the guide to face right, and synthesizes a stable depth-offset
+`secondary.*` side for the viewer. Do not use the raw far-side MediaPipe joints
+for the guide when they are visibly occluded in a side-view clip.
 
 ## Acceptance Checks
 

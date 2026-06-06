@@ -117,7 +117,7 @@ def build_asset() -> None:
 
     torso = make_material("warm porcelain body", (0.86, 0.93, 0.92, 1.0))
     limb = make_material("soft training suit", (0.93, 0.98, 0.96, 1.0))
-    far_limb = make_material("recessed far side", (0.64, 0.78, 0.76, 0.62))
+    far_limb = make_material("recessed far side", (0.62, 0.74, 0.73, 1.0))
     accent = make_material("aqua guide accent", (0.78, 0.96, 0.93, 1.0))
 
     sphere_nodes = {

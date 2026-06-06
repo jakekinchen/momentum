@@ -25,6 +25,7 @@ final class CodexAppServerClient: ObservableObject {
     @Published private(set) var accountDetail = "Checking sign-in…"
 
     private var pendingLoginId: String?
+    private var shouldStartLoginAfterInitialize = false
 
     private var process: Process?
     private var stdin: FileHandle?
@@ -33,6 +34,7 @@ final class CodexAppServerClient: ObservableObject {
     private var readBuffer = Data()
     private var nextID = 1
     private var threadID: String?
+    private var threadGeneration = 0
     private var responseHandlers: [Int: ([String: Any]) -> Void] = [:]
 
     private struct ActiveTurn {
@@ -46,6 +48,8 @@ final class CodexAppServerClient: ObservableObject {
     private var queuedText: String?
     private let applicationSupportDirectory: URL
     private let fileManager: FileManager
+    private let codexURLResolver: () -> URL?
+    private let openURL: (URL) -> Bool
 
     private static let turnWatchdogSeconds: TimeInterval = 300
     static let coachTurnEffort = "low"
@@ -58,8 +62,12 @@ final class CodexAppServerClient: ObservableObject {
     static let exerciseAuthoringEnabled = false
 
     init(applicationSupportDirectory: URL? = nil,
-         fileManager: FileManager = .default) {
+         fileManager: FileManager = .default,
+         codexURLResolver: @escaping () -> URL? = { CodexAppServerClient.resolveCodexURL() },
+         openURL: @escaping (URL) -> Bool = { CodexAppServerClient.openURLInWorkspace($0) }) {
         self.fileManager = fileManager
+        self.codexURLResolver = codexURLResolver
+        self.openURL = openURL
         self.applicationSupportDirectory = applicationSupportDirectory
             ?? Self.defaultApplicationSupportDirectory(fileManager: fileManager)
     }
@@ -175,8 +183,9 @@ final class CodexAppServerClient: ObservableObject {
     private var baseInstructions: String {
         let persona = """
         You are Future Coach's friendly fitness coach. Answer questions about exercise form, reps, \
-        holds, and general workout guidance in clear, encouraging text. Never run shell commands, \
-        edit files, or use tools — only reply with text (the text may contain code blocks).
+        holds, and general workout guidance in clear, encouraging text. Never run shell commands or \
+        edit files. You may only ask the app to act through the structured future-coach-action \
+        block described below; the app validates every action locally before doing anything.
 
         If the user states a current health or safety limitation in first-person terms, such as \
         knee pain, shoulder pain, a back issue, or an injury, include a short normal reply and \
@@ -188,6 +197,19 @@ final class CodexAppServerClient: ObservableObject {
 
         If the app provides Future Coach local KG fact cards in the user message, treat them as active \
         health/safety constraints for that reply.
+        """
+        let actionInstructions = """
+        When the user asks to see how to do a supported exercise, check their form on a supported \
+        exercise, or start practicing a supported exercise, reply with one short sentence and then end \
+        the message with exactly one fenced code block tagged future-coach-action.
+
+        Use this JSON shape:
+        {"schemaVersion":1,"tool":"activate_exercise","exerciseID":"bodyweight_squat","mode":"guide","reason":"User asked to see squat form"}.
+
+        Supported exercise IDs are bodyweight_squat, bodyweight_lunge, bodyweight_pushup, and \
+        bodyweight_plank. Use mode "guide" for requests like "show me how", mode "camera" for \
+        requests like "let me practice", and mode "match_form" for requests like "check my form". \
+        Write your prose as if the app action card appears immediately below it.
         """
         let routineInstructions = """
         When the user asks you to create a workout, plan, or routine, reply with a short \
@@ -204,13 +226,13 @@ final class CodexAppServerClient: ObservableObject {
         timestamps, or UUIDs. The app will avoid save collisions.
         """
         guard Self.exerciseAuthoringEnabled else {
-            return persona + "\n\n" + routineInstructions + "\n\n" + """
+            return persona + "\n\n" + actionInstructions + "\n\n" + routineInstructions + "\n\n" + """
             Do not author brand-new future-exercise artifacts or inline ExerciseProgram JSON. If a \
             requested routine needs an unsupported movement, explain the limitation in prose and build \
             the runnable future-routine card from supported preset exercise IDs only.
             """
         }
-        return persona + "\n\n" + routineInstructions + "\n\n" + """
+        return persona + "\n\n" + actionInstructions + "\n\n" + routineInstructions + "\n\n" + """
         When the user asks you to create a brand-new exercise, include a single fenced code block tagged \
         future-exercise containing a full \
           ExerciseProgram JSON. Keep schemaVersion 1; signals are angle(...) expressions over \
@@ -239,12 +261,28 @@ final class CodexAppServerClient: ObservableObject {
         return nil
     }
 
+    private static func openURLInWorkspace(_ url: URL) -> Bool {
+        if NSWorkspace.shared.open(url) {
+            return true
+        }
+
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        proc.arguments = [url.absoluteString]
+        do {
+            try proc.run()
+            return true
+        } catch {
+            return false
+        }
+    }
+
     // MARK: - Lifecycle
 
     func start() {
         guard process == nil else { return }
-        guard let codexURL = Self.resolveCodexURL() else {
-            state = .failed("Codex CLI not found. Install it or bundle it with the app.")
+        guard let codexURL = codexURLResolver() else {
+            failStartup("Codex CLI not found. Install it or bundle it with the app.")
             return
         }
         state = .starting
@@ -277,7 +315,7 @@ final class CodexAppServerClient: ObservableObject {
         do {
             try proc.run()
         } catch {
-            state = .failed("Could not launch Codex: \(error.localizedDescription)")
+            failStartup("Could not launch Codex: \(error.localizedDescription)")
             return
         }
         process = proc
@@ -285,10 +323,23 @@ final class CodexAppServerClient: ObservableObject {
         sendRequest(method: "initialize",
                     params: ["clientInfo": ["name": "Future Coach", "version": "0.1.0"],
                              "capabilities": ["experimentalApi": true]]) { [weak self] _ in
-            self?.sendNotification("initialized", params: nil)
-            self?.startThread()
-            self?.refreshAccount()
+            guard let self else { return }
+            self.sendNotification("initialized", params: nil)
+            self.startThread()
+            if self.shouldStartLoginAfterInitialize {
+                self.beginLoginRequest()
+            } else {
+                self.refreshAccount()
+            }
         }
+    }
+
+    private func failStartup(_ message: String) {
+        state = .failed(message)
+        shouldStartLoginAfterInitialize = false
+        account = .signedOut
+        accountEmail = nil
+        accountDetail = message
     }
 
     func stop() {
@@ -301,13 +352,33 @@ final class CodexAppServerClient: ObservableObject {
         stdout = nil
         stderr = nil
         threadID = nil
+        threadGeneration += 1
         activeTurn = nil
         responseHandlers.removeAll()
+        shouldStartLoginAfterInitialize = false
         account = .unknown
         state = .idle
     }
 
+    func resetChatSession() {
+        turnToken += 1
+        activeTurn = nil
+        queuedText = nil
+        threadID = nil
+
+        guard process != nil else {
+            if case .failed = state {} else { state = .idle }
+            return
+        }
+        guard state != .starting else { return }
+
+        threadGeneration += 1
+        state = .starting
+        startThread()
+    }
+
     private func startThread() {
+        let generation = threadGeneration
         let coachWorkspace: URL
         do {
             coachWorkspace = try prepareCoachThreadWorkspace()
@@ -326,6 +397,7 @@ final class CodexAppServerClient: ObservableObject {
                              "baseInstructions": baseInstructions,
                              "cwd": coachWorkspace.path]) { [weak self] result in
             guard let self else { return }
+            guard generation == self.threadGeneration else { return }
             if let thread = result["thread"] as? [String: Any], let id = thread["id"] as? String {
                 self.threadID = id
                 self.state = .ready
@@ -369,6 +441,7 @@ final class CodexAppServerClient: ObservableObject {
         stdout = nil
         stderr = nil
         threadID = nil
+        shouldStartLoginAfterInitialize = false
         if case .failed = state {} else { state = .idle }
         if let turn = activeTurn {
             activeTurn = nil
@@ -517,7 +590,18 @@ final class CodexAppServerClient: ObservableObject {
 
     /// Reads the connected account so the UI can show signed-in state (no CLI needed).
     func refreshAccount() {
-        guard process != nil else { return }
+        guard process != nil else {
+            account = .unknown
+            accountDetail = "Starting Codex…"
+            start()
+            return
+        }
+        guard state != .starting else {
+            if account != .pending {
+                accountDetail = "Checking sign-in…"
+            }
+            return
+        }
         sendRequest(method: "account/read", params: ["refreshToken": false]) { [weak self] result in
             guard let self else { return }
             if let acct = result["account"] as? [String: Any],
@@ -539,15 +623,36 @@ final class CodexAppServerClient: ObservableObject {
     /// instance receives the credentials directly. (A separate `codex login` process would
     /// leave this server with stale auth — the cause of the 401.)
     func startLogin() {
-        guard process != nil else { start(); return }
+        if process == nil {
+            shouldStartLoginAfterInitialize = true
+            account = .pending
+            accountDetail = "Starting Codex sign-in…"
+            start()
+            return
+        }
+        if state == .starting {
+            shouldStartLoginAfterInitialize = true
+            account = .pending
+            accountDetail = "Waiting for Codex to finish starting…"
+            return
+        }
+        beginLoginRequest()
+    }
+
+    private func beginLoginRequest() {
+        shouldStartLoginAfterInitialize = false
         account = .pending
         accountDetail = "Opening browser to sign in…"
         sendRequest(method: "account/login/start", params: ["type": "chatgpt"]) { [weak self] result in
             guard let self else { return }
             self.pendingLoginId = result["loginId"] as? String
             if let urlString = result["authUrl"] as? String, let url = URL(string: urlString) {
-                NSWorkspace.shared.open(url)
-                self.accountDetail = "Finish signing in in your browser…"
+                if self.openURL(url) {
+                    self.accountDetail = "Finish signing in in your browser…"
+                } else {
+                    self.account = .signedOut
+                    self.accountDetail = "Could not open sign-in URL."
+                }
             } else {
                 self.account = .signedOut
                 self.accountDetail = "Could not start sign-in."
@@ -556,6 +661,7 @@ final class CodexAppServerClient: ObservableObject {
     }
 
     func cancelLogin() {
+        shouldStartLoginAfterInitialize = false
         if let loginId = pendingLoginId {
             sendRequest(method: "account/login/cancel", params: ["loginId": loginId])
         }

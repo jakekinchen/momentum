@@ -1,0 +1,17 @@
+{
+  "exercise_id": "bodyweight_squat",
+  "source_kind": "trainer_reference_trace",
+  "source_label": "first-party webcam squat capture user_capture_20260606-013521; primary_side=right",
+  "source_video": "dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/bodyweight_squat_reference.mov",
+  "raw_trace": "dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/raw_mediapipe.jsonl",
+  "normalizer": "scripts/motion_reference/normalize_squat_trace.py",
+  "retarget": "canonical-squat",
+  "cycle_mode": "captured_ascent_mirrored_to_top_bottom_top",
+  "cycle_bottom_index": 21,
+  "cycle_top_index": 45,
+  "contact_policy": "pin_primary_and_synthetic_secondary_ankle_heel_toe",
+  "secondary_policy": "canonical_depth_offset",
+  "smooth_window": 5,
+  "phase_window": 5,
+  "frame_count": 50
+}

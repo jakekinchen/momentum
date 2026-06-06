@@ -76,7 +76,7 @@ final class MediaPipePoseProviderTests: XCTestCase {
     func testNoPoseJSONLFramesPreserveTimelineAndProduceInvalidTraceEvidence() throws {
         let frames = try MediaPipePoseProvider(jsonlURL: Self.mixedNoPoseFixtureURL).frames()
         let noPoseFrame = try XCTUnwrap(frames.first { $0.timestampMS == 2_100 })
-        var recorder = try EngineTraceRecorder(program: ProgramLoader.load(from: Self.presetURL))
+        var recorder = try EngineTraceRecorder(program: ProgramLoader.load(from: Self.squatPresetURL))
 
         let trace = recorder.record(frames: frames)
         let formatted = EngineTraceFormatter.format(trace)
@@ -112,7 +112,7 @@ final class MediaPipePoseProviderTests: XCTestCase {
 
     func testDecodedFramesReachEngineTraceRecorderAndFormatter() throws {
         let frames = try MediaPipePoseProvider(jsonlURL: Self.fixtureURL).frames()
-        var recorder = try EngineTraceRecorder(program: ProgramLoader.load(from: Self.presetURL))
+        var recorder = try EngineTraceRecorder(program: ProgramLoader.load(from: Self.squatPresetURL))
 
         let trace = recorder.record(frames: frames)
         let formatted = EngineTraceFormatter.format(trace)
@@ -128,11 +128,12 @@ final class MediaPipePoseProviderTests: XCTestCase {
     func testBundledBodyweightLungeMotionDemoTraceDecodesAndCountsOneRep() throws {
         let frames = try MediaPipePoseProvider(jsonlURL: Self.bodyweightLungeMotionDemoURL).frames()
         let first = try XCTUnwrap(frames.first)
-        let deepest = try XCTUnwrap(frames.min { lhs, rhs in
-            Self.kneeAngle(in: lhs) < Self.kneeAngle(in: rhs)
-        })
+        let last = try XCTUnwrap(frames.last)
+        let kneeAngles = frames.map(Self.kneeAngle(in:))
+        let deepestIndex = try XCTUnwrap(kneeAngles.indices.min { kneeAngles[$0] < kneeAngles[$1] })
+        let deepest = frames[deepestIndex]
 
-        XCTAssertEqual(frames.count, 107)
+        XCTAssertEqual(frames.count, 89)
         XCTAssertEqual(first.timestampMS, 0)
         XCTAssertTrue(zip(frames, frames.dropFirst()).allSatisfy { $1.timestampMS > $0.timestampMS })
         for name in [
@@ -150,6 +151,16 @@ final class MediaPipePoseProviderTests: XCTestCase {
         }
         XCTAssertLessThan(Self.kneeAngle(in: deepest), 105)
         XCTAssertGreaterThan(Self.kneeAngle(in: first), 160)
+        XCTAssertTrue(
+            zip(kneeAngles[0...deepestIndex], kneeAngles[1...deepestIndex]).allSatisfy { next, current in
+                current <= next + 0.000_001
+            }
+        )
+        XCTAssertTrue(
+            zip(kneeAngles[deepestIndex..<kneeAngles.endIndex], kneeAngles[(deepestIndex + 1)..<kneeAngles.endIndex]).allSatisfy { current, next in
+                next >= current - 0.000_001
+            }
+        )
 
         let contactLandmarks = [
             "primary.heel",
@@ -167,6 +178,23 @@ final class MediaPipePoseProviderTests: XCTestCase {
                 XCTAssertEqual(current.y, anchor.y, accuracy: 0.000_001, "\(name) y drifted at \(frame.timestampMS)ms")
             }
         }
+        for name in [
+            "nose",
+            "primary.shoulder",
+            "primary.hip",
+            "primary.knee",
+            "primary.ankle",
+            "secondary.shoulder",
+            "secondary.hip",
+            "secondary.knee",
+            "secondary.ankle"
+        ] {
+            let start = try XCTUnwrap(first.landmark(named: name), name)
+            let end = try XCTUnwrap(last.landmark(named: name), name)
+            XCTAssertEqual(start.x, end.x, accuracy: 0.000_001, "\(name) x loop boundary drifted")
+            XCTAssertEqual(start.y, end.y, accuracy: 0.000_001, "\(name) y loop boundary drifted")
+            XCTAssertEqual(start.z, end.z, accuracy: 0.000_001, "\(name) z loop boundary drifted")
+        }
 
         var recorder = try EngineTraceRecorder(program: ProgramLoader.load(from: Self.lungePresetURL))
         let trace = recorder.record(frames: frames)
@@ -180,6 +208,90 @@ final class MediaPipePoseProviderTests: XCTestCase {
             "knee=\(Self.kneeAngle(in: deepest))..\(Self.kneeAngle(in: first)) " +
             "final_reps=\(trace.last?.rep.repCount ?? 0) counted=\(counted)"
         )
+    }
+
+    func testBundledCanonicalMotionDemoTracesDecodeAndReplayThroughEngine() throws {
+        enum Mode {
+            case rep
+            case hold
+        }
+        struct Case {
+            let exerciseID: String
+            let mode: Mode
+            let contactLandmarks: [String]
+            let requiredLandmarks: [String]
+        }
+
+        let cases = [
+            Case(
+                exerciseID: "bodyweight_squat",
+                mode: .rep,
+                contactLandmarks: ["primary.heel", "primary.foot.index", "secondary.heel", "secondary.foot.index"],
+                requiredLandmarks: ["primary.shoulder", "primary.hip", "primary.knee", "primary.ankle"]
+            ),
+            Case(
+                exerciseID: "bodyweight_pushup",
+                mode: .rep,
+                contactLandmarks: ["primary.wrist", "secondary.wrist", "primary.foot.index", "secondary.foot.index"],
+                requiredLandmarks: ["primary.shoulder", "primary.elbow", "primary.wrist", "primary.hip", "primary.ankle"]
+            ),
+            Case(
+                exerciseID: "bodyweight_plank",
+                mode: .hold,
+                contactLandmarks: ["primary.elbow", "secondary.elbow", "primary.foot.index", "secondary.foot.index"],
+                requiredLandmarks: ["primary.shoulder", "primary.hip", "primary.ankle"]
+            )
+        ]
+
+        for testCase in cases {
+            let frames = try MediaPipePoseProvider(jsonlURL: Self.motionDemoURL(testCase.exerciseID)).frames()
+            let first = try XCTUnwrap(frames.first, testCase.exerciseID)
+            let last = try XCTUnwrap(frames.last, testCase.exerciseID)
+
+            XCTAssertGreaterThan(frames.count, 2, testCase.exerciseID)
+            XCTAssertEqual(first.timestampMS, 0, testCase.exerciseID)
+            XCTAssertTrue(zip(frames, frames.dropFirst()).allSatisfy { $1.timestampMS > $0.timestampMS }, testCase.exerciseID)
+
+            for name in testCase.requiredLandmarks {
+                XCTAssertNotNil(first.landmark(named: name), "\(testCase.exerciseID) missing \(name)")
+                let start = try XCTUnwrap(first.landmark(named: name), "\(testCase.exerciseID) \(name)")
+                let end = try XCTUnwrap(last.landmark(named: name), "\(testCase.exerciseID) \(name)")
+                XCTAssertEqual(start.x, end.x, accuracy: 0.000_001, "\(testCase.exerciseID) \(name) x loop boundary drifted")
+                XCTAssertEqual(start.y, end.y, accuracy: 0.000_001, "\(testCase.exerciseID) \(name) y loop boundary drifted")
+                XCTAssertEqual(start.z, end.z, accuracy: 0.000_001, "\(testCase.exerciseID) \(name) z loop boundary drifted")
+            }
+
+            let anchors = try Dictionary(uniqueKeysWithValues: testCase.contactLandmarks.map { name in
+                (name, try XCTUnwrap(first.landmark(named: name), "\(testCase.exerciseID) \(name)"))
+            })
+            for frame in frames {
+                for name in testCase.contactLandmarks {
+                    let current = try XCTUnwrap(frame.landmark(named: name), "\(testCase.exerciseID) \(name)")
+                    let anchor = try XCTUnwrap(anchors[name], "\(testCase.exerciseID) \(name)")
+                    XCTAssertEqual(current.x, anchor.x, accuracy: 0.000_001, "\(testCase.exerciseID) \(name) x drifted at \(frame.timestampMS)ms")
+                    XCTAssertEqual(current.y, anchor.y, accuracy: 0.000_001, "\(testCase.exerciseID) \(name) y drifted at \(frame.timestampMS)ms")
+                }
+            }
+
+            var recorder = try EngineTraceRecorder(program: ProgramLoader.load(from: Self.presetURL(testCase.exerciseID)))
+            let trace = recorder.record(frames: frames)
+
+            switch testCase.mode {
+            case .rep:
+                let counted = trace.filter { $0.rep.countedThisFrame }.map(\.timestampMS)
+                XCTAssertEqual(trace.last?.rep.repCount, 1, testCase.exerciseID)
+                XCTAssertEqual(counted.count, 1, testCase.exerciseID)
+                print("motion-demo-resource-\(testCase.exerciseID) frames=\(frames.count) final_reps=\(trace.last?.rep.repCount ?? 0) counted=\(counted)")
+            case .hold:
+                let targetReached = trace.compactMap { $0.hold?.targetReached == true ? $0.timestampMS : nil }
+                XCTAssertGreaterThanOrEqual(targetReached.first ?? -1, 1_000, testCase.exerciseID)
+                XCTAssertLessThanOrEqual(targetReached.first ?? Int64.max, 1_100, testCase.exerciseID)
+                XCTAssertEqual(targetReached.last, frames.last?.timestampMS, testCase.exerciseID)
+                XCTAssertGreaterThanOrEqual(trace.last?.hold?.heldSeconds ?? 0, 1.0, testCase.exerciseID)
+                XCTAssertTrue(trace.allSatisfy { $0.hold?.inRange == true }, testCase.exerciseID)
+                print("motion-demo-resource-\(testCase.exerciseID) frames=\(frames.count) target_reached=\(targetReached)")
+            }
+        }
     }
 
     private static var packageRoot: URL {
@@ -197,8 +309,12 @@ final class MediaPipePoseProviderTests: XCTestCase {
         packageRoot.appendingPathComponent("Tests/CamiFitEngineTests/Fixtures/mediapipe_pose_worker_mixed_no_pose.jsonl")
     }
 
-    private static var presetURL: URL {
+    private static var squatPresetURL: URL {
         packageRoot.appendingPathComponent("Presets/bodyweight_squat.json")
+    }
+
+    private static func presetURL(_ exerciseID: String) -> URL {
+        packageRoot.appendingPathComponent("Presets/\(exerciseID).json")
     }
 
     private static var lungePresetURL: URL {
@@ -207,6 +323,10 @@ final class MediaPipePoseProviderTests: XCTestCase {
 
     private static var bodyweightLungeMotionDemoURL: URL {
         packageRoot.appendingPathComponent("Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl")
+    }
+
+    private static func motionDemoURL(_ exerciseID: String) -> URL {
+        packageRoot.appendingPathComponent("Sources/CamiFitApp/Resources/MotionDemos/\(exerciseID).jsonl")
     }
 
     private static func kneeAngle(in frame: PoseFrame) -> Double {

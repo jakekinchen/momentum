@@ -38,3 +38,76 @@ The Swift engine builds with SwiftPM:
 swift build
 swift test
 ```
+
+## Build And Run The Mac App
+
+Use the project run script for the actual macOS app bundle. It builds the
+SwiftPM executable, stages `dist/CamiFitApp.app`, signs it, and opens it as
+**Future Coach**:
+
+```bash
+./script/build_and_run.sh --verify
+```
+
+To open the avatar guide on a specific exercise:
+
+```bash
+CAMIFIT_GUIDE_EXERCISE=bodyweight_squat ./script/build_and_run.sh --verify
+```
+
+Useful guide IDs right now:
+
+```text
+bodyweight_squat
+bodyweight_lunge
+bodyweight_pushup
+bodyweight_plank
+```
+
+For visual debugging, pin the guide to a specific timeline position:
+
+```bash
+CAMIFIT_GUIDE_EXERCISE=bodyweight_squat \
+CAMIFIT_GUIDE_FRAME_MS=1608 \
+./script/build_and_run.sh --verify
+```
+
+## Lightweight Verification
+
+On a slower MacBook Air, start with the focused gates instead of a full
+monorepo pass:
+
+```bash
+swift test --disable-sandbox --filter MediaPipePoseProviderTests
+scripts/motion_reference/audit_motion_coverage.py --strict
+git diff --check
+```
+
+The full gate is heavier:
+
+```bash
+scripts/run_monorepo_gates.sh
+```
+
+If the machine is struggling, close the running app before rebuilding and avoid
+rerendering motion-reference videos unless you are actively reviewing a trace.
+Generated review media lives under `dist/`, which is intentionally ignored by
+Git.
+
+## Git Upload Checklist
+
+Before pushing this branch, make sure these generated-but-important app assets
+are tracked:
+
+```bash
+git status --short
+git add Sources/CamiFitApp/Resources/MotionDemos \
+        Sources/CamiFitApp/Resources/Avatars \
+        scripts/motion_reference \
+        script/build_and_run.sh \
+        script/run_motion_reference_recorder.sh \
+        Package.swift
+```
+
+Do not add `dist/`, `.build/`, MediaPipe `*.task` model files, or local webcam
+captures. Those are ignored runtime/build artifacts.

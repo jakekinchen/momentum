@@ -55,9 +55,23 @@ public struct AppPoseOverlayState: Equatable {
     }
 
     private static let segmentDefinitions = [
+        ("nose", "primary.shoulder"),
         ("primary.shoulder", "primary.hip"),
+        ("primary.shoulder", "primary.elbow"),
+        ("primary.elbow", "primary.wrist"),
         ("primary.hip", "primary.knee"),
         ("primary.knee", "primary.ankle"),
+        ("primary.ankle", "primary.heel"),
+        ("primary.ankle", "primary.foot.index"),
+        ("primary.heel", "primary.foot.index"),
+        ("secondary.shoulder", "secondary.hip"),
+        ("secondary.shoulder", "secondary.elbow"),
+        ("secondary.elbow", "secondary.wrist"),
+        ("secondary.hip", "secondary.knee"),
+        ("secondary.knee", "secondary.ankle"),
+        ("secondary.ankle", "secondary.heel"),
+        ("secondary.ankle", "secondary.foot.index"),
+        ("secondary.heel", "secondary.foot.index"),
         ("left.shoulder", "right.shoulder"),
         ("left.hip", "right.hip"),
         ("left.shoulder", "left.elbow"),

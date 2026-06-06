@@ -16,12 +16,12 @@
     "secondary.foot.index"
   ],
   "cycle_mode": "descent-mirror",
-  "cycle_start_index": 30,
-  "cycle_bottom_index": 83,
+  "cycle_start_index": 40,
+  "cycle_bottom_index": 84,
   "retarget": "canonical-lunge",
   "summary": {
-    "frames": 107,
-    "min_primary_knee_angle": 100.07,
-    "max_primary_knee_angle": 179.35
+    "frames": 89,
+    "min_primary_knee_angle": 98.15,
+    "max_primary_knee_angle": 180.0
   }
 }

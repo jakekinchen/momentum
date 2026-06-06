@@ -47,6 +47,31 @@ enum RegimenBlockParser {
         }
         return blocks
     }
+
+    static func displayText(removingBlocks text: String) -> String {
+        var output: [String] = []
+        let lines = text.components(separatedBy: "\n")
+        var isSkippingBlock = false
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if isSkippingBlock {
+                if trimmed == "```" {
+                    isSkippingBlock = false
+                }
+                continue
+            }
+
+            if RegimenBlockKind.openingFenceKind(for: trimmed) != nil {
+                isSkippingBlock = true
+                continue
+            }
+
+            output.append(line)
+        }
+
+        return output.joined(separator: "\n")
+    }
 }
 
 enum RegimenValidationError: Error, Equatable {

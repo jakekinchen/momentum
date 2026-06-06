@@ -16,6 +16,10 @@ let package = Package(
             name: "CamiFitApp",
             targets: ["CamiFitApp"]
         ),
+        .executable(
+            name: "MotionReferenceRecorder",
+            targets: ["MotionReferenceRecorder"]
+        ),
         .library(
             name: "KGKit",
             targets: ["KGKit"]
@@ -57,6 +61,9 @@ let package = Package(
                 .copy("Resources/Demo"),
                 .copy("Resources/MotionDemos")
             ]
+        ),
+        .executableTarget(
+            name: "MotionReferenceRecorder"
         ),
         .testTarget(
             name: "CamiFitEngineTests",

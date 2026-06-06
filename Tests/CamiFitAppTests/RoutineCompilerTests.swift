@@ -67,6 +67,20 @@ final class RoutineCompilerTests: XCTestCase {
         }
     }
 
+    func testCompilerUsesHoldDefaultForHoldPresetWithoutRoutineOverride() throws {
+        let routine = WorkoutRoutine(
+            id: "hold-default",
+            name: "Hold Default",
+            blocks: [
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_plank"), sets: 1)
+            ]
+        )
+
+        let executable = try Self.compiler.compile(routine)
+
+        XCTAssertEqual(executable.blocks.first?.target, .holdSeconds(1.0))
+    }
+
     private static let compiler = RoutineCompiler { presetID in
         try ProgramLoader.load(from: presetsDirectory.appendingPathComponent("\(presetID).json"))
     }
@@ -82,4 +96,3 @@ final class RoutineCompilerTests: XCTestCase {
         packageRoot.appendingPathComponent("Presets")
     }
 }
-

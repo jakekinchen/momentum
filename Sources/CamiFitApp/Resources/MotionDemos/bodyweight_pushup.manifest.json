@@ -1,0 +1,15 @@
+{
+  "exercise_id": "bodyweight_pushup",
+  "source_kind": "trainer_reference_trace",
+  "source_label": "first-party webcam push-up capture; primary_side=left",
+  "source_video": "dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup_reference.mov",
+  "raw_trace": "dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/raw_mediapipe.jsonl",
+  "normalizer": "scripts/motion_reference/normalize_pushup_trace.py",
+  "cycle_start_index": 54,
+  "cycle_end_index": 104,
+  "contact_policy": "pin_primary_wrist_heel_toe",
+  "secondary_policy": "synthetic_depth_offset_from_primary",
+  "smooth_window": 5,
+  "mirror_x": true,
+  "frame_count": 52
+}

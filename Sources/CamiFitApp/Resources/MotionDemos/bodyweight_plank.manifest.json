@@ -1,0 +1,28 @@
+{
+  "exercise_id": "bodyweight_plank",
+  "source_kind": "canonical_archetype_trace",
+  "source_label": "static_hold canonical motion profile",
+  "archetype": "static_hold",
+  "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
+  "compiler": "scripts/motion_reference/compile_archetype_trace.py",
+  "output_trace": "/Users/kelly/Developer/camifit-app/Sources/CamiFitApp/Resources/MotionDemos/bodyweight_plank.jsonl",
+  "interval_ms": 100,
+  "retarget": "static-hold",
+  "required_contacts": [
+    "primary.elbow",
+    "secondary.elbow",
+    "primary.foot.index",
+    "secondary.foot.index"
+  ],
+  "required_output_landmarks": [
+    "primary.shoulder",
+    "primary.hip",
+    "primary.ankle"
+  ],
+  "summary": {
+    "frames": 31,
+    "min_primary_plank_line_angle": 180.0,
+    "max_primary_plank_line_angle": 180.0
+  },
+  "replacement_plan": "Replace with first_party_trainer_reference_video when captured; keep this trace as the deterministic archetype fallback."
+}

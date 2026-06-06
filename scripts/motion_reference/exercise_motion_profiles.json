@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "updated": "2026-06-06",
+  "contract": {
+    "source_of_truth": "first_party_trainer_reference_video",
+    "compiler_owner": "FitGraph/CamiFit motion reference tools",
+    "runtime_output": "PoseFrame JSONL under Sources/CamiFitApp/Resources/MotionDemos",
+    "measurement_boundary": "exercise preset signals and form rules stay canonical; viewer traces must replay through the same engine contract"
+  },
+  "profiles": [
+    {
+      "exercise_id": "bodyweight_squat",
+      "archetype": "bilateral_squat",
+      "viewer_status": "trainer_reference_trace",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "first_party_webcam_reference",
+        "required_view": "side",
+        "clip": "first-party side-view webcam capture user_capture_20260606-013521, phase-derived from the clean captured ascent and retargeted onto a canonical side-view squat rig",
+        "contact_policy": "both feet planted heel-to-toe with ankle/heel/toe pinned",
+        "primary_side": "right"
+      },
+      "phase": {
+        "driver": "knee_flexion_or_hip_depth",
+        "top": "standing tall, knees extended",
+        "bottom": "deepest controlled squat frame"
+      },
+      "normalizer": {
+        "status": "implemented",
+        "script": "scripts/motion_reference/normalize_squat_trace.py",
+        "retarget": "canonical-squat",
+        "cycle_mode": "captured_ascent_mirrored_to_top_bottom_top",
+        "secondary_policy": "canonical_depth_offset"
+      },
+      "required_contacts": [
+        "primary.heel",
+        "primary.foot.index",
+        "secondary.heel",
+        "secondary.foot.index"
+      ],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.hip",
+        "primary.knee",
+        "primary.ankle"
+      ],
+      "qa_gates": [
+        "contact_locked",
+        "loop_boundary_stable",
+        "monotonic_descent_then_ascent",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "bodyweight_lunge",
+      "archetype": "split_stance_lunge",
+      "viewer_status": "bundled_reference_trace",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "temporary_public_reference",
+        "required_view": "side",
+        "clip": "trainer performs a stationary split lunge, no alternating step-through inside the selected cycle",
+        "contact_policy": "front foot planted, rear toe planted, rear heel may lift naturally",
+        "primary_side": "front_leg"
+      },
+      "phase": {
+        "driver": "reviewed_reference_window",
+        "top": "stationary split stance at full height",
+        "bottom": "deepest controlled frame with front knee flexed"
+      },
+      "normalizer": {
+        "status": "implemented",
+        "script": "scripts/motion_reference/normalize_lunge_trace.py",
+        "retarget": "canonical-lunge",
+        "cycle_mode": "descent-mirror"
+      },
+      "required_contacts": [
+        "primary.heel",
+        "primary.foot.index",
+        "secondary.foot.index"
+      ],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.hip",
+        "primary.knee",
+        "primary.ankle",
+        "secondary.shoulder",
+        "secondary.hip",
+        "secondary.knee",
+        "secondary.ankle",
+        "secondary.foot.index"
+      ],
+      "qa_gates": [
+        "contact_locked",
+        "support_knee_bends_inward_in_side_view",
+        "loop_boundary_stable",
+        "monotonic_descent_then_ascent",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "bodyweight_pushup",
+      "archetype": "horizontal_press",
+      "viewer_status": "trainer_reference_trace",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "first_party_webcam_reference",
+        "required_view": "side",
+        "clip": "first-party side-view webcam capture user_capture_20260606-005504, normalized from the second clean top-bottom-top cycle and mirrored to face right in the viewer",
+        "contact_policy": "hands and toes planted",
+        "primary_side": "left"
+      },
+      "phase": {
+        "driver": "elbow_flexion_or_chest_depth",
+        "top": "arms extended in plank",
+        "bottom": "lowest controlled chest position"
+      },
+      "normalizer": {
+        "status": "implemented",
+        "script": "scripts/motion_reference/normalize_pushup_trace.py",
+        "retarget": "near-side-first-party-cycle",
+        "cycle_mode": "captured_top_bottom_top",
+        "secondary_policy": "synthetic_depth_offset_from_primary",
+        "mirror_x": true
+      },
+      "required_contacts": [
+        "primary.wrist",
+        "secondary.wrist",
+        "primary.foot.index",
+        "secondary.foot.index"
+      ],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.elbow",
+        "primary.wrist",
+        "primary.hip",
+        "primary.ankle"
+      ],
+      "qa_gates": [
+        "contact_locked",
+        "straight_body_line_preserved",
+        "loop_boundary_stable",
+        "monotonic_descent_then_ascent",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "bodyweight_plank",
+      "archetype": "static_hold",
+      "viewer_status": "bundled_canonical_trace",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "pending_first_party_capture",
+        "required_view": "side",
+        "clip": "trainer holds a clean forearm plank for at least 3 seconds",
+        "contact_policy": "forearms or hands and toes planted according to preset variant",
+        "primary_side": "camera_side"
+      },
+      "phase": {
+        "driver": "hold_pose",
+        "top": "not_applicable",
+        "bottom": "not_applicable"
+      },
+      "normalizer": {
+        "status": "implemented",
+        "script": "scripts/motion_reference/compile_archetype_trace.py",
+        "retarget": "static-hold"
+      },
+      "required_contacts": [
+        "primary.elbow",
+        "secondary.elbow",
+        "primary.foot.index",
+        "secondary.foot.index"
+      ],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.hip",
+        "primary.ankle"
+      ],
+      "qa_gates": [
+        "contact_locked",
+        "body_line_stable",
+        "hold_duration_present",
+        "engine_accepts_hold",
+        "viewer_reviewed"
+      ]
+    }
+  ]
+}

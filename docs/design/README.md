@@ -10,6 +10,7 @@ Durable architecture docs live here. Prefer one canonical doc per topic, with ol
 | [`2026-06-03-camifit-exercise-engine-design.md`](2026-06-03-camifit-exercise-engine-design.md) | Active design baseline | Exercise-Program JSON, pose-frame DSL, deterministic rep/form/hold engine. |
 | [`2026-06-05-avatar-guide-motion-demo.md`](2026-06-05-avatar-guide-motion-demo.md) | Active feature design | Avatar guide toggle, `ExerciseProgram` -> `PoseFrame` demo timeline, and the future motion-archetype compiler contract. |
 | [`2026-06-06-bodyweight-lunge-reference-pipeline.md`](2026-06-06-bodyweight-lunge-reference-pipeline.md) | Active feature design | Trainer-video -> MediaPipe -> normalized lunge guide trace pipeline for replacing the procedural Bodyweight Lunge demo. |
+| [`2026-06-06-scalable-motion-reference-pipeline.md`](2026-06-06-scalable-motion-reference-pipeline.md) | Active design baseline | Scalable trainer-reference capture, motion profile registry, archetype normalizers, and coverage gates for every supported exercise. |
 
 ## Removed to avoid confusion
 

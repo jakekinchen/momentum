@@ -67,12 +67,40 @@ public enum PosePipelineReadiness: Equatable {
 }
 
 public struct RoutineCompletionSummary: Equatable {
+    public let scope: WorkoutCompletionScope
     public let routineName: String
     public let completedSets: Int
     public let completedBlocks: Int
+    public let completedExerciseNames: [String]
+    public let durationSeconds: Int
+    public let finalProgressText: String
+    public let formSignals: [String]
+    public let cameraIssues: [String]
+
+    public init(
+        scope: WorkoutCompletionScope = .routine,
+        routineName: String,
+        completedSets: Int,
+        completedBlocks: Int,
+        completedExerciseNames: [String] = [],
+        durationSeconds: Int = 0,
+        finalProgressText: String? = nil,
+        formSignals: [String] = [],
+        cameraIssues: [String] = []
+    ) {
+        self.scope = scope
+        self.routineName = routineName
+        self.completedSets = completedSets
+        self.completedBlocks = completedBlocks
+        self.completedExerciseNames = completedExerciseNames
+        self.durationSeconds = durationSeconds
+        self.finalProgressText = finalProgressText ?? "\(completedSets) \(completedSets == 1 ? "set" : "sets") complete"
+        self.formSignals = formSignals
+        self.cameraIssues = cameraIssues
+    }
 
     public var displayText: String {
-        "\(completedSets) \(completedSets == 1 ? "set" : "sets") complete"
+        finalProgressText
     }
 }
 
@@ -170,19 +198,25 @@ public final class RoutineRunner: ObservableObject {
     @Published public private(set) var cursor = RoutineCursor()
     @Published public private(set) var progressText: String?
     @Published public private(set) var lastError: String?
+    @Published public private(set) var lastCompletionReport: WorkoutCompletionReport?
+    @Published public private(set) var runScope: WorkoutCompletionScope?
 
     private let viewModel: AppExerciseSessionViewModel
     private let autoStartsTimers: Bool
+    private let now: () -> Date
     private var cameraReadiness: CameraReadiness = .idle
     private var poseReadiness: PosePipelineReadiness = .idle
     private var executionSession: ExerciseExecutionSession?
     private var timer: Timer?
     private var practiceOnly = false
+    private var guideOnly = false
     private var completedSets = 0
+    private var startedAt: Date?
 
-    public init(viewModel: AppExerciseSessionViewModel, autoStartsTimers: Bool = true) {
+    public init(viewModel: AppExerciseSessionViewModel, autoStartsTimers: Bool = true, now: @escaping () -> Date = Date.init) {
         self.viewModel = viewModel
         self.autoStartsTimers = autoStartsTimers
+        self.now = now
     }
 
     deinit {
@@ -233,6 +267,25 @@ public final class RoutineRunner: ObservableObject {
         return activeRoutine.block(at: nextCursor)?.title
     }
 
+    public var isRoutineBackedRun: Bool {
+        activeRoutine != nil && runScope == .routine && !practiceOnly
+    }
+
+    public var nextExerciseTitle: String? {
+        guard let activeRoutine, isRoutineBackedRun else { return nil }
+        let nextBlockIndex = cursor.blockIndex + 1
+        guard activeRoutine.blocks.indices.contains(nextBlockIndex) else { return nil }
+        return activeRoutine.blocks[nextBlockIndex].title
+    }
+
+    public var timelineCursor: RoutineCursor {
+        if case .rest = phase,
+           let nextCursor = activeRoutine?.nextCursor(after: cursor, practiceOnly: practiceOnly) {
+            return nextCursor
+        }
+        return cursor
+    }
+
     public var canTogglePause: Bool {
         phase.canPause || isPaused
     }
@@ -240,6 +293,10 @@ public final class RoutineRunner: ObservableObject {
     public var isPaused: Bool {
         if case .paused = phase { return true }
         return false
+    }
+
+    public var isGuideOnlyExerciseRun: Bool {
+        runScope == .exercise && guideOnly
     }
 
     public func start(_ routine: WorkoutRoutine, atBlock index: Int = 0) throws {
@@ -279,11 +336,64 @@ public final class RoutineRunner: ObservableObject {
         activeRoutine = executable
         cursor = requestedCursor
         practiceOnly = mode == .practiceBlock
+        guideOnly = false
+        runScope = mode == .practiceBlock ? .exercise : .routine
         completedSets = 0
+        startedAt = now()
         lastError = nil
+        lastCompletionReport = nil
         progressText = nil
         try prepareCurrentSet()
         transition(to: .preparing)
+    }
+
+    func startExercise(
+        exerciseID: String,
+        mode: CoachExerciseMode,
+        target: SetTarget? = nil
+    ) throws {
+        stopTimer()
+        viewModel.loadAvailablePresets()
+
+        let block: RoutineBlock
+        switch target {
+        case let .reps(reps):
+            block = RoutineBlock(exerciseRef: .preset(id: exerciseID), sets: 1, reps: reps, restSeconds: 0)
+        case let .holdSeconds(seconds):
+            block = RoutineBlock(exerciseRef: .preset(id: exerciseID), sets: 1, holdSeconds: seconds, restSeconds: 0)
+        case .none:
+            block = RoutineBlock(exerciseRef: .preset(id: exerciseID), sets: 1, restSeconds: 0)
+        }
+
+        let exerciseName = viewModel.availablePresets.first { $0.id == exerciseID }?.name ?? exerciseID
+        let routine = WorkoutRoutine(
+            id: "standalone-\(exerciseID)",
+            name: exerciseName,
+            description: "Standalone exercise",
+            blocks: [block]
+        )
+        let compiler = RoutineCompiler { [viewModel] presetID in
+            try viewModel.programForPreset(id: presetID)
+        }
+        let executable = try compiler.compile(routine)
+
+        activeRoutine = executable
+        cursor = RoutineCursor()
+        practiceOnly = true
+        guideOnly = mode == .guide
+        runScope = .exercise
+        completedSets = 0
+        startedAt = guideOnly ? nil : now()
+        lastError = nil
+        lastCompletionReport = nil
+        progressText = nil
+        try prepareCurrentSet()
+
+        if guideOnly {
+            transition(to: .guide(secondsRemaining: 6), schedulesTimer: false)
+        } else {
+            transition(to: .preparing)
+        }
     }
 
     public func cancel() {
@@ -293,7 +403,10 @@ public final class RoutineRunner: ObservableObject {
         executionSession = nil
         progressText = nil
         practiceOnly = false
+        guideOnly = false
         completedSets = 0
+        startedAt = nil
+        runScope = nil
         viewModel.resetLiveSession()
         transition(to: .idle, schedulesTimer: false)
     }
@@ -316,15 +429,23 @@ public final class RoutineRunner: ObservableObject {
     public func skipGuide() {
         switch phase {
         case .preparing, .guide:
+            guard !guideOnly else { return }
             enterCameraGate()
         default:
             break
         }
     }
 
+    public func startCurrentExercisePractice() {
+        guard activeRoutine != nil, guideOnly else { return }
+        guideOnly = false
+        startedAt = now()
+        enterCameraGate()
+    }
+
     public func replayGuide(seconds: Int = 6) {
         guard activeRoutine != nil else { return }
-        transition(to: .guide(secondsRemaining: seconds))
+        transition(to: .guide(secondsRemaining: seconds), schedulesTimer: !guideOnly)
     }
 
     public func skipRest() {
@@ -342,6 +463,24 @@ public final class RoutineRunner: ObservableObject {
         do {
             try prepareCurrentSet()
             transition(to: .guide(secondsRemaining: 6))
+        } catch {
+            fail(error)
+        }
+    }
+
+    public func skipToNextExercise() {
+        guard let activeRoutine, isRoutineBackedRun else { return }
+        let nextBlockIndex = cursor.blockIndex + 1
+        guard activeRoutine.blocks.indices.contains(nextBlockIndex) else {
+            completeRoutine()
+            return
+        }
+
+        stopTimer()
+        cursor = RoutineCursor(blockIndex: nextBlockIndex, setIndex: 0)
+        do {
+            try prepareCurrentSet()
+            transition(to: .preparing)
         } catch {
             fail(error)
         }
@@ -407,6 +546,7 @@ public final class RoutineRunner: ObservableObject {
         case .preparing:
             transition(to: .guide(secondsRemaining: 6))
         case let .guide(secondsRemaining):
+            guard !guideOnly else { return }
             if secondsRemaining > 1 {
                 transition(to: .guide(secondsRemaining: secondsRemaining - 1))
             } else {
@@ -502,13 +642,37 @@ public final class RoutineRunner: ObservableObject {
 
     private func completeRoutine() {
         stopTimer()
+        let routineName = activeRoutine?.routine.name ?? "Routine"
+        let exerciseNames = activeRoutine?.blocks.map(\.title) ?? []
+        let completedBlocks = activeRoutine?.blocks.count ?? 0
+        let finalProgress = "\(completedSets) \(completedSets == 1 ? "set" : "sets") complete"
+        let durationSeconds = max(0, Int(now().timeIntervalSince(startedAt ?? now())))
+        let formSignals = viewModel.state.cueText.map { ["Cue: \($0)"] } ?? []
+        let cameraIssues: [String]
+        switch poseReadiness {
+        case let .failed(message), let .degraded(message):
+            cameraIssues = [message]
+        case let .camera(.failed(message)):
+            cameraIssues = [message]
+        default:
+            cameraIssues = []
+        }
         let summary = RoutineCompletionSummary(
-            routineName: activeRoutine?.routine.name ?? "Routine",
+            scope: runScope ?? .routine,
+            routineName: routineName,
             completedSets: completedSets,
-            completedBlocks: activeRoutine?.blocks.count ?? 0
+            completedBlocks: completedBlocks,
+            completedExerciseNames: exerciseNames,
+            durationSeconds: durationSeconds,
+            finalProgressText: finalProgress,
+            formSignals: formSignals,
+            cameraIssues: cameraIssues
         )
+        lastCompletionReport = WorkoutCompletionReport(summary: summary)
         activeRoutine = nil
         executionSession = nil
+        guideOnly = false
+        startedAt = nil
         progressText = summary.displayText
         transition(to: .complete(summary), schedulesTimer: false)
     }

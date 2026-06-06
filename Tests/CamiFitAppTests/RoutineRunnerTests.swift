@@ -62,6 +62,60 @@ final class RoutineRunnerTests: XCTestCase {
         XCTAssertEqual(runner.phase, .guide(secondsRemaining: 6))
     }
 
+    func testTimelineCursorHighlightsNextBlockDuringRest() throws {
+        let viewModel = Self.makeViewModel()
+        let runner = RoutineRunner(viewModel: viewModel, autoStartsTimers: false)
+        let routine = WorkoutRoutine(
+            id: "resting-routine",
+            name: "Resting Routine",
+            blocks: [
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_squat"), sets: 1, reps: 1, restSeconds: 30),
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_plank"), sets: 1, holdSeconds: 30, restSeconds: 0)
+            ]
+        )
+
+        try runner.start(routine)
+        runner.timerTick()
+        runner.skipGuide()
+        runner.updateCameraReadiness(.streaming(.zero))
+        let frames = try Self.loadPoseFixture("synthetic_squat_clean_trace.json")
+        runner.ingest(frames[0])
+        runner.timerTick()
+        runner.timerTick()
+        runner.timerTick()
+
+        for frame in frames {
+            runner.ingest(frame)
+        }
+
+        XCTAssertEqual(runner.phase, .rest(secondsRemaining: 30))
+        XCTAssertEqual(runner.cursor.blockIndex, 0)
+        XCTAssertEqual(runner.timelineCursor.blockIndex, 1)
+    }
+
+    func testSkipToNextExerciseStartsNextRoutineBlockGuide() throws {
+        let viewModel = Self.makeViewModel()
+        let runner = RoutineRunner(viewModel: viewModel, autoStartsTimers: false)
+        let routine = WorkoutRoutine(
+            id: "two-blocks",
+            name: "Two Blocks",
+            blocks: [
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_squat"), sets: 2, reps: 10, restSeconds: 30),
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_plank"), sets: 1, holdSeconds: 30, restSeconds: 0)
+            ]
+        )
+
+        try runner.start(routine)
+        XCTAssertEqual(runner.nextExerciseTitle, "Bodyweight Plank")
+
+        runner.skipToNextExercise()
+
+        XCTAssertEqual(runner.cursor.blockIndex, 1)
+        XCTAssertEqual(runner.cursor.setIndex, 0)
+        XCTAssertEqual(runner.currentBlock?.title, "Bodyweight Plank")
+        XCTAssertEqual(runner.phase, .preparing)
+    }
+
     func testThirtySecondRoutineHoldDoesNotCompleteAtPresetOneSecondTarget() throws {
         let viewModel = Self.makeViewModel()
         let runner = RoutineRunner(viewModel: viewModel, autoStartsTimers: false)

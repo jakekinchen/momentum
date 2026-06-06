@@ -44,6 +44,12 @@ echo "== swift-test =="
   swift test
 )
 
+echo "== motion-reference-coverage =="
+(
+  cd "$ROOT"
+  scripts/motion_reference/audit_motion_coverage.py --strict
+)
+
 if [[ -d "$ROOT/contracts" ]]; then
   echo "== contracts-compat =="
   find "$ROOT/contracts" -name '*.schema.json' -print | sort
