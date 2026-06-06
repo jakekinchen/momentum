@@ -54,6 +54,33 @@ for dylib in "$BUILD_DIR"/*.dylib; do
   cp "$dylib" "$APP_FRAMEWORKS/"
 done
 
+verify_packaged_resource() {
+  local resource_path="$1"
+  if [[ ! -f "$resource_path" ]]; then
+    echo "ERROR: required packaged resource missing: $resource_path" >&2
+    exit 1
+  fi
+}
+
+verify_packaged_resources() {
+  local app_resource_bundle="$APP_RESOURCES/CamiFit_CamiFitApp.bundle"
+  if [[ ! -d "$app_resource_bundle" ]]; then
+    echo "ERROR: required app resource bundle missing: $app_resource_bundle" >&2
+    exit 1
+  fi
+
+  verify_packaged_resource "$app_resource_bundle/Avatars/neutral_humanoid.glb"
+
+  local exercise_id
+  for exercise_id in bodyweight_squat bodyweight_lunge bodyweight_pushup bodyweight_plank; do
+    verify_packaged_resource "$app_resource_bundle/Presets/$exercise_id.json"
+    verify_packaged_resource "$app_resource_bundle/MotionDemos/$exercise_id.jsonl"
+    verify_packaged_resource "$app_resource_bundle/MotionDemos/$exercise_id.manifest.json"
+  done
+}
+
+verify_packaged_resources
+
 if [[ -f "$ICON_SOURCE" && -f "$ICON_GENERATOR" ]]; then
   xcrun swift "$ICON_GENERATOR" --brand "$ICON_SOURCE" --output "$ICON_FILE"
 fi

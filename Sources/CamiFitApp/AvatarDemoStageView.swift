@@ -1,6 +1,7 @@
 import AppKit
 import CamiFitEngine
 import GLTFKit2
+import os
 import SceneKit
 import simd
 import SwiftUI
@@ -297,6 +298,7 @@ private final class NeutralMannequinRig {
             farAnkle = asset.farAnkle
             usesAssetGeometry = true
         } else {
+            AvatarDiagnostics.logger.warning("neutral_humanoid.glb unavailable; using in-code avatar fallback")
             root = SCNNode()
             head = SCNNode(geometry: SCNSphere(radius: 1))
             neck = SCNNode()
@@ -764,6 +766,7 @@ private struct AvatarHumanoidGLBAsset {
             withExtension: "glb",
             subdirectory: "Avatars"
         ) else {
+            AvatarDiagnostics.logger.error("neutral_humanoid.glb missing from Bundle.module Avatars resources")
             return nil
         }
 
@@ -771,6 +774,7 @@ private struct AvatarHumanoidGLBAsset {
             let asset = try GLTFAsset(url: url)
             let source = GLTFSCNSceneSource(asset: asset)
             guard let sceneRoot = source.defaultScene?.rootNode else {
+                AvatarDiagnostics.logger.error("neutral_humanoid.glb loaded but did not produce a default SceneKit scene")
                 return nil
             }
             let importedRoot = node("avatar.root", in: sceneRoot) ?? sceneRoot
@@ -802,6 +806,7 @@ private struct AvatarHumanoidGLBAsset {
                   let farKnee = node("avatar.far.knee", in: root),
                   let nearAnkle = node("avatar.near.ankle", in: root),
                   let farAnkle = node("avatar.far.ankle", in: root) else {
+                AvatarDiagnostics.logger.error("neutral_humanoid.glb loaded but one or more required rig nodes were missing")
                 return nil
             }
 
@@ -835,6 +840,7 @@ private struct AvatarHumanoidGLBAsset {
                 farAnkle: farAnkle
             )
         } catch {
+            AvatarDiagnostics.logger.error("neutral_humanoid.glb failed to load: \(String(describing: error), privacy: .public)")
             return nil
         }
     }
@@ -843,6 +849,10 @@ private struct AvatarHumanoidGLBAsset {
         root.childNode(withName: name, recursively: true)
             ?? root.childNode(withName: name.replacingOccurrences(of: ".", with: "_"), recursively: true)
     }
+}
+
+private enum AvatarDiagnostics {
+    static let logger = Logger(subsystem: "com.camifit.app", category: "avatar")
 }
 
 private enum AvatarRig {
