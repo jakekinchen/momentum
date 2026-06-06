@@ -7,15 +7,25 @@ import Foundation
 final class LivePoseWorkerClient {
     enum LiveWorkerError: LocalizedError {
         case notRunning
+        case notRunningWithStderr(String)
+        case launchFailed(String)
         case unhealthy(String)
-        case timeout
+        case timeout(String?)
         case decode(String)
 
         var errorDescription: String? {
             switch self {
             case .notRunning: return "pose worker is not running"
+            case let .notRunningWithStderr(stderr):
+                return "pose worker exited before responding: \(stderr)"
+            case let .launchFailed(message):
+                return "pose worker launch failed: \(message)"
             case let .unhealthy(message): return "pose worker not ready: \(message)"
-            case .timeout: return "pose worker did not respond in time"
+            case let .timeout(stderr):
+                if let stderr, !stderr.isEmpty {
+                    return "pose worker did not respond in time: \(stderr)"
+                }
+                return "pose worker did not respond in time"
             case let .decode(message): return "pose worker response decode failed: \(message)"
             }
         }
@@ -29,7 +39,9 @@ final class LivePoseWorkerClient {
     private var process: Process?
     private var stdinHandle: FileHandle?
     private var stdoutFD: Int32 = -1
+    private var stderrFD: Int32 = -1
     private var buffer = Data()
+    private var stderrBuffer = Data()
 
     init(python: LiveWorkerPythonCommand, scriptURL: URL, modelURL: URL) {
         self.python = python
@@ -45,14 +57,22 @@ final class LivePoseWorkerClient {
             process.currentDirectoryURL = scriptURL.deletingLastPathComponent().deletingLastPathComponent()
             let stdin = Pipe()
             let stdout = Pipe()
+            let stderr = Pipe()
             process.standardInput = stdin
             process.standardOutput = stdout
-            process.standardError = FileHandle.nullDevice
-            try process.run()
+            process.standardError = stderr
+            do {
+                try process.run()
+            } catch {
+                throw LiveWorkerError.launchFailed(String(describing: error))
+            }
             self.process = process
             self.stdinHandle = stdin.fileHandleForWriting
             self.stdoutFD = stdout.fileHandleForReading.fileDescriptor
+            self.stderrFD = stderr.fileHandleForReading.fileDescriptor
+            _ = fcntl(self.stderrFD, F_SETFL, O_NONBLOCK)
             self.buffer.removeAll()
+            self.stderrBuffer.removeAll()
 
             // Health handshake.
             let health = try self.requestLocked(["type": "health"], timeout: 12)
@@ -91,7 +111,9 @@ final class LivePoseWorkerClient {
     // MARK: - Locked helpers (run on `queue`)
 
     private func requestLocked(_ request: [String: Any], timeout: TimeInterval) throws -> [String: Any] {
-        guard let stdinHandle, process?.isRunning == true else { throw LiveWorkerError.notRunning }
+        guard let stdinHandle, process?.isRunning == true else {
+            throw notRunningErrorLocked()
+        }
         let payload = try JSONSerialization.data(withJSONObject: request)
         stdinHandle.write(payload)
         stdinHandle.write(Data([0x0A]))
@@ -112,21 +134,47 @@ final class LivePoseWorkerClient {
                 return line
             }
             let remaining = deadline.timeIntervalSinceNow
-            if remaining <= 0 { throw LiveWorkerError.timeout }
+            if remaining <= 0 { throw LiveWorkerError.timeout(stderrTailLocked()) }
             guard waitReadable(fd: stdoutFD, timeout: min(remaining, 0.1)) else { continue }
             var chunk = [UInt8](repeating: 0, count: 8192)
             let count = chunk.withUnsafeMutableBytes { Darwin.read(stdoutFD, $0.baseAddress, $0.count) }
             if count > 0 {
                 buffer.append(contentsOf: chunk.prefix(count))
             } else if count == 0 {
-                throw LiveWorkerError.notRunning
+                throw notRunningErrorLocked()
             }
         }
     }
 
+    private func notRunningErrorLocked() -> LiveWorkerError {
+        let stderr = stderrTailLocked()
+        if let stderr, !stderr.isEmpty {
+            return .notRunningWithStderr(stderr)
+        }
+        return .notRunning
+    }
+
+    private func stderrTailLocked() -> String? {
+        guard stderrFD >= 0 else { return nil }
+        var chunk = [UInt8](repeating: 0, count: 4096)
+        while true {
+            let count = chunk.withUnsafeMutableBytes { Darwin.read(stderrFD, $0.baseAddress, $0.count) }
+            if count > 0 {
+                stderrBuffer.append(contentsOf: chunk.prefix(count))
+            } else {
+                break
+            }
+        }
+        guard !stderrBuffer.isEmpty else { return nil }
+        let text = String(data: stderrBuffer, encoding: .utf8) ?? "<non-utf8 stderr>"
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return String(trimmed.suffix(1_600))
+    }
+
     private func waitReadable(fd: Int32, timeout: TimeInterval) -> Bool {
         var set = fd_set()
-        withUnsafeMutablePointer(to: &set) { ptr in
+        _ = withUnsafeMutablePointer(to: &set) { ptr in
             memset(ptr, 0, MemoryLayout<fd_set>.size)
         }
         let intOffset = Int(fd) / 32
@@ -144,6 +192,8 @@ final class LivePoseWorkerClient {
         process = nil
         stdinHandle = nil
         stdoutFD = -1
+        stderrFD = -1
         buffer.removeAll()
+        stderrBuffer.removeAll()
     }
 }

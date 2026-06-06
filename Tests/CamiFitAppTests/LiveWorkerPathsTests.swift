@@ -37,6 +37,20 @@ final class LiveWorkerPathsTests: XCTestCase {
         print("live-worker-paths-project-venv command=\(paths.python.displayName)")
     }
 
+    func testPython312CandidatesArePreferredBeforeGenericHomebrewPython3() {
+        let repo = URL(fileURLWithPath: "/tmp/camifit-test-repo")
+        let home = URL(fileURLWithPath: "/tmp/camifit-test-home")
+
+        let candidates = LiveWorkerPaths.pythonCandidates(repo: repo, home: home).map(\.path)
+
+        XCTAssertEqual(candidates[0], "/tmp/camifit-test-repo/.venv/bin/python")
+        XCTAssertEqual(candidates[1], "/tmp/camifit-test-home/.local/bin/python3.12")
+        XCTAssertLessThan(
+            candidates.firstIndex(of: "/opt/homebrew/bin/python3.12")!,
+            candidates.firstIndex(of: "/opt/homebrew/bin/python3")!
+        )
+    }
+
     func testDefaultRepoRootDoesNotAssumeDeveloperCamifitPath() {
         let paths = LiveWorkerPaths.resolve(environment: [:])
 

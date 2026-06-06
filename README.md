@@ -55,9 +55,19 @@ curl -L -o pose_worker/models/pose_landmarker_lite.task \
   https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
 ```
 
+Or run the bundled setup/diagnostic helper:
+
+```bash
+script/doctor_live_camera.sh --fix
+script/doctor_live_camera.sh
+```
+
 The app first looks for `CAMIFIT_PYTHON`, then `.venv/bin/python`, then common
 system Python 3 locations. On a fresh macOS install, do not set
 `CAMIFIT_PYTHON=python`; use the local venv above or `CAMIFIT_PYTHON=python3`.
+If Live Camera still fails, run `script/doctor_live_camera.sh` before opening
+the app; it checks the exact Python command, Python version, MediaPipe import,
+model file, and worker health response.
 
 Use the project run script for the actual macOS app bundle. It builds the
 SwiftPM executable, stages `dist/CamiFitApp.app`, signs it, and opens it as

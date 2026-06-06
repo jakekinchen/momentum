@@ -39,16 +39,23 @@ enum LiveWorkerPaths {
             return pythonCommand(for: configured)
         }
 
-        let candidates = [
-            repo.appendingPathComponent(".venv/bin/python"),
-            URL(fileURLWithPath: "/opt/homebrew/bin/python3"),
-            URL(fileURLWithPath: "/usr/local/bin/python3"),
-            URL(fileURLWithPath: "/usr/bin/python3")
-        ]
+        let candidates = pythonCandidates(repo: repo, home: fileManager.homeDirectoryForCurrentUser)
         for candidate in candidates where fileManager.isExecutableFile(atPath: candidate.path) {
             return LiveWorkerPythonCommand(executableURL: candidate, argumentsPrefix: [])
         }
         return pythonCommand(for: "python3")
+    }
+
+    static func pythonCandidates(repo: URL, home: URL = FileManager.default.homeDirectoryForCurrentUser) -> [URL] {
+        [
+            repo.appendingPathComponent(".venv/bin/python"),
+            home.appendingPathComponent(".local/bin/python3.12"),
+            URL(fileURLWithPath: "/opt/homebrew/bin/python3.12"),
+            URL(fileURLWithPath: "/usr/local/bin/python3.12"),
+            URL(fileURLWithPath: "/opt/homebrew/bin/python3"),
+            URL(fileURLWithPath: "/usr/local/bin/python3"),
+            URL(fileURLWithPath: "/usr/bin/python3")
+        ]
     }
 
     private static func defaultRepoRoot() -> URL {
@@ -198,7 +205,12 @@ final class LiveSession: ObservableObject {
         do {
             try client.start()
         } catch {
-            errorText = "Pose worker failed to start: \(error.localizedDescription)"
+            errorText = [
+                "Pose worker failed to start: \(error.localizedDescription)",
+                "Python: \(paths.python.displayName)",
+                "Worker: \(paths.script.path)",
+                "Model: \(paths.model.path)"
+            ].joined(separator: "\n")
             poseReadiness = .failed(errorText ?? "Pose worker failed")
             return
         }
