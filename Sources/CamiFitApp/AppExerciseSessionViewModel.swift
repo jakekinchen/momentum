@@ -35,6 +35,42 @@ public struct AppExerciseSessionState: Equatable {
 
 public enum AppExerciseSessionError: Error, Equatable {
     case presetNotFound(String)
+    case routineBlockOutOfRange(Int)
+    case invalidInlineExercise(String)
+}
+
+public enum RoutineSessionPhase: Equatable {
+    case idle
+    case starting
+    case guide(secondsRemaining: Int)
+    case waitingForCamera
+    case countdown(secondsRemaining: Int)
+    case working
+    case resting(secondsRemaining: Int)
+    case paused
+    case complete
+
+    var canPause: Bool {
+        switch self {
+        case .guide, .waitingForCamera, .countdown, .working, .resting:
+            return true
+        case .idle, .starting, .paused, .complete:
+            return false
+        }
+    }
+
+    var ignoresLiveProgress: Bool {
+        switch self {
+        case .idle, .working:
+            return false
+        case .starting, .guide, .waitingForCamera, .countdown, .resting, .paused, .complete:
+            return true
+        }
+    }
+}
+
+public struct RoutineSessionState: Equatable {
+    public var phase: RoutineSessionPhase = .idle
 }
 
 public final class AppExerciseSessionViewModel: ObservableObject {
@@ -54,6 +90,10 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     private let recordedRunSourceCandidates: [URL]
     private var selectedProgram: ExerciseProgram?
     private var liveFrames: [PoseFrame] = []
+
+    public var activeExerciseProgram: ExerciseProgram? {
+        selectedProgram
+    }
 
     public convenience init(presetsDirectory: URL) {
         self.init(
@@ -91,31 +131,148 @@ public final class AppExerciseSessionViewModel: ObservableObject {
 
     @Published public private(set) var activeRoutine: WorkoutRoutine?
     @Published public private(set) var activeRoutineBlockIndex: Int = 0
+    @Published public private(set) var routineSession = RoutineSessionState()
+    private var phaseBeforePause: RoutineSessionPhase?
 
-    public func startRoutine(_ routine: WorkoutRoutine) throws {
+    public var activeRoutineBlock: RoutineBlock? {
+        guard let activeRoutine, activeRoutine.blocks.indices.contains(activeRoutineBlockIndex) else {
+            return nil
+        }
+        return activeRoutine.blocks[activeRoutineBlockIndex]
+    }
+
+    public var activeRoutineProgressText: String? {
+        guard let block = activeRoutineBlock else { return nil }
+        if let reps = block.reps {
+            let target = max(1, block.sets) * reps
+            return "\(min(state.repCount, target))/\(target) reps"
+        }
+        if let holdSeconds = block.holdSeconds {
+            let target = Double(max(1, block.sets)) * holdSeconds
+            return "\(Int(min(state.holdSeconds, target)))/\(Int(target)) sec"
+        }
+        return nil
+    }
+
+    public func startRoutine(_ routine: WorkoutRoutine, atBlock index: Int = 0) throws {
+        guard routine.blocks.indices.contains(index) else {
+            throw AppExerciseSessionError.routineBlockOutOfRange(index)
+        }
         activeRoutine = routine
-        activeRoutineBlockIndex = 0
-        if let ref = routine.blocks.first?.exerciseRef { activateBlockExercise(ref) }
+        try activateRoutineBlock(at: index, phase: .starting)
     }
 
     public func advanceRoutine() {
         guard let routine = activeRoutine else { return }
         let next = activeRoutineBlockIndex + 1
-        guard next < routine.blocks.count else { activeRoutine = nil; return }
-        activeRoutineBlockIndex = next
-        activateBlockExercise(routine.blocks[next].exerciseRef)
+        guard next < routine.blocks.count else {
+            finishRoutine()
+            return
+        }
+        try? activateRoutineBlock(at: next, phase: .starting)
+    }
+
+    public func activateRoutineBlock(at index: Int, phase: RoutineSessionPhase = .starting) throws {
+        guard let routine = activeRoutine, routine.blocks.indices.contains(index) else {
+            throw AppExerciseSessionError.routineBlockOutOfRange(index)
+        }
+        try activateBlockExercise(routine.blocks[index].exerciseRef)
+        activeRoutineBlockIndex = index
+        resetLiveSession()
+        phaseBeforePause = nil
+        routineSession.phase = phase
+    }
+
+    public func beginRoutineGuide(seconds: Int = 6) {
+        guard activeRoutine != nil else { return }
+        routineSession.phase = .guide(secondsRemaining: max(0, seconds))
+    }
+
+    public func tickRoutineGuide() {
+        guard case let .guide(secondsRemaining) = routineSession.phase else { return }
+        guard secondsRemaining > 1 else {
+            routineSession.phase = .waitingForCamera
+            return
+        }
+        routineSession.phase = .guide(secondsRemaining: secondsRemaining - 1)
+    }
+
+    public func beginRoutineCountdown(seconds: Int = 3) {
+        guard activeRoutine != nil else { return }
+        routineSession.phase = .countdown(secondsRemaining: max(0, seconds))
+    }
+
+    public func tickRoutineCountdown() {
+        guard case let .countdown(secondsRemaining) = routineSession.phase else { return }
+        guard secondsRemaining > 1 else {
+            resetLiveSession()
+            routineSession.phase = .working
+            return
+        }
+        routineSession.phase = .countdown(secondsRemaining: secondsRemaining - 1)
+    }
+
+    public func pauseRoutine() {
+        guard routineSession.phase.canPause else { return }
+        phaseBeforePause = routineSession.phase
+        routineSession.phase = .paused
+    }
+
+    public func resumeRoutine() {
+        guard case .paused = routineSession.phase else { return }
+        routineSession.phase = phaseBeforePause ?? .working
+        phaseBeforePause = nil
+    }
+
+    public func toggleRoutinePause() {
+        if case .paused = routineSession.phase {
+            resumeRoutine()
+        } else {
+            pauseRoutine()
+        }
+    }
+
+    public func cancelRoutine() {
+        activeRoutine = nil
+        activeRoutineBlockIndex = 0
+        phaseBeforePause = nil
+        routineSession.phase = .idle
+    }
+
+    public func completeActiveRoutineBlock() {
+        guard let routine = activeRoutine,
+              let block = activeRoutineBlock else { return }
+        resetLiveSession()
+        let hasNext = activeRoutineBlockIndex + 1 < routine.blocks.count
+        let restSeconds = max(0, block.restSeconds ?? 0)
+        if hasNext, restSeconds > 0 {
+            routineSession.phase = .resting(secondsRemaining: restSeconds)
+        } else {
+            advanceRoutine()
+        }
+    }
+
+    public func tickRoutineRest() {
+        guard case let .resting(secondsRemaining) = routineSession.phase else { return }
+        guard secondsRemaining > 1 else {
+            advanceRoutine()
+            return
+        }
+        routineSession.phase = .resting(secondsRemaining: secondsRemaining - 1)
     }
 
     /// Selects a routine block's exercise. Inline (coach-authored) programs are dry-run
     /// validated and saved as a user preset first, so they become trackable.
-    private func activateBlockExercise(_ ref: ExerciseRef, store: RegimenStore = RegimenStore()) {
+    private func activateBlockExercise(_ ref: ExerciseRef, store: RegimenStore = RegimenStore()) throws {
         switch ref {
         case let .preset(id):
-            try? selectPreset(id: id)
+            try selectPreset(id: id)
         case let .inline(program):
-            guard RegimenBlockParser.validate(program: program) == nil else { return }
-            try? saveGeneratedExercise(program, store: store)
-            try? selectPreset(id: program.id)
+            if let error = RegimenBlockParser.validate(program: program) {
+                throw AppExerciseSessionError.invalidInlineExercise(String(describing: error))
+            }
+            try saveGeneratedExercise(program, store: store)
+            try selectPreset(id: program.id)
         }
     }
 
@@ -139,6 +296,20 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         }
 
         let program = try ProgramLoader.load(from: preset.url)
+        activateProgram(program)
+    }
+
+    public func programForPreset(id: String) throws -> ExerciseProgram {
+        if availablePresets.isEmpty {
+            loadAvailablePresets()
+        }
+        guard let preset = availablePresets.first(where: { $0.id == id }) else {
+            throw AppExerciseSessionError.presetNotFound(id)
+        }
+        return try ProgramLoader.load(from: preset.url)
+    }
+
+    public func activateProgram(_ program: ExerciseProgram) {
         selectedProgram = program
         state = AppExerciseSessionState(
             selectedExerciseID: program.id,
@@ -372,6 +543,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         state.cueText = last.formSummary.selectedCue
         state.scoreText = last.formSummary.score.map { String(format: "%.3f", $0) }
         state.diagnosticText = diagnosticText(from: last)
+        updateRoutineProgressIfNeeded()
         return state
     }
 
@@ -379,13 +551,42 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     /// updated reps/form + the skeleton overlay. Swallows engine errors so a single bad frame
     /// never breaks the live loop.
     public func ingestLiveFrame(_ frame: PoseFrame) {
+        updateLiveOverlay(with: frame)
+        guard activeRoutine == nil || !routineSession.phase.ignoresLiveProgress else {
+            return
+        }
+
         liveFrames.append(frame)
         do {
             _ = try process(frames: liveFrames)
         } catch {
             state.diagnosticText = "live engine error: \(error)"
         }
+    }
+
+    public func updateLiveOverlay(with frame: PoseFrame) {
         latestPoseOverlayState = AppPoseOverlayState(frame: frame)
+    }
+
+    public func applyExerciseFrameResult(_ result: ExerciseFrameResult, program: ExerciseProgram) {
+        selectedProgram = program
+        state.selectedExerciseID = program.id
+        state.selectedExerciseName = program.name
+
+        switch result.target {
+        case .reps:
+            state.repCount = result.repsCompleted
+            state.holdSeconds = 0
+            state.holdTargetReached = false
+        case .holdSeconds:
+            state.repCount = 0
+            state.holdSeconds = result.holdSeconds
+            state.holdTargetReached = result.isComplete
+        }
+
+        state.cueText = result.cueText
+        state.scoreText = result.scoreText
+        state.diagnosticText = result.diagnosticText
     }
 
     public func resetLiveSession() {
@@ -396,6 +597,33 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         state.cueText = nil
         state.diagnosticText = nil
         latestPoseOverlayState = AppPoseOverlayState.empty
+    }
+
+    private func finishRoutine() {
+        activeRoutine = nil
+        activeRoutineBlockIndex = 0
+        phaseBeforePause = nil
+        routineSession.phase = .complete
+    }
+
+    private func updateRoutineProgressIfNeeded() {
+        guard activeRoutine != nil,
+              routineSession.phase == .working,
+              let block = activeRoutineBlock,
+              routineBlockTargetReached(block) else {
+            return
+        }
+        completeActiveRoutineBlock()
+    }
+
+    private func routineBlockTargetReached(_ block: RoutineBlock) -> Bool {
+        if let reps = block.reps {
+            return state.repCount >= max(1, block.sets) * reps
+        }
+        if let holdSeconds = block.holdSeconds {
+            return state.holdSeconds >= Double(max(1, block.sets)) * holdSeconds || state.holdTargetReached
+        }
+        return false
     }
 
     private static func defaultPresetSourceCandidates() -> [URL] {

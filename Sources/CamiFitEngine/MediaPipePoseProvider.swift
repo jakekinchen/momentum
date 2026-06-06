@@ -63,6 +63,7 @@ public enum MediaPipePoseJSONLDecoder {
     public static func decode(jsonl: String) throws -> [PoseFrame] {
         var frames: [PoseFrame] = []
         let lines = jsonl.split(whereSeparator: \.isNewline)
+        let decoder = JSONDecoder()
 
         for (offset, line) in lines.enumerated() {
             let lineNumber = offset + 1
@@ -70,63 +71,100 @@ public enum MediaPipePoseJSONLDecoder {
                 throw MediaPipePoseDecodeError.invalidLine(lineNumber, "line is not utf8")
             }
 
-            let raw: RawPoseRecord
+            let recordType: RawRecordType
             do {
-                raw = try JSONDecoder().decode(RawPoseRecord.self, from: data)
+                recordType = try decoder.decode(RawRecordType.self, from: data)
             } catch {
                 throw MediaPipePoseDecodeError.invalidLine(lineNumber, "malformed JSON: \(error)")
             }
 
-            guard raw.type == "pose" else {
-                throw MediaPipePoseDecodeError.invalidLine(lineNumber, "expected type 'pose'")
+            switch recordType.type {
+            case "pose":
+                frames.append(try decodePoseRecord(data: data, decoder: decoder, lineNumber: lineNumber))
+            case "motion_demo_pose":
+                frames.append(try decodeMotionDemoPoseRecord(data: data, decoder: decoder, lineNumber: lineNumber))
+            default:
+                throw MediaPipePoseDecodeError.invalidLine(lineNumber, "expected type 'pose' or 'motion_demo_pose'")
             }
-
-            guard raw.imageSize.count == 2 else {
-                throw MediaPipePoseDecodeError.invalidLine(lineNumber, "image_size must contain width and height")
-            }
-
-            if raw.posesDetected == 0 {
-                guard raw.primaryPoseID == nil else {
-                    throw MediaPipePoseDecodeError.invalidLine(lineNumber, "no-pose record must have null primary_pose_id")
-                }
-
-                guard raw.landmarks.isEmpty && raw.worldLandmarks.isEmpty else {
-                    throw MediaPipePoseDecodeError.invalidLine(lineNumber, "no-pose record must have empty landmarks and world_landmarks")
-                }
-
-                frames.append(
-                    PoseFrame(
-                        timestampMS: raw.timestampMS,
-                        imageWidth: raw.imageSize[0],
-                        imageHeight: raw.imageSize[1],
-                        landmarks: [:]
-                    )
-                )
-                continue
-            }
-
-            guard raw.posesDetected > 0 else {
-                throw MediaPipePoseDecodeError.invalidLine(lineNumber, "poses_detected must be non-negative")
-            }
-
-            guard raw.landmarks.count == landmarkNames.count else {
-                throw MediaPipePoseDecodeError.invalidLine(
-                    lineNumber,
-                    "expected \(landmarkNames.count) landmarks, got \(raw.landmarks.count)"
-                )
-            }
-
-            frames.append(
-                PoseFrame(
-                    timestampMS: raw.timestampMS,
-                    imageWidth: raw.imageSize[0],
-                    imageHeight: raw.imageSize[1],
-                    landmarks: try mappedLandmarks(raw.landmarks, lineNumber: lineNumber)
-                )
-            )
         }
 
         return frames
+    }
+
+    private static func decodePoseRecord(data: Data, decoder: JSONDecoder, lineNumber: Int) throws -> PoseFrame {
+        let raw: RawPoseRecord
+        do {
+            raw = try decoder.decode(RawPoseRecord.self, from: data)
+        } catch {
+            throw MediaPipePoseDecodeError.invalidLine(lineNumber, "malformed pose record: \(error)")
+        }
+
+        guard raw.imageSize.count == 2 else {
+            throw MediaPipePoseDecodeError.invalidLine(lineNumber, "image_size must contain width and height")
+        }
+
+        if raw.posesDetected == 0 {
+            guard raw.primaryPoseID == nil else {
+                throw MediaPipePoseDecodeError.invalidLine(lineNumber, "no-pose record must have null primary_pose_id")
+            }
+
+            guard raw.landmarks.isEmpty && raw.worldLandmarks.isEmpty else {
+                throw MediaPipePoseDecodeError.invalidLine(lineNumber, "no-pose record must have empty landmarks and world_landmarks")
+            }
+
+            return PoseFrame(
+                timestampMS: raw.timestampMS,
+                imageWidth: raw.imageSize[0],
+                imageHeight: raw.imageSize[1],
+                landmarks: [:]
+            )
+        }
+
+        guard raw.posesDetected > 0 else {
+            throw MediaPipePoseDecodeError.invalidLine(lineNumber, "poses_detected must be non-negative")
+        }
+
+        guard raw.landmarks.count == landmarkNames.count else {
+            throw MediaPipePoseDecodeError.invalidLine(
+                lineNumber,
+                "expected \(landmarkNames.count) landmarks, got \(raw.landmarks.count)"
+            )
+        }
+
+        return PoseFrame(
+            timestampMS: raw.timestampMS,
+            imageWidth: raw.imageSize[0],
+            imageHeight: raw.imageSize[1],
+            landmarks: try mappedLandmarks(raw.landmarks, lineNumber: lineNumber)
+        )
+    }
+
+    private static func decodeMotionDemoPoseRecord(data: Data, decoder: JSONDecoder, lineNumber: Int) throws -> PoseFrame {
+        let raw: RawMotionDemoPoseRecord
+        do {
+            raw = try decoder.decode(RawMotionDemoPoseRecord.self, from: data)
+        } catch {
+            throw MediaPipePoseDecodeError.invalidLine(lineNumber, "malformed motion demo record: \(error)")
+        }
+
+        guard raw.imageSize.count == 2 else {
+            throw MediaPipePoseDecodeError.invalidLine(lineNumber, "image_size must contain width and height")
+        }
+
+        return PoseFrame(
+            timestampMS: raw.timestampMS,
+            imageWidth: raw.imageSize[0],
+            imageHeight: raw.imageSize[1],
+            landmarks: raw.landmarks.mapValues { raw in
+                PoseLandmark(
+                    x: raw.x,
+                    y: raw.y,
+                    z: raw.z,
+                    visibility: raw.visibility,
+                    presence: raw.presence ?? raw.visibility
+                )
+            }
+        )
     }
 
     private static func mappedLandmarks(_ rawLandmarks: [RawMediaPipeLandmark], lineNumber: Int) throws -> [String: PoseLandmark] {
@@ -179,6 +217,10 @@ public enum MediaPipePoseDecodeError: Error, Equatable, CustomStringConvertible 
     }
 }
 
+private struct RawRecordType: Decodable {
+    let type: String
+}
+
 private struct RawPoseRecord: Decodable {
     let type: String
     let timestampMS: Int64
@@ -214,6 +256,20 @@ private struct RawPoseRecord: Decodable {
         } else {
             primaryPoseID = nil
         }
+    }
+}
+
+private struct RawMotionDemoPoseRecord: Decodable {
+    let type: String
+    let timestampMS: Int64
+    let imageSize: [Double]
+    let landmarks: [String: RawMediaPipeLandmark]
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case timestampMS = "timestamp_ms"
+        case imageSize = "image_size"
+        case landmarks
     }
 }
 

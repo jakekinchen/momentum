@@ -34,4 +34,17 @@ final class CodexAppServerClientTests: XCTestCase {
                 .path
         )
     }
+
+    func testCoachInstructionsUseFutureRoutineArtifactContract() {
+        let instructions = CodexAppServerClient().coachBaseInstructionsForTesting
+
+        XCTAssertTrue(instructions.contains("Future Coach"))
+        XCTAssertTrue(instructions.contains("future-routine"))
+        XCTAssertTrue(instructions.contains("\"schemaVersion\":1"))
+        XCTAssertTrue(instructions.contains("\"artifactType\":\"routine\""))
+        XCTAssertTrue(instructions.contains("Do not author brand-new future-exercise artifacts"))
+        XCTAssertFalse(instructions.contains("camifit-routine"))
+        XCTAssertFalse(instructions.contains("camifit-exercise"))
+        XCTAssertFalse(instructions.contains("camifit-kg-operation"))
+    }
 }

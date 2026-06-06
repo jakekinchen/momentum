@@ -9,20 +9,28 @@ final class ChatMarkdownRendererTests: XCTestCase {
         XCTAssertTrue(rendered.containsStrongEmphasis(on: "Box squats"))
     }
 
-    func testPreservesLineBreaksAndListMarkersWhileStylingMarkdown() {
-        let rendered = ChatMarkdownRenderer.attributedString(for: """
+    func testParsesBlockMarkdownForChatRendering() {
+        let blocks = ChatMarkdownRenderer.blocks(for: """
         Try a gentler option instead:
+        ### Knee-friendly lower body routine
         - **Box squats** to a chair
         - **Glute bridges**
+        1. **Side-lying leg raises**
         """)
 
-        XCTAssertEqual(String(rendered.characters), """
-        Try a gentler option instead:
-        - Box squats to a chair
-        - Glute bridges
-        """)
-        XCTAssertTrue(rendered.containsStrongEmphasis(on: "Box squats"))
-        XCTAssertTrue(rendered.containsStrongEmphasis(on: "Glute bridges"))
+        XCTAssertEqual(blocks, [
+            ChatMarkdownBlock(kind: .paragraph, text: "Try a gentler option instead:"),
+            ChatMarkdownBlock(kind: .heading(level: 3), text: "Knee-friendly lower body routine"),
+            ChatMarkdownBlock(kind: .unorderedListItem, text: "**Box squats** to a chair"),
+            ChatMarkdownBlock(kind: .unorderedListItem, text: "**Glute bridges**"),
+            ChatMarkdownBlock(kind: .orderedListItem(number: "1"), text: "**Side-lying leg raises**")
+        ])
+
+        XCTAssertFalse(blocks[1].text.contains("###"))
+        XCTAssertEqual(String(ChatMarkdownRenderer.attributedString(for: blocks[2].text).characters),
+                       "Box squats to a chair")
+        XCTAssertTrue(ChatMarkdownRenderer.attributedString(for: blocks[2].text).containsStrongEmphasis(on: "Box squats"))
+        XCTAssertTrue(ChatMarkdownRenderer.attributedString(for: blocks[4].text).containsStrongEmphasis(on: "Side-lying leg raises"))
     }
 }
 

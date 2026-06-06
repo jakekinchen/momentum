@@ -50,7 +50,7 @@ struct KGMemoryPanel: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Memories")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
-                Text("Revision \(store.state.overlayRevision) · Base \(store.state.baseArtifactShortHash)")
+                Text(KGMemoryDisplay.headerSubtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -70,26 +70,27 @@ struct KGMemoryPanel: View {
         case .error:
             panelMessage(store.state.errorMessage ?? "Memory load failed")
         case .loaded:
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let correctionError {
-                        Text(correctionError)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .padding(.horizontal, 16)
+            let activeItems = store.state.items.filter { $0.category == .healthSafety && $0.status == .active }
+            if activeItems.isEmpty {
+                panelMessage("No active health or safety memories")
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if let correctionError {
+                            Text(correctionError)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .padding(.horizontal, 16)
+                        }
+                        memorySection(
+                            title: "Health & Safety",
+                            items: activeItems
+                        )
                     }
-                    memorySection(
-                        title: "Active Health & Safety",
-                        items: store.state.items.filter { $0.category == .healthSafety && $0.status == .active }
-                    )
-                    memorySection(
-                        title: "Archived / Corrected",
-                        items: store.state.items.filter { $0.category == .healthSafety && $0.status == .corrected }
-                    )
+                    .padding(.vertical, 16)
                 }
-                .padding(.vertical, 16)
+                .scrollIndicators(.never)
             }
-            .scrollIndicators(.never)
         }
     }
 
@@ -121,7 +122,7 @@ struct KGMemoryPanel: View {
                 VStack(spacing: 10) {
                     ForEach(items) { item in
                         KGMemoryRow(item: item) {
-                            correct(item)
+                            delete(item)
                         }
                     }
                 }
@@ -130,11 +131,11 @@ struct KGMemoryPanel: View {
         }
     }
 
-    private func correct(_ item: KGMemoryItem) {
+    private func delete(_ item: KGMemoryItem) {
         do {
             try store.correctHealthMemory(
                 operationID: item.operationID,
-                reason: "Marked resolved from Memories panel."
+                reason: KGMemoryDisplay.deleteReason
             )
             correctionError = nil
         } catch {
@@ -145,7 +146,7 @@ struct KGMemoryPanel: View {
 
 private struct KGMemoryRow: View {
     let item: KGMemoryItem
-    let onCorrect: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
@@ -156,33 +157,44 @@ private struct KGMemoryRow: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(statusColor)
                 Spacer(minLength: 0)
+
+                if item.status == .active {
+                    Button(role: .destructive) {
+                        onDelete()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .help("Delete memory")
+                }
             }
 
-            Text(item.sourceText)
-                .font(.caption)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Source message")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Text("“\(item.sourceText)”")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.primary.opacity(0.045))
+                    )
+            }
 
             VStack(alignment: .leading, spacing: 4) {
-                metadata("Operation", item.operationID)
-                metadata("Actor", item.actor.rawValue)
-                metadata("Date", item.createdAt)
+                metadata("Remembered", KGMemoryDisplay.formattedDate(item.createdAt))
                 if let reason = item.reason {
                     metadata("Reason", reason)
                 }
-                if !item.evidence.isEmpty {
-                    metadata("Evidence", item.evidence.joined(separator: ", "))
-                }
-            }
-
-            if item.status == .active {
-                Button {
-                    onCorrect()
-                } label: {
-                    Label("Mark Resolved", systemImage: "checkmark.circle")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
             }
         }
         .padding(12)
@@ -217,12 +229,41 @@ private struct KGMemoryRow: View {
             Text(label)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(.secondary)
-                .frame(width: 54, alignment: .leading)
+                .frame(width: 76, alignment: .leading)
             Text(value)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+enum KGMemoryDisplay {
+    static let headerSubtitle = "Control what your coach remembers about you"
+    static let deleteReason = "Deleted from Memories panel."
+
+    static func formattedDate(_ rawValue: String,
+                              locale: Locale = .current,
+                              timeZone: TimeZone = .current) -> String {
+        guard let date = iso8601Date(from: rawValue) else {
+            return rawValue
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = timeZone
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    private static func iso8601Date(from rawValue: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: rawValue) {
+            return date
+        }
+        return ISO8601DateFormatter().date(from: rawValue)
     }
 }

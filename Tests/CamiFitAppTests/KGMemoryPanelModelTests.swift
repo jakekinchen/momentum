@@ -34,6 +34,22 @@ final class KGMemoryPanelModelTests: XCTestCase {
         print("kg-memory-inspector-mode hidden_to_memory=true memory_to_coach=true state_is_value_only=true")
     }
 
+    func testMemoryDisplayUsesUserFacingCopyAndDateFormatting() {
+        XCTAssertEqual(KGMemoryDisplay.headerSubtitle, "Control what your coach remembers about you")
+        XCTAssertEqual(KGMemoryDisplay.deleteReason, "Deleted from Memories panel.")
+
+        let formatted = KGMemoryDisplay.formattedDate(
+            "2026-06-05T15:00:00Z",
+            locale: Locale(identifier: "en_US_POSIX"),
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+
+        XCTAssertEqual(formatted.replacingOccurrences(of: "\u{202F}", with: " "),
+                       "Jun 5, 2026 at 3:00 PM")
+
+        print("kg-memory-display subtitle=user_facing date=\(formatted)")
+    }
+
     func testMedicalProjectionSeparatesActiveAndCorrectedRows() {
         let addKnee = GraphOperation(
             operationID: "op-knee",
@@ -99,7 +115,7 @@ final class KGMemoryPanelModelTests: XCTestCase {
         let assistantText = """
         I will remember that so future coaching avoids loading that area.
 
-        ```camifit-kg-operation
+        ```future-kg-operation
         {
           "operation_type": "AddMedicalConstraint",
           "constraint_type": "BodyRegion",
@@ -145,7 +161,7 @@ final class KGMemoryPanelModelTests: XCTestCase {
         store.load()
 
         let assistantText = """
-        ```camifit-kg-operation
+        ```future-kg-operation
         {"operation_type":"AddPreference","value":"likes squats"}
         ```
         """

@@ -3,6 +3,7 @@ set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO="$PWD"
 APP="$REPO/dist/CamiFit.app"
+BUNDLE_ID="com.camifit.app"
 swift build --disable-sandbox --product CamiFitApp >/dev/null
 BIN="$(swift build --disable-sandbox --product CamiFitApp --show-bin-path)"
 pkill -x CamiFit 2>/dev/null || true; sleep 0.3
@@ -40,7 +41,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>CFBundleExecutable</key><string>CamiFit</string>
-  <key>CFBundleIdentifier</key><string>com.camifit.app</string>
+  <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
   <key>CFBundleName</key><string>CamiFit</string>
   <key>CFBundleDisplayName</key><string>CamiFit</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
@@ -53,6 +54,42 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>
 PLIST
-codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || echo "(codesign skipped)"
+
+find_codesign_identity() {
+  if [[ -n "${CAMIFIT_CODESIGN_IDENTITY:-}" ]]; then
+    printf '%s\n' "$CAMIFIT_CODESIGN_IDENTITY"
+    return 0
+  fi
+
+  local identities identity prefix
+  identities="$(security find-identity -v -p codesigning 2>/dev/null || true)"
+  for prefix in "Apple Development:" "Mac Developer:" "Developer ID Application:" "Apple Distribution:"; do
+    while IFS= read -r identity; do
+      case "$identity" in
+        "$prefix"*)
+          printf '%s\n' "$identity"
+          return 0
+          ;;
+      esac
+    done < <(printf '%s\n' "$identities" | sed -nE 's/^[[:space:]]*[0-9]+\) [A-Fa-f0-9]+ "([^"]+)".*/\1/p')
+  done
+
+  return 1
+}
+
+sign_app_bundle() {
+  local identity
+  if identity="$(find_codesign_identity)"; then
+    echo "codesigning $APP with $identity"
+    codesign --force --deep --sign "$identity" --identifier "$BUNDLE_ID" "$APP"
+    codesign --verify --deep --strict "$APP"
+  else
+    echo "WARNING: no Apple code-signing identity found; using an ad-hoc signature." >&2
+    echo "WARNING: macOS may ask for camera access again after each rebuild." >&2
+    codesign --force --deep --sign - --identifier "$BUNDLE_ID" "$APP" >/dev/null 2>&1 || echo "(codesign skipped)"
+  fi
+}
+
+sign_app_bundle
 echo "$APP"
 open "$APP"

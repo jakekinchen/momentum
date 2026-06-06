@@ -1,11 +1,29 @@
+import Foundation
 import SwiftUI
 
+private enum CamiFitLaunchEnvironment {
+    static var guideExerciseID: String? {
+        guard let id = ProcessInfo.processInfo.environment["CAMIFIT_GUIDE_EXERCISE"],
+              !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return id
+    }
+
+    static var startsInGuideMode: Bool {
+        guideExerciseID != nil
+    }
+}
+
 struct ContentView: View {
+    @EnvironmentObject private var onboarding: OnboardingCoordinator
     @ObservedObject var viewModel: AppExerciseSessionViewModel
     @ObservedObject var codex: CodexAppServerClient
+    @AppStorage("camifit.onboarding.completed") private var didCompleteOnboarding = false
     @StateObject private var liveSession = LiveSession()
     @StateObject private var chat = ChatViewModel()
     @StateObject private var memoryStore = KGMemoryStore()
+    @StateObject private var routineLibrary = RoutineLibraryStore()
     @State private var inspectorState = AppInspectorState()
 
     var body: some View {
@@ -23,6 +41,13 @@ struct ContentView: View {
                         }
                         .keyboardShortcut("r", modifiers: [.command])
                         .help("Reset session")
+
+                        Button {
+                            onboarding.showTour()
+                        } label: {
+                            Label("Tour", systemImage: "questionmark.circle")
+                        }
+                        .help("Show the Future Coach feature tour")
                     }
 
                     ToolbarItem {
@@ -55,24 +80,48 @@ struct ContentView: View {
                     .inspectorColumnWidth(min: 300, ideal: 360, max: 460)
                 }
         }
-        .navigationTitle("CamiFit")
-        .navigationSubtitle(viewModel.state.selectedExerciseName ?? "No exercise")
+        .navigationTitle("Momentum")
+        .navigationSubtitle("A Future product")
+        .sheet(isPresented: $onboarding.isPresented, onDismiss: completeOnboardingIfNeeded) {
+            OnboardingFlowView(onFinish: {
+                didCompleteOnboarding = true
+                onboarding.dismiss()
+            })
+        }
         .environmentObject(viewModel)
         .environmentObject(liveSession)
         .environmentObject(chat)
         .environmentObject(codex)
+        .environmentObject(routineLibrary)
         .onAppear {
             viewModel.loadAvailablePresets()
+            if let guideExerciseID = CamiFitLaunchEnvironment.guideExerciseID {
+                try? viewModel.selectPreset(id: guideExerciseID)
+                didCompleteOnboarding = true
+                onboarding.dismiss()
+            }
             viewModel.loadRecordedRuns()
+            routineLibrary.load()
             liveSession.refreshCameras()
             chat.codex = codex
             chat.memoryStore = memoryStore
             codex.start()
             memoryStore.load()
+            if !didCompleteOnboarding {
+                DispatchQueue.main.async {
+                    onboarding.showTour()
+                }
+            }
         }
         .onDisappear {
             liveSession.stop()
             codex.stop()
+        }
+    }
+
+    private func completeOnboardingIfNeeded() {
+        if !didCompleteOnboarding {
+            didCompleteOnboarding = true
         }
     }
 }
@@ -153,17 +202,47 @@ private struct DetailBackdrop: View {
 private struct HeroPreviewCard: View {
     @EnvironmentObject private var model: AppExerciseSessionViewModel
     @ObservedObject var liveSession: LiveSession
+    @State private var feedMode: HeroFeedMode = CamiFitLaunchEnvironment.startsInGuideMode ? .avatarGuide : .tracking
+    @State private var showsSkeletonOverlay = true
+    @State private var routineTimer: Timer?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            PoseStage(liveSession: liveSession)
+            PoseStage(liveSession: liveSession, feedMode: feedMode, showsSkeletonOverlay: showsSkeletonOverlay)
 
-            VStack(alignment: .leading) {
-                HStack(alignment: .top, spacing: 10) {
-                    StatTile(label: "Reps", value: "\(model.state.repCount)", systemImage: "repeat")
-                    StatTile(label: "Hold", value: model.state.holdProgressText, systemImage: "timer")
-                    StatTile(label: "Score", value: model.state.scoreText ?? "n/a", systemImage: "rosette")
+            if feedMode != .avatarGuide {
+                VStack(alignment: .leading) {
+                    HStack(alignment: .top, spacing: 10) {
+                        StatTile(label: "Reps", value: "\(model.state.repCount)", systemImage: "repeat")
+                        StatTile(label: "Hold", value: model.state.holdProgressText, systemImage: "timer")
+                        StatTile(label: "Score", value: model.state.scoreText ?? "n/a", systemImage: "rosette")
+                        Spacer(minLength: 0)
+                    }
+                    Spacer()
+                }
+                .padding(14)
+            }
+
+            VStack {
+                HStack {
                     Spacer(minLength: 0)
+                    Button {
+                        withAnimation(.smooth) {
+                            if feedMode == .avatarGuide {
+                                feedMode = .tracking
+                            } else {
+                                liveSession.stop()
+                                model.resetLiveSession()
+                                feedMode = .avatarGuide
+                            }
+                        }
+                    } label: {
+                        Label(feedMode == .avatarGuide ? "Camera" : "Guide",
+                              systemImage: feedMode == .avatarGuide ? "video.fill" : "figure.strengthtraining.functional")
+                    }
+                    .buttonStyle(.glassProminent)
+                    .tint(feedMode == .avatarGuide ? .cyan : .secondary)
+                    .help(feedMode == .avatarGuide ? "Return to camera tracking" : "Show the avatar guide for the selected exercise")
                 }
                 Spacer()
             }
@@ -173,9 +252,13 @@ private struct HeroPreviewCard: View {
                 VStack {
                     HStack(spacing: 8) {
                         Text(routine.name).font(.caption.weight(.semibold))
-                        Text("Block \(model.activeRoutineBlockIndex + 1) of \(routine.blocks.count)")
+                        Text("Step \(model.activeRoutineBlockIndex + 1) of \(routine.blocks.count)")
                             .font(.caption2).foregroundStyle(.secondary)
-                        Button("Next") { model.advanceRoutine() }.buttonStyle(.bordered).controlSize(.mini)
+                        if let progress = model.activeRoutineProgressText {
+                            Text(progress)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.primary)
+                        }
                     }
                     .padding(8)
                     .glassEffect(.regular, in: .capsule)
@@ -183,6 +266,11 @@ private struct HeroPreviewCard: View {
                 }
                 .padding(.top, 64)
             }
+
+            RoutinePhaseOverlay(
+                phase: model.routineSession.phase,
+                cameraStatus: liveSession.camera.statusText
+            )
 
             if let cueText = model.state.cueText {
                 VStack {
@@ -198,7 +286,11 @@ private struct HeroPreviewCard: View {
 
             VStack {
                 Spacer()
-                ActionControlBar(liveSession: liveSession)
+                ActionControlBar(
+                    liveSession: liveSession,
+                    feedMode: $feedMode,
+                    showsSkeletonOverlay: $showsSkeletonOverlay
+                )
             }
             .padding(14)
         }
@@ -211,20 +303,110 @@ private struct HeroPreviewCard: View {
                 .stroke(.white.opacity(0.06), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.14), radius: 10, y: 4)
+        .onChange(of: model.routineSession.phase) { _, phase in
+            handleRoutinePhaseChange(phase)
+        }
+        .onReceive(liveSession.camera.$statusText) { status in
+            handleCameraStatus(status)
+        }
+        .onDisappear {
+            routineTimer?.invalidate()
+            routineTimer = nil
+        }
     }
+
+    private func handleRoutinePhaseChange(_ phase: RoutineSessionPhase) {
+        routineTimer?.invalidate()
+        routineTimer = nil
+
+        switch phase {
+        case .idle:
+            break
+        case .starting:
+            liveSession.stop()
+            feedMode = .avatarGuide
+            scheduleRoutineTick(after: 0.45) {
+                model.beginRoutineGuide(seconds: 6)
+            }
+        case .guide:
+            liveSession.stop()
+            feedMode = .avatarGuide
+            scheduleRoutineTick(after: 1) {
+                model.tickRoutineGuide()
+            }
+        case .waitingForCamera:
+            feedMode = .tracking
+            ensureLiveCamera()
+            handleCameraStatus(liveSession.camera.statusText)
+        case .countdown:
+            feedMode = .tracking
+            ensureLiveCamera()
+            scheduleRoutineTick(after: 1) {
+                model.tickRoutineCountdown()
+            }
+        case .working:
+            feedMode = .tracking
+            ensureLiveCamera()
+        case .resting:
+            feedMode = .tracking
+            scheduleRoutineTick(after: 1) {
+                model.tickRoutineRest()
+            }
+        case .paused:
+            break
+        case .complete:
+            liveSession.stop()
+            scheduleRoutineTick(after: 2.5) {
+                model.cancelRoutine()
+            }
+        }
+    }
+
+    private func handleCameraStatus(_ status: String) {
+        guard case .waitingForCamera = model.routineSession.phase,
+              status == "Camera running" else {
+            return
+        }
+        model.beginRoutineCountdown(seconds: 3)
+    }
+
+    private func ensureLiveCamera() {
+        guard !(liveSession.running && liveSession.isLiveCamera) else { return }
+        liveSession.stop()
+        liveSession.start(viewModel: model)
+    }
+
+    private func scheduleRoutineTick(after seconds: TimeInterval, _ action: @escaping () -> Void) {
+        routineTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { _ in
+            DispatchQueue.main.async {
+                action()
+            }
+        }
+    }
+}
+
+private enum HeroFeedMode: Equatable {
+    case tracking
+    case avatarGuide
 }
 
 private struct PoseStage: View {
     @EnvironmentObject private var model: AppExerciseSessionViewModel
     @ObservedObject var liveSession: LiveSession
+    let feedMode: HeroFeedMode
+    let showsSkeletonOverlay: Bool
 
     var body: some View {
         ZStack {
-            if liveSession.running && liveSession.isLiveCamera {
+            if feedMode == .avatarGuide {
+                AvatarDemoStage()
+            } else if liveSession.running && liveSession.isLiveCamera {
                 CameraPreview(session: liveSession.camera.session)
                     .background(Color.black)
-                LivePoseOverlay(state: model.latestPoseOverlayState, sourceSize: liveSession.sourceSize)
-                    .allowsHitTesting(false)
+                if showsSkeletonOverlay {
+                    LivePoseOverlay(state: model.latestPoseOverlayState, sourceSize: liveSession.sourceSize)
+                        .allowsHitTesting(false)
+                }
             } else {
                 LinearGradient(
                     colors: [Color(red: 0.05, green: 0.07, blue: 0.10), Color(red: 0.02, green: 0.03, blue: 0.05)],
@@ -264,7 +446,7 @@ private struct PoseStage: View {
                 .font(.system(size: 36, weight: .regular))
             Text("No pose data yet")
                 .font(.title3.weight(.semibold))
-            Text("Press Live Camera for webcam tracking, or Demo to play a sample squat.")
+            Text("Press Live Camera for webcam tracking.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -294,12 +476,61 @@ private struct CueBanner: View {
     }
 }
 
+private struct RoutinePhaseOverlay: View {
+    let phase: RoutineSessionPhase
+    let cameraStatus: String
+
+    var body: some View {
+        switch phase {
+        case .idle, .working:
+            EmptyView()
+        case .starting:
+            overlay(title: "Routine starting", detail: nil, symbol: "play.circle.fill")
+        case let .guide(secondsRemaining):
+            overlay(title: "Watch the guide", detail: "\(secondsRemaining)s", symbol: "figure.strengthtraining.functional")
+        case .waitingForCamera:
+            overlay(title: "Waiting for camera", detail: cameraStatus, symbol: "video.fill")
+        case let .countdown(secondsRemaining):
+            overlay(title: "\(secondsRemaining)", detail: "Get ready", symbol: "timer")
+        case let .resting(secondsRemaining):
+            overlay(title: "Rest", detail: "\(secondsRemaining)s", symbol: "timer")
+        case .paused:
+            overlay(title: "Paused", detail: "Resume when ready", symbol: "pause.circle.fill")
+        case .complete:
+            overlay(title: "Routine complete", detail: nil, symbol: "checkmark.circle.fill")
+        }
+    }
+
+    private func overlay(title: String, detail: String?, symbol: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 28, weight: .semibold))
+            Text(title)
+                .font(.title3.weight(.semibold))
+                .multilineTextAlignment(.center)
+            if let detail, !detail.isEmpty {
+                Text(detail)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 18)
+        .frame(minWidth: 180)
+        .glassEffect(.regular.tint(.black.opacity(0.18)), in: .rect(cornerRadius: 16, style: .continuous))
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 private struct ActionControlBar: View {
     @EnvironmentObject private var model: AppExerciseSessionViewModel
     @ObservedObject var liveSession: LiveSession
+    @Binding var feedMode: HeroFeedMode
+    @Binding var showsSkeletonOverlay: Bool
 
     private var liveActive: Bool { liveSession.running && liveSession.isLiveCamera }
-    private var demoActive: Bool { liveSession.running && !liveSession.isLiveCamera }
 
     var body: some View {
         GlassEffectContainer(spacing: 12) {
@@ -309,6 +540,7 @@ private struct ActionControlBar: View {
                         liveSession.stop()
                     } else {
                         liveSession.stop()
+                        feedMode = .tracking
                         liveSession.start(viewModel: model)
                     }
                 } label: {
@@ -319,21 +551,14 @@ private struct ActionControlBar: View {
                 .tint(liveActive ? .red : .accentColor)
                 .help(liveActive ? "Stop the live camera" : "Track reps from your webcam, in this window")
 
-                Button {
-                    if demoActive {
-                        liveSession.stop()
-                    } else {
-                        liveSession.stop()
-                        if let url = Self.demoFramesURL {
-                            liveSession.startSynthetic(viewModel: model, framesURL: url)
-                        }
-                    }
-                } label: {
-                    Label(demoActive ? "Stop Demo" : "Demo",
-                          systemImage: demoActive ? "stop.fill" : "play.fill")
+                Toggle(isOn: $showsSkeletonOverlay) {
+                    Label("Skeleton", systemImage: showsSkeletonOverlay ? "figure.walk.motion" : "figure.stand")
                 }
-                .buttonStyle(.glass)
-                .help("Play the bundled synthetic squat trace in the viewer")
+                .toggleStyle(.checkbox)
+                .disabled(feedMode == .avatarGuide)
+                .help(feedMode == .avatarGuide
+                      ? "The skeleton overlay is only available during live camera tracking"
+                      : "Show or hide the skeleton overlay while using the live camera")
 
                 if liveActive {
                     Button {
@@ -349,6 +574,17 @@ private struct ActionControlBar: View {
 
                 Spacer(minLength: 12)
 
+                if model.activeRoutine != nil || model.routineSession.phase == .paused {
+                    Button {
+                        model.toggleRoutinePause()
+                    } label: {
+                        Label(pauseTitle, systemImage: pauseIcon)
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(!canTogglePause)
+                    .help(pauseTitle)
+                }
+
                 Button {
                     model.resetLiveSession()
                 } label: {
@@ -363,8 +599,16 @@ private struct ActionControlBar: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 14, style: .continuous))
     }
 
-    private static var demoFramesURL: URL? {
-        Bundle.module.url(forResource: "synthetic_squat_demo", withExtension: "jsonl", subdirectory: "Demo")
+    private var canTogglePause: Bool {
+        model.routineSession.phase.canPause || model.routineSession.phase == .paused
+    }
+
+    private var pauseTitle: String {
+        model.routineSession.phase == .paused ? "Resume" : "Pause"
+    }
+
+    private var pauseIcon: String {
+        model.routineSession.phase == .paused ? "play.fill" : "pause.fill"
     }
 }
 
@@ -428,7 +672,69 @@ private struct SessionStatusStrip: View {
 
 // MARK: - Sidebar (session inputs)
 
+private enum SidebarTab: String, CaseIterable {
+    case settings
+    case routines
+
+    var title: String {
+        switch self {
+        case .settings: "Settings"
+        case .routines: "Routines"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .settings: "slider.horizontal.3"
+        case .routines: "list.bullet.rectangle"
+        }
+    }
+}
+
 private struct SessionSidebar: View {
+    @SceneStorage("camifit.sidebar.tab") private var selectedTabRaw = SidebarTab.settings.rawValue
+
+    private var selectedTab: SidebarTab {
+        SidebarTab(rawValue: selectedTabRaw) ?? .settings
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("Sidebar", selection: selectedTabBinding) {
+                ForEach(SidebarTab.allCases, id: \.rawValue) { tab in
+                    Label(tab.title, systemImage: tab.systemImage)
+                        .tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+
+            Divider().opacity(0.45)
+
+            Group {
+                switch selectedTab {
+                case .settings:
+                    SessionSettingsSidebar()
+                case .routines:
+                    RoutineLibrarySidebar()
+                }
+            }
+        }
+        .navigationTitle(selectedTab.title)
+    }
+
+    private var selectedTabBinding: Binding<SidebarTab> {
+        Binding {
+            selectedTab
+        } set: { tab in
+            selectedTabRaw = tab.rawValue
+        }
+    }
+}
+
+private struct SessionSettingsSidebar: View {
     var body: some View {
         Form {
             ExerciseSection()
@@ -440,7 +746,198 @@ private struct SessionSidebar: View {
         .formStyle(.grouped)
         .controlSize(.small)
         .scrollContentBackground(.hidden)
-        .navigationTitle("Session")
+    }
+}
+
+private struct RoutineLibrarySidebar: View {
+    @EnvironmentObject private var model: AppExerciseSessionViewModel
+    @EnvironmentObject private var routineLibrary: RoutineLibraryStore
+    @State private var startError: String?
+    @State private var expandedRoutineIDs: Set<String> = []
+
+    var body: some View {
+        List {
+            if let startError {
+                Text(startError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            if routineLibrary.routines.isEmpty {
+                Text("No saved routines")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(routineLibrary.routines) { routine in
+                    DisclosureGroup(isExpanded: expandedBinding(for: routine.id)) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button {
+                                start(routine)
+                            } label: {
+                                Label("Start full routine", systemImage: "play.fill")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+
+                            ForEach(Array(routine.blocks.enumerated()), id: \.offset) { index, block in
+                                Button {
+                                    start(routine, atBlock: index)
+                                } label: {
+                                    RoutineBlockSidebarRow(
+                                        index: index,
+                                        block: block,
+                                        exerciseName: exerciseName(for: block.exerciseRef)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.top, 6)
+                    } label: {
+                        RoutineSidebarRow(routine: routine)
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .onAppear { routineLibrary.load() }
+    }
+
+    private func start(_ routine: WorkoutRoutine) {
+        start(routine, atBlock: 0)
+    }
+
+    private func start(_ routine: WorkoutRoutine, atBlock index: Int) {
+        do {
+            try model.startRoutine(routine, atBlock: index)
+            startError = nil
+            expandedRoutineIDs.insert(routine.id)
+        } catch {
+            startError = String(describing: error)
+        }
+    }
+
+    private func expandedBinding(for routineID: String) -> Binding<Bool> {
+        Binding {
+            expandedRoutineIDs.contains(routineID)
+        } set: { isExpanded in
+            if isExpanded {
+                expandedRoutineIDs.insert(routineID)
+            } else {
+                expandedRoutineIDs.remove(routineID)
+            }
+        }
+    }
+
+    private func exerciseName(for ref: ExerciseRef) -> String {
+        switch ref {
+        case let .preset(id):
+            return model.availablePresets.first { $0.id == id }?.name ?? id.replacingOccurrences(of: "_", with: " ")
+        case let .inline(program):
+            return program.name
+        }
+    }
+}
+
+private struct RoutineSidebarRow: View {
+    let routine: WorkoutRoutine
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: "list.bullet.rectangle")
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(routine.name)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(detailText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 4)
+    }
+
+    private var detailText: String {
+        let blocks = routine.blocks.count
+        let blockText = "\(blocks) \(blocks == 1 ? "block" : "blocks")"
+        guard let description = routine.description, !description.isEmpty else {
+            return blockText
+        }
+        return "\(blockText) · \(description)"
+    }
+}
+
+private struct RoutineBlockSidebarRow: View {
+    let index: Int
+    let block: RoutineBlock
+    let exerciseName: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Text("\(index + 1)")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 18, height: 18)
+                .background(
+                    Circle().fill(Color.primary.opacity(0.06))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(exerciseName)
+                    .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(detailText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "play.circle")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 5)
+        .padding(.horizontal, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.primary.opacity(0.035))
+        )
+    }
+
+    private var detailText: String {
+        let target: String
+        if let reps = block.reps {
+            target = "\(block.sets)x\(reps) reps"
+        } else if let holdSeconds = block.holdSeconds {
+            target = "\(block.sets)x\(Int(holdSeconds))s hold"
+        } else {
+            target = "\(block.sets) sets"
+        }
+
+        guard let restSeconds = block.restSeconds, restSeconds > 0 else {
+            return target
+        }
+        return "\(target) · \(restSeconds)s rest"
     }
 }
 
@@ -531,7 +1028,7 @@ struct CamiFitSettingsView: View {
             } header: {
                 Text("OpenAI Account")
             } footer: {
-                Text("CamiFit signs in with your ChatGPT account through Codex. The coach uses this account for every reply.")
+                Text("Future Coach signs in with your ChatGPT account through Codex. The coach uses this account for every reply.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -847,20 +1344,24 @@ private struct ChatHeader: View {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [.mint.opacity(0.92), .teal.opacity(0.82), .blue.opacity(0.78)],
+                            colors: [
+                                Color(red: 0.05, green: 0.07, blue: 0.09),
+                                Color(red: 0.08, green: 0.13, blue: 0.12),
+                                Color(red: 0.03, green: 0.04, blue: 0.05)
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                Image(systemName: "sparkles")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white)
+                BrandLogoMark()
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 7)
             }
             .frame(width: 34, height: 34)
-            .shadow(color: .mint.opacity(0.22), radius: 8, y: 3)
+            .shadow(color: .teal.opacity(0.18), radius: 8, y: 3)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("CamiFit Coach")
+                Text("Future Coach")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                 Text(statusText)
                     .font(.caption)
@@ -877,11 +1378,11 @@ private struct ChatHeader: View {
     }
 
     private var statusText: String {
-        if codex.account != .signedIn { return "Sign in via CamiFit ▸ Settings" }
+        if codex.account != .signedIn { return "Sign in via Future Coach ▸ Settings" }
         switch codex.state {
         case .idle: return "Idle"
         case .starting: return "Connecting to Codex…"
-        case .ready: return "Powered by Codex"
+        case .ready: return "Your momentum starts here."
         case .failed(let message): return message
         }
     }
@@ -899,6 +1400,8 @@ private struct ChatEmptyState: View {
     @EnvironmentObject private var chat: ChatViewModel
 
     private let starters = [
+        ("Make my bodyweight lower body routine", "figure.strengthtraining.functional"),
+        ("Show me how to workout my core", "target"),
         ("How's my squat form?", "figure.strengthtraining.functional"),
         ("How many reps should I do?", "repeat"),
         ("Give me a quick warm-up", "flame")
@@ -906,12 +1409,18 @@ private struct ChatEmptyState: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Ask your coach")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                Text("Questions about form, reps, and your session will live here.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+            HStack(alignment: .top, spacing: 10) {
+                BrandLogoMark()
+                    .frame(width: 18, height: 24)
+                    .padding(.top, 2)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Ask your coach")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    Text("Questions about form, reps, and your session will live here.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             VStack(spacing: 8) {
@@ -927,7 +1436,9 @@ private struct ChatEmptyState: View {
                             Text(title)
                                 .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .foregroundStyle(.primary)
-                            Spacer()
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             Image(systemName: "arrow.up.right")
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(.tertiary)
@@ -951,7 +1462,40 @@ private struct ChatEmptyState: View {
     }
 }
 
+struct ChatMarkdownBlock: Equatable {
+    enum Kind: Equatable {
+        case paragraph
+        case heading(level: Int)
+        case unorderedListItem
+        case orderedListItem(number: String)
+    }
+
+    let kind: Kind
+    let text: String
+}
+
 enum ChatMarkdownRenderer {
+    static func blocks(for text: String) -> [ChatMarkdownBlock] {
+        var blocks: [ChatMarkdownBlock] = []
+
+        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let trimmed = String(line).trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+
+            if let heading = parseHeading(trimmed) {
+                blocks.append(ChatMarkdownBlock(kind: .heading(level: heading.level), text: heading.text))
+            } else if let unordered = parseUnorderedListItem(trimmed) {
+                blocks.append(ChatMarkdownBlock(kind: .unorderedListItem, text: unordered))
+            } else if let ordered = parseOrderedListItem(trimmed) {
+                blocks.append(ChatMarkdownBlock(kind: .orderedListItem(number: ordered.number), text: ordered.text))
+            } else {
+                blocks.append(ChatMarkdownBlock(kind: .paragraph, text: trimmed))
+            }
+        }
+
+        return blocks
+    }
+
     static func attributedString(for text: String) -> AttributedString {
         do {
             return try AttributedString(
@@ -964,6 +1508,109 @@ enum ChatMarkdownRenderer {
         } catch {
             return AttributedString(text)
         }
+    }
+
+    private static func parseHeading(_ line: String) -> (level: Int, text: String)? {
+        let level = line.prefix(while: { $0 == "#" }).count
+        guard (1...6).contains(level), line.dropFirst(level).first?.isWhitespace == true else {
+            return nil
+        }
+
+        let text = line
+            .dropFirst(level)
+            .trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: #"\s+#+$"#, with: "", options: .regularExpression)
+        return text.isEmpty ? nil : (level, text)
+    }
+
+    private static func parseUnorderedListItem(_ line: String) -> String? {
+        guard let first = line.first, first == "-" || first == "*" || first == "+",
+              line.dropFirst().first?.isWhitespace == true else {
+            return nil
+        }
+
+        let text = line.dropFirst().trimmingCharacters(in: .whitespaces)
+        return text.isEmpty ? nil : text
+    }
+
+    private static func parseOrderedListItem(_ line: String) -> (number: String, text: String)? {
+        let digits = line.prefix(while: { $0.isNumber })
+        guard !digits.isEmpty else { return nil }
+
+        let afterDigits = line.dropFirst(digits.count)
+        guard let marker = afterDigits.first, marker == "." || marker == ")",
+              afterDigits.dropFirst().first?.isWhitespace == true else {
+            return nil
+        }
+
+        let text = afterDigits.dropFirst().trimmingCharacters(in: .whitespaces)
+        return text.isEmpty ? nil : (String(digits), text)
+    }
+}
+
+private struct ChatMarkdownText: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(ChatMarkdownRenderer.blocks(for: text).enumerated()), id: \.offset) { _, block in
+                ChatMarkdownBlockView(block: block)
+            }
+        }
+    }
+}
+
+private struct ChatMarkdownBlockView: View {
+    let block: ChatMarkdownBlock
+
+    private let bodyFont = Font.system(size: 13.5, weight: .regular, design: .rounded)
+
+    var body: some View {
+        switch block.kind {
+        case .paragraph:
+            inlineText(block.text)
+                .font(bodyFont)
+                .fixedSize(horizontal: false, vertical: true)
+
+        case .heading(let level):
+            inlineText(block.text)
+                .font(headingFont(for: level))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+
+        case .unorderedListItem:
+            HStack(alignment: .firstTextBaseline, spacing: 7) {
+                Text("•")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .frame(width: 12, alignment: .trailing)
+                inlineText(block.text)
+                    .font(bodyFont)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+        case .orderedListItem(let number):
+            HStack(alignment: .firstTextBaseline, spacing: 7) {
+                Text("\(number).")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .frame(width: 22, alignment: .trailing)
+                inlineText(block.text)
+                    .font(bodyFont)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func inlineText(_ text: String) -> Text {
+        Text(ChatMarkdownRenderer.attributedString(for: text))
+    }
+
+    private func headingFont(for level: Int) -> Font {
+        level <= 2
+            ? .system(size: 15, weight: .semibold, design: .rounded)
+            : .system(size: 14, weight: .semibold, design: .rounded)
     }
 }
 
@@ -987,8 +1634,7 @@ private struct ChatBubble: View {
     }
 
     private var bubble: some View {
-        Text(ChatMarkdownRenderer.attributedString(for: message.text))
-            .font(.system(size: 13.5, weight: .regular, design: .rounded))
+        ChatMarkdownText(text: message.text)
             .foregroundStyle(.primary)
             .textSelection(.enabled)
             .fixedSize(horizontal: false, vertical: true)
@@ -1006,10 +1652,10 @@ private struct ChatAvatar: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(.mint.opacity(0.16))
-            Image(systemName: "sparkles")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.mint)
+                .fill(Color.primary.opacity(0.08))
+            BrandLogoMark()
+                .padding(.vertical, 4)
+                .padding(.horizontal, 6)
         }
         .frame(width: 24, height: 24)
         .padding(.top, 1)

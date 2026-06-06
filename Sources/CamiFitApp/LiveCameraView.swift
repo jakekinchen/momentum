@@ -1,5 +1,6 @@
 import AppKit
 import CamiFitEngine
+import Combine
 import Foundation
 import SwiftUI
 
@@ -27,16 +28,29 @@ final class LiveSession: ObservableObject {
     @Published var recording = false
     @Published var availableCameras: [CameraDevice] = []
     @Published var selectedCameraID: String?
+    @Published var poseReadiness: PosePipelineReadiness = .idle
     let recordDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Developer/camifit/dist/capture")
 
     let camera = LiveCameraController()
     private var worker: LivePoseWorkerClient?
     private weak var viewModel: AppExerciseSessionViewModel?
+    private var onPoseFrame: ((PoseFrame) -> Void)?
+    private var cameraReadinessCancellable: AnyCancellable?
     private var syntheticTimer: Timer?
     private var syntheticFrames: [PoseFrame] = []
     private var syntheticIndex = 0
     private let shotDir = ProcessInfo.processInfo.environment["CAMIFIT_SHOT_DIR"]
     private var shotCounter = 0
+
+    /// Renders the current overlay + HUD to a PNG via ImageRenderer (no screen-recording
+    /// permission needed) when CAMIFIT_SHOT_DIR is set — for deterministic GUI captures.
+    init() {
+        cameraReadinessCancellable = camera.$readiness.sink { [weak self] readiness in
+            DispatchQueue.main.async {
+                self?.handleCameraReadiness(readiness)
+            }
+        }
+    }
 
     /// Renders the current overlay + HUD to a PNG via ImageRenderer (no screen-recording
     /// permission needed) when CAMIFIT_SHOT_DIR is set — for deterministic GUI captures.
@@ -64,6 +78,7 @@ final class LiveSession: ObservableObject {
     /// can be exercised + screenshotted deterministically from synthetic data.
     func startSynthetic(viewModel: AppExerciseSessionViewModel, framesURL: URL) {
         self.viewModel = viewModel
+        onPoseFrame = nil
         // Synthetic trace is a squat; prefer the squat preset (CAMIFIT_SYNTHETIC_EXERCISE overrides).
         let preferredID = ProcessInfo.processInfo.environment["CAMIFIT_SYNTHETIC_EXERCISE"] ?? "bodyweight_squat"
         let preset = viewModel.availablePresets.first { $0.id == preferredID } ?? viewModel.availablePresets.first
@@ -84,6 +99,7 @@ final class LiveSession: ObservableObject {
         syntheticIndex = 0
         if let shotDir { try? FileManager.default.createDirectory(atPath: shotDir, withIntermediateDirectories: true) }
         errorText = nil
+        poseReadiness = .ready
         running = true
         isLiveCamera = false
         syntheticTimer = Timer.scheduledTimer(withTimeInterval: 0.10, repeats: true) { [weak self] timer in
@@ -99,8 +115,12 @@ final class LiveSession: ObservableObject {
         }
     }
 
-    func start(viewModel: AppExerciseSessionViewModel) {
+    func start(
+        viewModel: AppExerciseSessionViewModel,
+        onPoseFrame: ((PoseFrame) -> Void)? = nil
+    ) {
         self.viewModel = viewModel
+        self.onPoseFrame = onPoseFrame
         if viewModel.state.selectedExerciseID == nil, let first = viewModel.availablePresets.first {
             try? viewModel.selectPreset(id: first.id)
         }
@@ -108,10 +128,12 @@ final class LiveSession: ObservableObject {
 
         let paths = LiveWorkerPaths.resolve()
         let client = LivePoseWorkerClient(pythonURL: paths.python, scriptURL: paths.script, modelURL: paths.model)
+        poseReadiness = .workerStarting
         do {
             try client.start()
         } catch {
             errorText = "Pose worker failed to start: \(error.localizedDescription)"
+            poseReadiness = .failed(errorText ?? "Pose worker failed")
             return
         }
         worker = client
@@ -122,10 +144,26 @@ final class LiveSession: ObservableObject {
             DispatchQueue.main.async { self.sourceSize = size }
             do {
                 if let frame = try worker.predict(imagePath: path, frameID: Int(truncatingIfNeeded: timestampMS), timestampMS: timestampMS) {
-                    DispatchQueue.main.async { self.viewModel?.ingestLiveFrame(frame) }
+                    DispatchQueue.main.async {
+                        self.poseReadiness = .ready
+                        if let onPoseFrame = self.onPoseFrame {
+                            onPoseFrame(frame)
+                        } else {
+                            self.viewModel?.ingestLiveFrame(frame)
+                        }
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        if self.poseReadiness != .ready {
+                            self.poseReadiness = .waitingForFirstPose
+                        }
+                    }
                 }
             } catch {
                 // transient per-frame error — drop this frame, keep going.
+                DispatchQueue.main.async {
+                    self.poseReadiness = .degraded("Dropping a camera frame")
+                }
             }
         }
         camera.preferredDeviceID = selectedCameraID
@@ -143,12 +181,14 @@ final class LiveSession: ObservableObject {
         syntheticTimer = nil
         camera.stop()
         camera.onFrame = nil
+        onPoseFrame = nil
         camera.recording = false
         recording = false
         worker?.stop()
         worker = nil
         running = false
         isLiveCamera = false
+        poseReadiness = .idle
     }
 
     /// Starts/stops capturing the live camera frames to `recordDir` (for offline analysis).
@@ -164,6 +204,19 @@ final class LiveSession: ObservableObject {
             recording = true
         }
     }
+
+    private func handleCameraReadiness(_ readiness: CameraReadiness) {
+        switch readiness {
+        case .streaming:
+            if running, isLiveCamera, poseReadiness != .ready {
+                poseReadiness = .waitingForFirstPose
+            }
+        default:
+            if running, isLiveCamera {
+                poseReadiness = .camera(readiness)
+            }
+        }
+    }
 }
 
 /// Camera-free verification surface: auto-plays a synthetic landmark trace through the real
@@ -176,7 +229,7 @@ struct SyntheticDemoView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("CamiFit — Synthetic Demo").font(.headline)
+                Text("Future Coach - Synthetic Demo").font(.headline)
                 Spacer()
                 Text("synthetic squat trace").font(.caption).foregroundStyle(.secondary)
             }

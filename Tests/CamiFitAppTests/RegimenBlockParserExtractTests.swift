@@ -5,11 +5,11 @@ final class RegimenBlockParserExtractTests: XCTestCase {
     func testExtractsBothBlockKindsFromMixedProse() {
         let text = """
         Here is a plan!
-        ```camifit-routine
+        ```future-routine
         {"id":"r1"}
         ```
         And a new move:
-        ```camifit-exercise
+        ```future-exercise
         {"id":"e1"}
         ```
         Enjoy.
@@ -22,5 +22,15 @@ final class RegimenBlockParserExtractTests: XCTestCase {
     }
     func testNoBlocksReturnsEmpty() {
         XCTAssertTrue(RegimenBlockParser.extractBlocks(from: "just text").isEmpty)
+    }
+
+    func testLegacyCamiFitTagsStillParse() {
+        let text = """
+        ```camifit-routine
+        {"id":"r1"}
+        ```
+        """
+        let blocks = RegimenBlockParser.extractBlocks(from: text)
+        XCTAssertEqual(blocks.map(\.kind), [.routine])
     }
 }

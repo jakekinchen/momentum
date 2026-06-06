@@ -48,20 +48,106 @@ public struct RoutineBlock: Codable, Equatable {
 }
 
 public struct WorkoutRoutine: Codable, Equatable, Identifiable {
+    public static let currentSchemaVersion = 1
+    public static let currentArtifactType = "routine"
+
+    public var schemaVersion: Int
+    public var artifactType: String
     public var id: String
     public var name: String
     public var description: String?
     public var blocks: [RoutineBlock]
 
     public init(
+        schemaVersion: Int = WorkoutRoutine.currentSchemaVersion,
+        artifactType: String = WorkoutRoutine.currentArtifactType,
         id: String,
         name: String,
         description: String? = nil,
         blocks: [RoutineBlock]
     ) {
+        self.schemaVersion = schemaVersion
+        self.artifactType = artifactType
         self.id = id
         self.name = name
         self.description = description
         self.blocks = blocks
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case artifactType
+        case id
+        case name
+        case description
+        case blocks
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion)
+            ?? Self.currentSchemaVersion
+        guard schemaVersion == Self.currentSchemaVersion else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .schemaVersion,
+                in: container,
+                debugDescription: "Only routine schemaVersion \(Self.currentSchemaVersion) is supported."
+            )
+        }
+
+        let artifactType = try container.decodeIfPresent(String.self, forKey: .artifactType)
+            ?? Self.currentArtifactType
+        guard artifactType == Self.currentArtifactType else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .artifactType,
+                in: container,
+                debugDescription: "Expected artifactType '\(Self.currentArtifactType)'."
+            )
+        }
+
+        let id = try container.decode(String.self, forKey: .id)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = try container.decode(String.self, forKey: .name)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !id.isEmpty else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .id,
+                in: container,
+                debugDescription: "Routine id must not be empty."
+            )
+        }
+        guard !name.isEmpty else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .name,
+                in: container,
+                debugDescription: "Routine name must not be empty."
+            )
+        }
+
+        self.schemaVersion = schemaVersion
+        self.artifactType = artifactType
+        self.id = id
+        self.name = name
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        self.blocks = try container.decode([RoutineBlock].self, forKey: .blocks)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(schemaVersion, forKey: .schemaVersion)
+        try container.encode(artifactType, forKey: .artifactType)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(blocks, forKey: .blocks)
+    }
+
+    func hasSameContent(as other: WorkoutRoutine) -> Bool {
+        schemaVersion == other.schemaVersion
+            && artifactType == other.artifactType
+            && name == other.name
+            && description == other.description
+            && blocks == other.blocks
     }
 }

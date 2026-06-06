@@ -23,6 +23,11 @@ struct KGMemoryChatArtifact: Identifiable, Equatable {
 }
 
 enum KGMemoryProposalParser {
+    private static let operationFenceTags = [
+        "future-kg-operation",
+        "camifit-kg-operation"
+    ]
+
     static func parse(message: String) -> [KGMemoryOperationProposal] {
         fencedBlocks(in: message).compactMap(decodeProposal)
     }
@@ -37,7 +42,7 @@ enum KGMemoryProposalParser {
                 if trimmed == "```" {
                     isSkipping = false
                 }
-            } else if trimmed.lowercased().hasPrefix("```camifit-kg-operation") {
+            } else if isOperationFence(trimmed) {
                 isSkipping = true
             } else {
                 output.append(line)
@@ -64,12 +69,17 @@ enum KGMemoryProposalParser {
                 } else {
                     current.append(line)
                 }
-            } else if trimmed.lowercased().hasPrefix("```camifit-kg-operation") {
+            } else if isOperationFence(trimmed) {
                 isCapturing = true
             }
         }
 
         return blocks
+    }
+
+    private static func isOperationFence(_ trimmedLine: String) -> Bool {
+        let lowercased = trimmedLine.lowercased()
+        return operationFenceTags.contains { lowercased.hasPrefix("```\($0)") }
     }
 
     private static func decodeProposal(_ text: String) -> KGMemoryOperationProposal? {
@@ -163,10 +173,10 @@ enum KGMemoryChatBridge {
         guard !active.isEmpty else { return nil }
         let facts = active.map { "- \($0.title): \($0.sourceText)" }.joined(separator: "\n")
         return """
-        CamiFit local KG fact cards for this user:
+        Future Coach local KG fact cards for this user:
         \(facts)
 
-        Treat these as active health/safety constraints when answering. If a workout would stress a listed body region, avoid it or suggest a gentler alternative. Do not claim you wrote the KG yourself; the CamiFit app owns KG writes.
+        Treat these as active health/safety constraints when answering. If a workout would stress a listed body region, avoid it or suggest a gentler alternative. Do not claim you wrote the KG yourself; the Future Coach app owns KG writes.
         """
     }
 }

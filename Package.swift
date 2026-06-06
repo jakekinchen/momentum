@@ -43,9 +43,11 @@ let package = Package(
             name: "CamiFitApp",
             dependencies: ["CamiFitEngine", "KGKit"],
             resources: [
+                .copy("Resources/Brand"),
                 .copy("Resources/Presets"),
                 .copy("Resources/RecordedRuns"),
-                .copy("Resources/Demo")
+                .copy("Resources/Demo"),
+                .copy("Resources/MotionDemos")
             ]
         ),
         .testTarget(

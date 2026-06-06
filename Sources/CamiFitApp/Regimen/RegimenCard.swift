@@ -4,7 +4,9 @@ import SwiftUI
 struct RegimenCard: View {
     let result: RegimenResult
     @EnvironmentObject private var model: AppExerciseSessionViewModel
+    @EnvironmentObject private var routineLibrary: RoutineLibraryStore
     @State private var saved = false
+    @State private var routineSaveError: String?
 
     var body: some View {
         switch result {
@@ -31,7 +33,38 @@ struct RegimenCard: View {
                 Text("• \(refLabel(block.exerciseRef)) — \(block.sets)×\(block.reps.map(String.init) ?? block.holdSeconds.map { "\(Int($0))s" } ?? "?")")
                     .font(.caption)
             }
-            Button("Start routine") { try? model.startRoutine(routine) }.buttonStyle(.bordered)
+
+            HStack(spacing: 8) {
+                Button("Start routine") {
+                    try? model.startRoutine(routine)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    addRoutine(routine)
+                } label: {
+                    Label(routineLibrary.contains(routine) ? "Added" : "Add routine",
+                          systemImage: routineLibrary.contains(routine) ? "checkmark" : "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(routineLibrary.contains(routine))
+            }
+
+            if let routineSaveError {
+                Text(routineSaveError)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+                    .lineLimit(2)
+            }
+        }
+    }
+
+    private func addRoutine(_ routine: WorkoutRoutine) {
+        do {
+            try routineLibrary.add(routine)
+            routineSaveError = nil
+        } catch {
+            routineSaveError = String(describing: error)
         }
     }
 

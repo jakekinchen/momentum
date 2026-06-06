@@ -2,8 +2,19 @@ import CamiFitEngine
 import Foundation
 
 enum RegimenBlockKind: String, Equatable {
-    case exercise = "camifit-exercise"
-    case routine = "camifit-routine"
+    case exercise = "future-exercise"
+    case routine = "future-routine"
+
+    static func openingFenceKind(for trimmedLine: String) -> RegimenBlockKind? {
+        switch trimmedLine.lowercased() {
+        case "```future-exercise", "```camifit-exercise":
+            return .exercise
+        case "```future-routine", "```camifit-routine":
+            return .routine
+        default:
+            return nil
+        }
+    }
 }
 
 struct RegimenRawBlock: Equatable {
@@ -20,8 +31,10 @@ enum RegimenBlockParser {
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if current == nil {
-                if trimmed == "```camifit-exercise" { current = .exercise; buffer = [] }
-                else if trimmed == "```camifit-routine" { current = .routine; buffer = [] }
+                if let kind = RegimenBlockKind.openingFenceKind(for: trimmed) {
+                    current = kind
+                    buffer = []
+                }
             } else if trimmed == "```" {
                 if let kind = current {
                     blocks.append(RegimenRawBlock(kind: kind, json: buffer.joined(separator: "\n")))

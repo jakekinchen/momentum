@@ -42,6 +42,21 @@ final class MediaPipePoseProviderTests: XCTestCase {
         print("mediapipe-jsonl-presence-fallback right_knee_presence=\(frame.landmark(named: "right.knee")?.presence ?? -1)")
     }
 
+    func testDecodesMotionDemoPoseJSONLWithExplicitSecondarySide() throws {
+        let jsonl = """
+        {"type":"motion_demo_pose","timestamp_ms":1500,"image_size":[1280,720],"landmarks":{"primary.shoulder":{"x":0.54,"y":0.43,"z":0,"visibility":1},"primary.hip":{"x":0.58,"y":0.66,"z":0,"visibility":1},"primary.knee":{"x":0.79,"y":0.67,"z":0.02,"visibility":1},"primary.ankle":{"x":0.80,"y":0.84,"z":0.05,"visibility":1},"secondary.shoulder":{"x":0.51,"y":0.43,"z":-0.18,"visibility":1,"presence":0.98},"secondary.hip":{"x":0.53,"y":0.665,"z":-0.18,"visibility":1},"secondary.knee":{"x":0.39,"y":0.76,"z":-0.16,"visibility":1},"secondary.ankle":{"x":0.30,"y":0.84,"z":-0.18,"visibility":1},"secondary.heel":{"x":0.255,"y":0.795,"z":-0.18,"visibility":1},"secondary.foot.index":{"x":0.37,"y":0.858,"z":-0.19,"visibility":1}}}
+        """
+
+        let frame = try XCTUnwrap(try MediaPipePoseJSONLDecoder.decode(jsonl: jsonl).first)
+
+        XCTAssertEqual(frame.timestampMS, 1_500)
+        XCTAssertEqual(frame.landmark(named: "secondary.shoulder")?.presence, 0.98)
+        XCTAssertEqual(frame.landmark(named: "secondary.hip")?.presence, 1)
+        XCTAssertEqual(frame.landmark(named: "secondary.foot.index")?.x, 0.37)
+
+        print("motion-demo-pose-decode timestamp=\(frame.timestampMS) landmarks=\(frame.landmarks.keys.sorted().joined(separator: ","))")
+    }
+
     func testMalformedJSONLAndWrongLandmarkCountFailClosed() {
         XCTAssertThrowsError(try MediaPipePoseJSONLDecoder.decode(jsonl: #"{"type":"pose","timestamp_ms":1"#)) { error in
             XCTAssertTrue(String(describing: error).contains("malformed JSON"))
@@ -110,6 +125,63 @@ final class MediaPipePoseProviderTests: XCTestCase {
         print("mediapipe-jsonl-trace frames=\(frames.count) trace=\(trace.count)\n\(formatted)")
     }
 
+    func testBundledBodyweightLungeMotionDemoTraceDecodesAndCountsOneRep() throws {
+        let frames = try MediaPipePoseProvider(jsonlURL: Self.bodyweightLungeMotionDemoURL).frames()
+        let first = try XCTUnwrap(frames.first)
+        let deepest = try XCTUnwrap(frames.min { lhs, rhs in
+            Self.kneeAngle(in: lhs) < Self.kneeAngle(in: rhs)
+        })
+
+        XCTAssertEqual(frames.count, 107)
+        XCTAssertEqual(first.timestampMS, 0)
+        XCTAssertTrue(zip(frames, frames.dropFirst()).allSatisfy { $1.timestampMS > $0.timestampMS })
+        for name in [
+            "primary.shoulder",
+            "primary.hip",
+            "primary.knee",
+            "primary.ankle",
+            "secondary.shoulder",
+            "secondary.hip",
+            "secondary.knee",
+            "secondary.ankle",
+            "secondary.foot.index"
+        ] {
+            XCTAssertNotNil(first.landmark(named: name), name)
+        }
+        XCTAssertLessThan(Self.kneeAngle(in: deepest), 105)
+        XCTAssertGreaterThan(Self.kneeAngle(in: first), 160)
+
+        let contactLandmarks = [
+            "primary.heel",
+            "primary.foot.index",
+            "secondary.foot.index"
+        ]
+        let anchors = try Dictionary(uniqueKeysWithValues: contactLandmarks.map { name in
+            (name, try XCTUnwrap(first.landmark(named: name), name))
+        })
+        for frame in frames {
+            for name in contactLandmarks {
+                let current = try XCTUnwrap(frame.landmark(named: name), name)
+                let anchor = try XCTUnwrap(anchors[name], name)
+                XCTAssertEqual(current.x, anchor.x, accuracy: 0.000_001, "\(name) x drifted at \(frame.timestampMS)ms")
+                XCTAssertEqual(current.y, anchor.y, accuracy: 0.000_001, "\(name) y drifted at \(frame.timestampMS)ms")
+            }
+        }
+
+        var recorder = try EngineTraceRecorder(program: ProgramLoader.load(from: Self.lungePresetURL))
+        let trace = recorder.record(frames: frames)
+        let counted = trace.filter { $0.rep.countedThisFrame }.map(\.timestampMS)
+
+        XCTAssertEqual(trace.last?.rep.repCount, 1)
+        XCTAssertEqual(counted.count, 1)
+
+        print(
+            "motion-demo-resource-lunge frames=\(frames.count) " +
+            "knee=\(Self.kneeAngle(in: deepest))..\(Self.kneeAngle(in: first)) " +
+            "final_reps=\(trace.last?.rep.repCount ?? 0) counted=\(counted)"
+        )
+    }
+
     private static var packageRoot: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -127,6 +199,30 @@ final class MediaPipePoseProviderTests: XCTestCase {
 
     private static var presetURL: URL {
         packageRoot.appendingPathComponent("Presets/bodyweight_squat.json")
+    }
+
+    private static var lungePresetURL: URL {
+        packageRoot.appendingPathComponent("Presets/bodyweight_lunge.json")
+    }
+
+    private static var bodyweightLungeMotionDemoURL: URL {
+        packageRoot.appendingPathComponent("Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl")
+    }
+
+    private static func kneeAngle(in frame: PoseFrame) -> Double {
+        guard let hip = frame.landmark(named: "primary.hip"),
+              let knee = frame.landmark(named: "primary.knee"),
+              let ankle = frame.landmark(named: "primary.ankle") else {
+            return .infinity
+        }
+
+        let hipVector = (x: hip.x - knee.x, y: hip.y - knee.y)
+        let ankleVector = (x: ankle.x - knee.x, y: ankle.y - knee.y)
+        let dot = (hipVector.x * ankleVector.x) + (hipVector.y * ankleVector.y)
+        let hipMagnitude = sqrt((hipVector.x * hipVector.x) + (hipVector.y * hipVector.y))
+        let ankleMagnitude = sqrt((ankleVector.x * ankleVector.x) + (ankleVector.y * ankleVector.y))
+        let cosine = min(max(dot / max(hipMagnitude * ankleMagnitude, 0.000_001), -1), 1)
+        return acos(cosine) * 180 / .pi
     }
 
     private static func minimalLandmarksJSON(includePresence: Bool) -> String {

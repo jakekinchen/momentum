@@ -3,7 +3,7 @@ import XCTest
 
 final class RegimenBlockParserCRLFTests: XCTestCase {
     func testExtractsBlockWithCRLFLineEndings() {
-        let text = "intro\r\n```camifit-exercise\r\n{\"id\":\"e1\"}\r\n```\r\nbye"
+        let text = "intro\r\n```future-exercise\r\n{\"id\":\"e1\"}\r\n```\r\nbye"
         let blocks = RegimenBlockParser.extractBlocks(from: text)
         XCTAssertEqual(blocks.count, 1)
         XCTAssertEqual(blocks[0].kind, .exercise)

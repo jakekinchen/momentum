@@ -13,7 +13,8 @@ struct CameraDevice: Identifiable, Equatable {
 /// frame path to `onFrame`. Also vends an `AVCaptureVideoPreviewLayer` for live preview.
 final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     let session = AVCaptureSession()
-    @Published var statusText = "Camera idle"
+    @Published private(set) var readiness: CameraReadiness = .idle
+    @Published private(set) var statusText = CameraReadiness.idle.displayText
 
     private let output = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "camifit.live-camera.session")
@@ -41,20 +42,32 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
     }
 
     func start() {
-        AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-            guard let self else { return }
-            guard granted else {
-                DispatchQueue.main.async { self.statusText = "Camera permission denied" }
-                return
-            }
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            DispatchQueue.main.async { self.setReadiness(.starting) }
             self.sessionQueue.async { self.configureAndRun() }
+        case .notDetermined:
+            DispatchQueue.main.async { self.setReadiness(.requestingPermission) }
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                guard let self else { return }
+                guard granted else {
+                    DispatchQueue.main.async { self.setReadiness(.denied) }
+                    return
+                }
+                DispatchQueue.main.async { self.setReadiness(.starting) }
+                self.sessionQueue.async { self.configureAndRun() }
+            }
+        case .denied, .restricted:
+            DispatchQueue.main.async { self.setReadiness(.denied) }
+        @unknown default:
+            DispatchQueue.main.async { self.setReadiness(.failed("Camera unavailable")) }
         }
     }
 
     func stop() {
         sessionQueue.async {
             if self.session.isRunning { self.session.stopRunning() }
-            DispatchQueue.main.async { self.statusText = "Camera stopped" }
+            DispatchQueue.main.async { self.setReadiness(.idle) }
         }
     }
 
@@ -97,7 +110,7 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
               let input = try? AVCaptureDeviceInput(device: device),
               session.canAddInput(input) else {
             session.commitConfiguration()
-            DispatchQueue.main.async { self.statusText = "No camera found" }
+            DispatchQueue.main.async { self.setReadiness(.noDevice) }
             return
         }
         session.addInput(input)
@@ -107,7 +120,7 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
         if session.canAddOutput(output) { session.addOutput(output) }
         session.commitConfiguration()
         session.startRunning()
-        DispatchQueue.main.async { self.statusText = "Camera running" }
+        DispatchQueue.main.async { self.setReadiness(.streaming(.zero)) }
     }
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
@@ -130,6 +143,7 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
 
         let tsMS = Int64(now.timeIntervalSince1970 * 1000)
         let size = CGSize(width: cgImage.width, height: cgImage.height)
+        DispatchQueue.main.async { self.setReadiness(.streaming(size)) }
         onFrame?(url.path, tsMS, size)
         if let diagDir {
             try? FileManager.default.copyItem(atPath: url.path, toPath: (diagDir as NSString).appendingPathComponent("live_\(tsMS).jpg"))
@@ -148,6 +162,11 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
             return l > r
         }
         for file in sorted.dropFirst(12) { try? FileManager.default.removeItem(at: file) }
+    }
+
+    private func setReadiness(_ readiness: CameraReadiness) {
+        self.readiness = readiness
+        statusText = readiness.displayText
     }
 }
 

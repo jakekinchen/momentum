@@ -113,6 +113,72 @@ final class AppExerciseSessionViewModelTests: XCTestCase {
         print("app-viewmodel-invalid fixture=synthetic_plank_low_visibility_trace final_held=\(state.holdSeconds) final_target=\(state.holdTargetReached) invalid_diagnostic=\(stateAtInvalidFrame.diagnosticText ?? "nil")")
     }
 
+    func testRoutineSessionMovesThroughGuideCountdownRestAndNextBlock() throws {
+        let viewModel = AppExerciseSessionViewModel(presetsDirectory: Self.presetsDirectory)
+        viewModel.loadAvailablePresets()
+        let routine = WorkoutRoutine(
+            id: "test-routine",
+            name: "Test Routine",
+            blocks: [
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_squat"), sets: 1, reps: 1, restSeconds: 2),
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_plank"), sets: 1, holdSeconds: 1)
+            ]
+        )
+
+        try viewModel.startRoutine(routine)
+        XCTAssertEqual(viewModel.routineSession.phase, .starting)
+        XCTAssertEqual(viewModel.activeRoutineBlockIndex, 0)
+        XCTAssertEqual(viewModel.state.selectedExerciseName, "Bodyweight Squat")
+
+        viewModel.beginRoutineGuide(seconds: 2)
+        XCTAssertEqual(viewModel.routineSession.phase, .guide(secondsRemaining: 2))
+        viewModel.tickRoutineGuide()
+        XCTAssertEqual(viewModel.routineSession.phase, .guide(secondsRemaining: 1))
+        viewModel.tickRoutineGuide()
+        XCTAssertEqual(viewModel.routineSession.phase, .waitingForCamera)
+
+        viewModel.beginRoutineCountdown(seconds: 2)
+        viewModel.tickRoutineCountdown()
+        XCTAssertEqual(viewModel.routineSession.phase, .countdown(secondsRemaining: 1))
+        viewModel.tickRoutineCountdown()
+        XCTAssertEqual(viewModel.routineSession.phase, .working)
+
+        _ = try viewModel.process(frames: Self.loadPoseFixture("synthetic_squat_clean_trace.json"))
+        XCTAssertEqual(viewModel.routineSession.phase, .resting(secondsRemaining: 2))
+        XCTAssertEqual(viewModel.activeRoutineBlockIndex, 0)
+
+        viewModel.tickRoutineRest()
+        XCTAssertEqual(viewModel.routineSession.phase, .resting(secondsRemaining: 1))
+        viewModel.tickRoutineRest()
+        XCTAssertEqual(viewModel.routineSession.phase, .starting)
+        XCTAssertEqual(viewModel.activeRoutineBlockIndex, 1)
+        XCTAssertEqual(viewModel.state.selectedExerciseName, "Bodyweight Plank")
+    }
+
+    func testRoutineCanStartAtIndividualBlock() throws {
+        let viewModel = AppExerciseSessionViewModel(presetsDirectory: Self.presetsDirectory)
+        viewModel.loadAvailablePresets()
+
+        try viewModel.startRoutine(FutureRoutineCatalog.foundationRoutine, atBlock: 2)
+
+        XCTAssertEqual(viewModel.routineSession.phase, .starting)
+        XCTAssertEqual(viewModel.activeRoutineBlockIndex, 2)
+        XCTAssertEqual(viewModel.state.selectedExerciseName, "Bodyweight Push-up")
+    }
+
+    func testRoutinePauseAndResumeRestoresPreviousPhase() throws {
+        let viewModel = AppExerciseSessionViewModel(presetsDirectory: Self.presetsDirectory)
+        viewModel.loadAvailablePresets()
+        try viewModel.startRoutine(FutureRoutineCatalog.foundationRoutine)
+
+        viewModel.beginRoutineGuide(seconds: 6)
+        viewModel.pauseRoutine()
+        XCTAssertEqual(viewModel.routineSession.phase, .paused)
+
+        viewModel.resumeRoutine()
+        XCTAssertEqual(viewModel.routineSession.phase, .guide(secondsRemaining: 6))
+    }
+
     private static func processPlankLowVisibilityThroughInvalidFrame() throws -> AppExerciseSessionState {
         let viewModel = AppExerciseSessionViewModel(presetsDirectory: presetsDirectory)
         viewModel.loadAvailablePresets()

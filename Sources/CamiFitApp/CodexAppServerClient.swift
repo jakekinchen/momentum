@@ -53,7 +53,7 @@ final class CodexAppServerClient: ObservableObject {
     /// The chat coach must NOT freehand-author exercise programs. Per the FitGraph/KG synthesis
     /// (docs/design/2026-06-04-camifit-fitgraph-synthesis.md), "the graph decides; the LLM never
     /// decides eligibility." The authoring prompt + template below are retained but DISABLED until
-    /// a KG-backed ProgramCompiler becomes the author — it targets the same camifit-exercise grammar
+    /// a KG-backed ProgramCompiler becomes the author — it targets the same future-exercise grammar
     /// and the same ProgramLoader + FrameSignalProcessor validation gate. Flip to true only then.
     static let exerciseAuthoringEnabled = false
 
@@ -174,34 +174,55 @@ final class CodexAppServerClient: ObservableObject {
 
     private var baseInstructions: String {
         let persona = """
-        You are CamiFit's friendly fitness coach. Answer questions about exercise form, reps, \
+        You are Future Coach's friendly fitness coach. Answer questions about exercise form, reps, \
         holds, and general workout guidance in clear, encouraging text. Never run shell commands, \
         edit files, or use tools — only reply with text (the text may contain code blocks).
 
         If the user states a current health or safety limitation in first-person terms, such as \
         knee pain, shoulder pain, a back issue, or an injury, include a short normal reply and \
-        exactly one fenced code block tagged camifit-kg-operation. The block must be JSON:
+        exactly one fenced code block tagged future-kg-operation. The block must be JSON:
         {"operation_type":"AddMedicalConstraint","constraint_type":"BodyRegion","value":"left_knee","source_text":"the user's exact limitation text","hard":true,"reason":"why this should affect coaching"}.
         Use lower_snake_case body-region values such as left_knee, right_knee, shoulder, back, \
-        wrist, or ankle. Do not say the memory is saved; the CamiFit app will validate and save \
+        wrist, or ankle. Do not say the memory is saved; the Future Coach app will validate and save \
         it locally if allowed.
 
-        If the app provides CamiFit local KG fact cards in the user message, treat them as active \
+        If the app provides Future Coach local KG fact cards in the user message, treat them as active \
         health/safety constraints for that reply.
         """
-        guard Self.exerciseAuthoringEnabled else { return persona }
-        return persona + "\n\n" + """
-        When the user asks you to create a workout or a new exercise, reply with a short \
-        encouraging explanation AND a single fenced code block the app reads:
-        - For a routine: a fenced block tagged camifit-routine containing JSON \
-          {"id","name","description","blocks":[{"exerciseRef":{"preset":"<id>"} OR {"inline":<ExerciseProgram>},"sets":N,"reps":N or "holdSeconds":N,"restSeconds":N}]}.
-        - For a brand-new exercise: a fenced block tagged camifit-exercise containing a full \
+        let routineInstructions = """
+        When the user asks you to create a workout, plan, or routine, reply with a short \
+        encouraging explanation and then end the message with exactly one fenced code block tagged \
+        future-routine. The app hides that block and renders it as a routine card after your reply, \
+        so write your prose as if the card appears immediately below it. Do not put the artifact in \
+        the middle of the response.
+
+        The future-routine block must contain JSON with this small schema:
+        {"schemaVersion":1,"artifactType":"routine","id":"short-lowercase-slug","name":"Routine Name","description":"one sentence","blocks":[{"exerciseRef":{"preset":"bodyweight_squat"},"sets":3,"reps":10,"restSeconds":60}]}.
+        Use only these preset exercise IDs unless the app explicitly provides more: bodyweight_squat, \
+        bodyweight_lunge, bodyweight_pushup, bodyweight_plank. For holds, use holdSeconds instead of \
+        reps. Pick a stable, readable id from the routine name and request; do not add random numbers, \
+        timestamps, or UUIDs. The app will avoid save collisions.
+        """
+        guard Self.exerciseAuthoringEnabled else {
+            return persona + "\n\n" + routineInstructions + "\n\n" + """
+            Do not author brand-new future-exercise artifacts or inline ExerciseProgram JSON. If a \
+            requested routine needs an unsupported movement, explain the limitation in prose and build \
+            the runnable future-routine card from supported preset exercise IDs only.
+            """
+        }
+        return persona + "\n\n" + routineInstructions + "\n\n" + """
+        When the user asks you to create a brand-new exercise, include a single fenced code block tagged \
+        future-exercise containing a full \
           ExerciseProgram JSON. Keep schemaVersion 1; signals are angle(...) expressions over \
           landmarks like primary.hip/primary.knee/primary.ankle; provide a "rep" block OR a "hold" block.
 
         Use this exact existing exercise as your ExerciseProgram template:
         \(Self.exerciseTemplate)
         """
+    }
+
+    var coachBaseInstructionsForTesting: String {
+        baseInstructions
     }
 
     // MARK: - Binary resolution
@@ -262,7 +283,7 @@ final class CodexAppServerClient: ObservableObject {
         process = proc
 
         sendRequest(method: "initialize",
-                    params: ["clientInfo": ["name": "CamiFit", "version": "0.1.0"],
+                    params: ["clientInfo": ["name": "Future Coach", "version": "0.1.0"],
                              "capabilities": ["experimentalApi": true]]) { [weak self] _ in
             self?.sendNotification("initialized", params: nil)
             self?.startThread()

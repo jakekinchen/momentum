@@ -1,0 +1,27 @@
+{
+  "exercise_id": "bodyweight_lunge",
+  "source_kind": "trainer_reference_video",
+  "source_label": "Wikimedia Commons Strength Training Circuit - Forward Lunge",
+  "source_url": "https://commons.wikimedia.org/wiki/File:Strength_Training_Circuit-_Forward_Lunge.webm",
+  "source_media_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Strength_Training_Circuit-_Forward_Lunge.webm",
+  "source_segment_ms": [30000, 36000],
+  "raw_trace": "dist/motion-reference/bodyweight_lunge/commons_forward_lunge_30_36/raw_mediapipe.jsonl",
+  "output_trace": "dist/motion-reference/bodyweight_lunge/commons_forward_lunge_30_36/bodyweight_lunge.jsonl",
+  "front_side": "right",
+  "support_side": "left",
+  "anchor_landmarks": [
+    "primary.ankle",
+    "primary.foot.index",
+    "primary.heel",
+    "secondary.foot.index"
+  ],
+  "cycle_mode": "descent-mirror",
+  "cycle_start_index": 30,
+  "cycle_bottom_index": 83,
+  "retarget": "canonical-lunge",
+  "summary": {
+    "frames": 107,
+    "min_primary_knee_angle": 100.07,
+    "max_primary_knee_angle": 179.35
+  }
+}
