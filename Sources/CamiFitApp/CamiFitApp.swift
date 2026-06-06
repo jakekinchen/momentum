@@ -26,7 +26,7 @@ struct CamiFitApp: App {
                         .environmentObject(onboarding)
                 }
             }
-            .frame(minWidth: 1100, minHeight: 720)
+            .frame(minWidth: 960, minHeight: 720)
         }
         .windowStyle(.titleBar)
         .commands {

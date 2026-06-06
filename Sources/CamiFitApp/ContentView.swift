@@ -39,7 +39,7 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             SessionSidebar()
-                .navigationSplitViewColumnWidth(min: 280, ideal: 390, max: 480)
+                .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: 360)
         } detail: {
             DetailScene()
                 .toolbar {
@@ -88,7 +88,7 @@ struct ContentView: View {
                             KGMemoryPanel(store: memoryStore)
                         }
                     }
-                    .inspectorColumnWidth(min: 300, ideal: 360, max: 460)
+                    .inspectorColumnWidth(min: 260, ideal: 320, max: 380)
                 }
         }
         .navigationTitle("Momentum")
@@ -993,15 +993,19 @@ private struct SessionSidebar: View {
 
 private struct SessionSettingsSidebar: View {
     var body: some View {
-        Form {
-            CameraSection()
-            #if DEBUG
-            DeveloperSection()
-            #endif
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                CameraSection()
+                #if DEBUG
+                DeveloperSection()
+                #endif
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .formStyle(.grouped)
+        .scrollIndicators(.automatic)
         .controlSize(.small)
-        .scrollContentBackground(.hidden)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
@@ -1709,30 +1713,70 @@ private struct CameraSection: View {
     @EnvironmentObject private var liveSession: LiveSession
 
     var body: some View {
-        Section("Camera") {
-            Picker("Input", selection: $liveSession.selectedCameraID) {
-                Text("Automatic").tag(String?.none)
-                ForEach(liveSession.availableCameras) { camera in
-                    Text(camera.name).tag(Optional(camera.id))
-                }
-            }
-            .onChange(of: liveSession.selectedCameraID) { _, newID in
-                liveSession.camera.setDevice(newID)
-            }
-
-            if liveSession.availableCameras.isEmpty {
-                Text("No cameras detected.")
-                    .font(.caption)
+        SidebarSettingsSection(title: "Camera") {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Input")
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-            }
 
-            Button {
-                liveSession.refreshCameras()
-            } label: {
-                Label("Refresh", systemImage: "arrow.clockwise")
+                Picker("Input", selection: $liveSession.selectedCameraID) {
+                    Text("Automatic").tag(String?.none)
+                    ForEach(liveSession.availableCameras) { camera in
+                        Text(camera.name).tag(Optional(camera.id))
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onChange(of: liveSession.selectedCameraID) { _, newID in
+                    liveSession.camera.setDevice(newID)
+                }
+
+                if liveSession.availableCameras.isEmpty {
+                    Text("No cameras detected.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    liveSession.refreshCameras()
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.glass)
             }
-            .buttonStyle(.glass)
         }
+    }
+}
+
+private struct SidebarSettingsSection<Content: View>: View {
+    let title: String
+    let content: Content
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.primary.opacity(0.035))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.primary.opacity(0.055), lineWidth: 1)
+        )
     }
 }
 
@@ -1821,35 +1865,46 @@ private struct DeveloperSection: View {
     @EnvironmentObject private var model: AppExerciseSessionViewModel
 
     var body: some View {
-        Section("Developer") {
-            Picker("Recorded run", selection: selectedRecordedRunBinding) {
-                ForEach(model.availableRecordedRuns) { run in
-                    Text(run.displayName).tag(Optional(run.id))
+        SidebarSettingsSection(title: "Developer") {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Recorded run")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Picker("Recorded run", selection: selectedRecordedRunBinding) {
+                    ForEach(model.availableRecordedRuns) { run in
+                        Text(run.displayName).tag(Optional(run.id))
+                    }
                 }
-            }
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button {
-                guard let id = model.selectedRecordedRunID else { return }
-                _ = model.runRecordedRun(id: id)
-            } label: {
-                Label("Run recorded sample", systemImage: "play.rectangle")
-            }
-            .buttonStyle(.glass)
-            .disabled(model.selectedRecordedRunID == nil)
+                Button {
+                    guard let id = model.selectedRecordedRunID else { return }
+                    _ = model.runRecordedRun(id: id)
+                } label: {
+                    Label("Run recorded sample", systemImage: "play.rectangle")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.glass)
+                .disabled(model.selectedRecordedRunID == nil)
 
-            Button {
-                model.runMockWorkerProvider()
-            } label: {
-                Label("Run mock worker", systemImage: "cpu")
-            }
-            .buttonStyle(.glass)
+                Button {
+                    model.runMockWorkerProvider()
+                } label: {
+                    Label("Run mock worker", systemImage: "cpu")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.glass)
 
-            Button {
-                model.preflightMockWorker()
-            } label: {
-                Label("Check mock worker", systemImage: "stethoscope")
+                Button {
+                    model.preflightMockWorker()
+                } label: {
+                    Label("Check mock worker", systemImage: "stethoscope")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.glass)
             }
-            .buttonStyle(.glass)
         }
     }
 
