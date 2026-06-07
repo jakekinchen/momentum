@@ -1,8 +1,8 @@
-# CamiFit
+# Momentum, a Future Coach
 
 An open-ended, **on-device** bodyweight-exercise coach for macOS. CamiFit watches you through the webcam, counts reps, checks your form against per-exercise rules, tracks sets, and gives live cues — all locally, offline.
 
-The heart of CamiFit is a deterministic, timestamped **exercise engine** that runs an **Exercise-Program**: a JSON document with a small, sandboxed rule **DSL**. The same contract is hand-authored today and (later) authored dynamically by an agent — so adding a new exercise is data, not code.
+The heart of Momentum is a deterministic, timestamped **exercise engine** that runs an **Exercise-Program**: a JSON document with a small, sandboxed rule **DSL**. The same contract is hand-authored today and (later) authored dynamically by an agent — so adding a new exercise is data, not code.
 
 ```
 PoseProvider (MediaPipe pose worker)  →  joint-angle signals  →  temporal filters
