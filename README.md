@@ -1,4 +1,4 @@
-# Momentum, a Future Coach
+# Momentum, Your Future Coach
 
 An open-ended, **on-device** bodyweight-exercise coach for macOS. CamiFit watches you through the webcam, counts reps, checks your form against per-exercise rules, tracks sets, and gives live cues — all locally, offline.
 
