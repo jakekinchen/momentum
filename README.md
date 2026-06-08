@@ -1,48 +1,71 @@
-# Momentum, Your Future Coach
+# Momentum - Your Future Coach
 
-An open-ended, **on-device** bodyweight-exercise coach for macOS. CamiFit watches you through the webcam, counts reps, checks your form against per-exercise rules, tracks sets, and gives live cues — all locally, offline.
+Momentum is an on-device macOS fitness coach for movement feedback, workout
+planning, and training context.
 
-The heart of Momentum is a deterministic, timestamped **exercise engine** that runs an **Exercise-Program**: a JSON document with a small, sandboxed rule **DSL**. The same contract is hand-authored today and (later) authored dynamically by an agent — so adding a new exercise is data, not code.
+- Live site: https://momentum-future.vercel.app
+- Mac download: https://momentum-future.vercel.app/download
+- Latest release: https://github.com/jakekinchen/momentum/releases/latest
+- Stable DMG: https://github.com/jakekinchen/momentum/releases/latest/download/Momentum-macOS.dmg
 
-```
-PoseProvider (MediaPipe pose worker)  →  joint-angle signals  →  temporal filters
-   →  validity gating  →  rep / hold / set state machines  →  form rules  →  cues + summary
-```
+Momentum watches movement locally through the Mac camera, counts reps and hold
+time, checks form rules, guides supported exercises with motion demos, and uses
+deterministic graph logic to explain why a workout was selected, filtered, or
+substituted. The public product name is **Momentum - Your Future Coach**.
 
-## Layers
+## Current Release
 
-- **Layer 1 — On-device executor (current):** pose → signals → reps/form/sets, driven by hand-authored Exercise-Program JSON. Fully offline.
-- **Layer 2 — Agent authoring (later):** a sidebar chat (Codex app-server + ChatGPT login) that generates new Exercise-Programs as validated JSON.
-- **Layer 3 — Tracker (later):** saved routines, session history, progress over time.
+Validated release state as of 2026-06-08:
 
-## Status
+- App bundle: `Momentum.app`
+- Public display name: `Momentum - Your Future Coach`
+- Distribution: signed, notarized, stapled drag-to-Applications DMG
+- Signing: `Developer ID Application: Jake Kinchen (BN58T9KR6C)`
+- Current release tag: `macos-20260608-4`
+- DMG SHA-256:
+  `aa7dee5b3582a81a672c3714f16ab34d9647e6a0f12fbad6dd6965c8083e926a`
 
-Milestone **M1 — exercise engine + program contract (squat vertical)**. See:
+Open the DMG on a Mac, then drag Momentum into Applications. The app is a free
+direct download outside the Mac App Store.
 
-- `docs/design/2026-06-03-camifit-exercise-engine-design.md` — full design.
-- `GOAL.md` — active mission + constraints.
-- `docs/briefs/` — current slice.
+## What Momentum Does
 
-## Development
+- Tracks bodyweight movement locally through the webcam.
+- Counts reps, holds, sets, tempo, and simple form signals.
+- Supports runnable movement demos for squat, lunge, pushup, and plank.
+- Builds workout plans from goals, schedule, equipment, safety constraints, and
+  training context.
+- Shows reason codes, graph paths, filtered candidates, and alternatives so the
+  user can see why a recommendation belongs in the session.
+- Keeps current camera tracking and safety decisions local and deterministic.
 
-This repo uses a supervised **Codex executor / reviewer** workflow (see `executor-reviewer-pair-programming.md`):
+All assessment/member data in this repo is synthetic. The product does not
+store real member health data or PHI.
 
-```bash
-scripts/run_codex_pair_cycle.sh --once     # one executor + reviewer cycle
-scripts/audit_autonomous_workflow.sh       # check workflow state
-```
+## Product Boundaries
 
-The Swift engine builds with SwiftPM:
+Momentum is currently a direct-download macOS release candidate, not an App
+Store build. The workout planning and movement feedback paths are implemented,
+but generated exercise recommendations are still split into:
+
+- **motion-ready exercises:** runnable in the app with measurement or guide
+  support.
+- **recommendation-only exercises:** valid planning candidates that still need
+  reviewed motion profiles before live execution.
+
+The coach layer may summarize bounded receipts and graph-backed facts, but it
+does not decide workout safety or invent member facts.
+
+## Build The Mac App
+
+From the repo root:
 
 ```bash
 swift build
 swift test
 ```
 
-## Build And Run The Mac App
-
-For Live Camera webcam tracking, set up the pose-worker dependency once after
-cloning:
+For live camera tracking, install the local pose-worker dependency once:
 
 ```bash
 python3 -m venv .venv
@@ -55,88 +78,49 @@ curl -L -o pose_worker/models/pose_landmarker_lite.task \
   https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
 ```
 
-Or run the bundled setup/diagnostic helper:
-
-```bash
-script/doctor_live_camera.sh --fix
-script/doctor_live_camera.sh
-```
-
-The app first looks for `CAMIFIT_PYTHON`, then `.venv/bin/python`, then common
-system Python 3 locations. On a fresh macOS install, do not set
-`CAMIFIT_PYTHON=python`; use the local venv above or `CAMIFIT_PYTHON=python3`.
-If Live Camera still fails, run `script/doctor_live_camera.sh` before opening
-the app; it checks the exact Python command, Python version, MediaPipe import,
-model file, and worker health response.
-
-Use the project run script for the actual macOS app bundle. It builds the
-SwiftPM executable, stages `dist/CamiFitApp.app`, signs it, and opens it as
-**Future Coach**:
+Then build, sign, open, and verify the local app:
 
 ```bash
 ./script/build_and_run.sh --verify
 ```
 
-To open the avatar guide on a specific exercise:
+Build a release bundle without launching it:
 
 ```bash
-CAMIFIT_GUIDE_EXERCISE=bodyweight_squat ./script/build_and_run.sh --verify
+./script/build_and_run.sh release
 ```
 
-Useful guide IDs right now:
+## Verification
 
-```text
-bodyweight_squat
-bodyweight_lunge
-bodyweight_pushup
-bodyweight_plank
-```
-
-For visual debugging, pin the guide to a specific timeline position:
+Focused checks:
 
 ```bash
-CAMIFIT_GUIDE_EXERCISE=bodyweight_squat \
-CAMIFIT_GUIDE_FRAME_MS=1608 \
-./script/build_and_run.sh --verify
-```
-
-## Lightweight Verification
-
-On a slower MacBook Air, start with the focused gates instead of a full
-monorepo pass:
-
-```bash
-swift test --disable-sandbox --filter MediaPipePoseProviderTests
+(cd kg-canonical && uv run python -m pytest)
+swift test --disable-sandbox --filter AssignmentWorkoutPlannerTests
+swift test --disable-sandbox --filter RoutineCompilerTests
 scripts/motion_reference/audit_motion_coverage.py --strict
 scripts/motion_reference/audit_kg_motion_readiness.py --summary-only
 git diff --check
 ```
 
-The full gate is heavier:
+Full closeout gate:
 
 ```bash
 scripts/run_monorepo_gates.sh
 ```
 
-If the machine is struggling, close the running app before rebuilding and avoid
-rerendering motion-reference videos unless you are actively reviewing a trace.
-Generated review media lives under `dist/`, which is intentionally ignored by
-Git.
+The full gate runs Python graph tests, generated-artifact checks, Swift
+conformance parity, full Swift tests, motion-reference coverage, motion
+readiness, and current contract listing.
 
-## Git Upload Checklist
+## Git Hygiene
 
-Before pushing this branch, make sure these generated-but-important app assets
-are tracked:
+Before pushing, review the worktree explicitly:
 
 ```bash
-git status --short
-git add Sources/CamiFitApp/Resources/MotionDemos \
-        Sources/CamiFitApp/Resources/Avatars \
-        scripts/motion_reference \
-        script/build_and_run.sh \
-        script/run_motion_reference_recorder.sh \
-        Package.swift
+git status --short --branch
+git diff --check
 ```
 
 Do not add `dist/`, `.build/`, MediaPipe `*.task` model files, or local webcam
-captures. Those are ignored runtime/build artifacts.
+captures. Those are local runtime/build artifacts.
