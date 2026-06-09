@@ -1,4 +1,5 @@
 import CamiFitEngine
+import Combine
 import Foundation
 import SwiftUI
 
@@ -16,6 +17,14 @@ private enum CamiFitLaunchEnvironment {
     }
 }
 
+final class SidebarSettingsPrompt: ObservableObject {
+    @Published var generation = 0
+
+    func showCameraSettings() {
+        generation += 1
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject private var onboarding: OnboardingCoordinator
     @ObservedObject var viewModel: AppExerciseSessionViewModel
@@ -26,6 +35,7 @@ struct ContentView: View {
     @StateObject private var chat = ChatViewModel()
     @StateObject private var exerciseMode = ExerciseModeController()
     @StateObject private var memoryStore = KGMemoryStore()
+    @StateObject private var settingsPrompt = SidebarSettingsPrompt()
     @StateObject private var routineLibrary = RoutineLibraryStore()
     @State private var inspectorState = AppInspectorState()
     @State private var lastDebriefedReport: WorkoutCompletionReport?
@@ -105,6 +115,7 @@ struct ContentView: View {
         .environmentObject(codex)
         .environmentObject(routineLibrary)
         .environmentObject(routineRunner)
+        .environmentObject(settingsPrompt)
         .environmentObject(exerciseMode)
         .onAppear {
             viewModel.loadAvailablePresets()
@@ -117,6 +128,7 @@ struct ContentView: View {
             viewModel.loadRecordedRuns()
             routineLibrary.load()
             liveSession.refreshCameras()
+            liveSession.requestCameraSettingsIfNoCameras()
             chat.codex = codex
             chat.memoryStore = memoryStore
             chat.coachActionDispatcher = CoachActionDispatcher(
@@ -143,6 +155,9 @@ struct ContentView: View {
             guard let report, report != lastDebriefedReport else { return }
             lastDebriefedReport = report
             chat.requestWorkoutDebrief(for: report)
+        }
+        .onReceive(liveSession.$cameraSettingsPromptID.compactMap { $0 }) { _ in
+            settingsPrompt.showCameraSettings()
         }
     }
 
@@ -1024,6 +1039,7 @@ private enum SidebarTab: String, CaseIterable {
 }
 
 private struct SessionSidebar: View {
+    @EnvironmentObject private var settingsPrompt: SidebarSettingsPrompt
     @SceneStorage("camifit.sidebar.tab") private var selectedTabRaw = SidebarTab.settings.rawValue
 
     private var selectedTab: SidebarTab {
@@ -1057,6 +1073,9 @@ private struct SessionSidebar: View {
             }
         }
         .navigationTitle(selectedTab.title)
+        .onReceive(settingsPrompt.$generation.dropFirst()) { _ in
+            selectedTabRaw = SidebarTab.settings.rawValue
+        }
     }
 
     private var selectedTabBinding: Binding<SidebarTab> {
@@ -1808,10 +1827,16 @@ private struct CameraSection: View {
                     liveSession.camera.setDevice(newID)
                 }
 
+                Text(cameraPromptText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 if liveSession.availableCameras.isEmpty {
-                    Text("No cameras detected.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text("Connect a camera, then refresh this list.")
+                        .font(.caption.weight(.semibold))
+                } else {
+                    Text("Select the connected camera you want CamiFit to use.")
+                        .font(.caption.weight(.semibold))
                 }
 
                 Button {
@@ -1823,6 +1848,14 @@ private struct CameraSection: View {
                 .buttonStyle(.glass)
             }
         }
+    }
+
+    private var cameraPromptText: String {
+        if liveSession.availableCameras.isEmpty {
+            return "No cameras detected."
+        }
+
+        return "Choose the webcam used by Live Camera."
     }
 }
 

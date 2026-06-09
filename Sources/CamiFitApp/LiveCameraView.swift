@@ -98,6 +98,7 @@ final class LiveSession: ObservableObject {
     @Published var availableCameras: [CameraDevice] = []
     @Published var selectedCameraID: String?
     @Published var poseReadiness: PosePipelineReadiness = .idle
+    @Published var cameraSettingsPromptID: UUID?
     let recordDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Developer/camifit/dist/capture")
 
     let camera = LiveCameraController()
@@ -254,6 +255,12 @@ final class LiveSession: ObservableObject {
         availableCameras = LiveCameraController.discoverCameras()
     }
 
+    func requestCameraSettingsIfNoCameras() {
+        refreshCameras()
+        guard availableCameras.isEmpty else { return }
+        cameraSettingsPromptID = UUID()
+    }
+
     func stop() {
         syntheticTimer?.invalidate()
         syntheticTimer = nil
@@ -285,6 +292,13 @@ final class LiveSession: ObservableObject {
 
     private func handleCameraReadiness(_ readiness: CameraReadiness) {
         switch readiness {
+        case .noDevice:
+            errorText = nil
+            refreshCameras()
+            cameraSettingsPromptID = UUID()
+            if running, isLiveCamera {
+                poseReadiness = .camera(readiness)
+            }
         case .streaming:
             if running, isLiveCamera, poseReadiness != .ready {
                 poseReadiness = .waitingForFirstPose
