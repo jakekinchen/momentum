@@ -2,6 +2,17 @@ import AppKit
 import Foundation
 import SwiftUI
 
+private enum MainWindowSizing {
+    static let preferredSize = CGSize(width: 1300, height: 900)
+
+    static func launchSize(for visibleRect: CGRect) -> CGSize {
+        CGSize(
+            width: min(preferredSize.width, visibleRect.width),
+            height: min(preferredSize.height, visibleRect.height)
+        )
+    }
+}
+
 @main
 struct CamiFitApp: App {
     @StateObject private var viewModel = AppExerciseSessionViewModel()
@@ -26,9 +37,13 @@ struct CamiFitApp: App {
                         .environmentObject(onboarding)
                 }
             }
-            .frame(minWidth: 960, minHeight: 720)
+            .frame(minWidth: MainWindowSizing.preferredSize.width, minHeight: MainWindowSizing.preferredSize.height)
         }
         .windowStyle(.titleBar)
+        .defaultSize(MainWindowSizing.preferredSize)
+        .defaultWindowPlacement { _, context in
+            WindowPlacement(size: MainWindowSizing.launchSize(for: context.defaultDisplay.visibleRect))
+        }
         .commands {
             CommandMenu("Session") {
                 Button("Reset Session") {
