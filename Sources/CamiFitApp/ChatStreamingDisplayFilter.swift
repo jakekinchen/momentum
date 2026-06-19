@@ -7,6 +7,8 @@ enum ChatStreamingDisplayFilter {
         "```future-exercise",
         "```camifit-exercise",
         "```future-coach-action",
+        "```future-workout-plan",
+        "```future-kg-fact-request",
         "```future-kg-operation",
         "```camifit-kg-operation"
     ]

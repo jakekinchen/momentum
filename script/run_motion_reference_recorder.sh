@@ -17,7 +17,7 @@ APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
 case "$MODE" in
-  bodyweight_*)
+  bodyweight_*|standing_miniband_hip_flexion|resistance_band_reverse_curl|single_arm_*|bench_lying_single_arm_dumbbell_tricep_extension|suspension_tricep_press|wide_grip_preacher_curl_with_ez_bar|machine_chest_supported_row)
     EXERCISE_ID="$MODE"
     MODE="run"
     ;;
@@ -127,7 +127,7 @@ case "$MODE" in
     CAMIFIT_REPO_ROOT="$ROOT_DIR" CAMIFIT_CAPTURE_EXERCISE_ID="$EXERCISE_ID" lldb -- "$APP_BINARY"
     ;;
   *)
-    echo "usage: $0 [run|--verify|--debug|bodyweight_squat|bodyweight_pushup|bodyweight_lunge|bodyweight_plank] [exercise_id]" >&2
+    echo "usage: $0 [run|--verify|--debug|bodyweight_squat|bodyweight_pushup|bodyweight_lunge|bodyweight_plank|bodyweight_jumping_jack|standing_miniband_hip_flexion|resistance_band_reverse_curl|bodyweight_pike|single_arm_dumbbell_preacher_curl|single_arm_chest_supported_incline_row|machine_chest_supported_row|bench_lying_single_arm_dumbbell_tricep_extension|single_arm_cable_tricep_extension|suspension_tricep_press|wide_grip_preacher_curl_with_ez_bar] [exercise_id]" >&2
     exit 2
     ;;
 esac

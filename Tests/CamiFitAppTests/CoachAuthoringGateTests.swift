@@ -17,4 +17,13 @@ final class CoachAuthoringGateTests: XCTestCase {
     func testCoachTurnEffortAvoidsToolIncompatibleMinimalMode() {
         XCTAssertEqual(CodexAppServerClient.coachTurnEffort, "low")
     }
+
+    func testCoachPromptDoesNotAskLLMToFreehandRoutineJSON() {
+        let client = CodexAppServerClient(codexURLResolver: { nil })
+        XCTAssertFalse(client.coachBaseInstructionsForTesting.contains("```future-routine"))
+        XCTAssertFalse(client.coachBaseInstructionsForTesting.contains("The future-routine block must contain JSON"))
+        XCTAssertTrue(client.coachBaseInstructionsForTesting.contains("KGKit planner"))
+        XCTAssertTrue(client.coachBaseInstructionsForTesting.contains("future-workout-plan"))
+        XCTAssertTrue(client.coachBaseInstructionsForTesting.contains("future-kg-fact-request"))
+    }
 }

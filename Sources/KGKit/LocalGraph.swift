@@ -1,4 +1,7 @@
 public struct LocalGraph: Sendable {
+    public let graphVersion: String
+    public let rulesetVersion: String
+    public let ontologyLockVersion: String
     public let nodes: [String: GraphNode]
     public let edges: [GraphEdge]
 
@@ -19,6 +22,9 @@ public struct LocalGraph: Sendable {
             if byID[edge.source] == nil { throw GraphError.danglingEdge(edge.source) }
             if byID[edge.target] == nil { throw GraphError.danglingEdge(edge.target) }
         }
+        self.graphVersion = artifact.graphVersion
+        self.rulesetVersion = artifact.rulesetVersion
+        self.ontologyLockVersion = artifact.ontologyLockVersion
         self.nodes = byID
         self.edges = artifact.edges
     }

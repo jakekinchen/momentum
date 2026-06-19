@@ -2,6 +2,7 @@ import SwiftUI
 
 struct KGMemoryPanel: View {
     @ObservedObject var store: KGMemoryStore
+    var focusedOperationID: String?
     @State private var correctionError: String?
 
     var body: some View {
@@ -74,22 +75,30 @@ struct KGMemoryPanel: View {
             if activeItems.isEmpty {
                 panelMessage("No active health or safety memories")
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        if let correctionError {
-                            Text(correctionError)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                                .padding(.horizontal, 16)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            if let correctionError {
+                                Text(correctionError)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                                    .padding(.horizontal, 16)
+                            }
+                            memorySection(
+                                title: "Health & Safety",
+                                items: activeItems
+                            )
                         }
-                        memorySection(
-                            title: "Health & Safety",
-                            items: activeItems
-                        )
+                        .padding(.vertical, 16)
                     }
-                    .padding(.vertical, 16)
+                    .scrollIndicators(.never)
+                    .onAppear {
+                        scrollToFocusedMemory(with: proxy)
+                    }
+                    .onChange(of: focusedOperationID) { _, _ in
+                        scrollToFocusedMemory(with: proxy)
+                    }
                 }
-                .scrollIndicators(.never)
             }
         }
     }
@@ -121,12 +130,25 @@ struct KGMemoryPanel: View {
             } else {
                 VStack(spacing: 10) {
                     ForEach(items) { item in
-                        KGMemoryRow(item: item) {
+                        KGMemoryRow(
+                            item: item,
+                            isFocused: item.operationID == focusedOperationID
+                        ) {
                             delete(item)
                         }
+                        .id(item.operationID)
                     }
                 }
                 .padding(.horizontal, 14)
+            }
+        }
+    }
+
+    private func scrollToFocusedMemory(with proxy: ScrollViewProxy) {
+        guard let focusedOperationID else { return }
+        DispatchQueue.main.async {
+            withAnimation(.smooth) {
+                proxy.scrollTo(focusedOperationID, anchor: .top)
             }
         }
     }
@@ -146,6 +168,7 @@ struct KGMemoryPanel: View {
 
 private struct KGMemoryRow: View {
     let item: KGMemoryItem
+    let isFocused: Bool
     let onDelete: () -> Void
 
     var body: some View {
@@ -200,10 +223,10 @@ private struct KGMemoryRow: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.primary.opacity(0.045))
+                .fill(isFocused ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.045))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(Color.primary.opacity(0.075), lineWidth: 1)
+                        .stroke(isFocused ? Color.accentColor.opacity(0.45) : Color.primary.opacity(0.075), lineWidth: 1)
                 )
         )
     }

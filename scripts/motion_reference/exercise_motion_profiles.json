@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
-  "updated": "2026-06-06",
+  "updated": "2026-06-08",
   "contract": {
-    "source_of_truth": "first_party_trainer_reference_video",
+    "source_of_truth": "accepted_reference_video_or_clip",
     "compiler_owner": "FitGraph/CamiFit motion reference tools",
     "runtime_output": "PoseFrame JSONL under Sources/CamiFitApp/Resources/MotionDemos",
-    "measurement_boundary": "exercise preset signals and form rules stay canonical; viewer traces must replay through the same engine contract"
+    "measurement_boundary": "exercise preset signals and form rules stay canonical; viewer traces must replay through the same engine contract",
+    "reference_policy": "Guide traces may use first-party captures or licensed external workout clips when source URL, license, attribution, source video, raw MediaPipe trace, normalizer, output trace, and review artifacts are preserved."
   },
   "profiles": [
     {
@@ -57,12 +58,20 @@
       "archetype": "split_stance_lunge",
       "viewer_status": "bundled_reference_trace",
       "measurement_status": "preset_acceptance_tested",
+      "validation_role": "protected_golden_comparator",
       "capture": {
-        "status": "temporary_public_reference",
+        "status": "protected_golden_reference",
+        "candidate_status": "licensed_external_reference_clip",
         "required_view": "side",
-        "clip": "trainer performs a stationary split lunge, no alternating step-through inside the selected cycle",
+        "clip": "app-bundled canonical lunge guide remains the protected golden; Wikimedia Commons public-domain U.S. Army forward-lunge clip is retained as an extractor validation candidate",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Strength_Training_Circuit-_Forward_Lunge.webm",
+        "source_media_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Strength_Training_Circuit-_Forward_Lunge.webm",
+        "source_license": "Public domain (U.S. Army / U.S. federal government work)",
+        "source_attribution": "Army Combat Fitness Test / U.S. Army via Wikimedia Commons",
         "contact_policy": "front foot planted, rear toe planted, rear heel may lift naturally",
-        "primary_side": "front_leg"
+        "primary_side": "front_leg",
+        "candidate_trace": "dist/motion-reference/bodyweight_lunge/commons_forward_lunge_30_36/bodyweight_lunge.raw_preserved.jsonl",
+        "golden_trace": "Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl"
       },
       "phase": {
         "driver": "reviewed_reference_window",
@@ -95,7 +104,7 @@
         "contact_locked",
         "support_knee_bends_inward_in_side_view",
         "loop_boundary_stable",
-        "monotonic_descent_then_ascent",
+        "reviewed_closed_bottom_closed_cycle",
         "engine_counts_one_rep",
         "viewer_reviewed"
       ]
@@ -148,16 +157,199 @@
       ]
     },
     {
+      "exercise_id": "bodyweight_jumping_jack",
+      "archetype": "jumping_jack",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "reference_capture_required",
+      "capture": {
+        "status": "pending_licensed_reference_clip",
+        "required_view": "front",
+        "clip": "Rejected Pexels 7299359 retarget is retained only as dist/ forensic evidence; no playable app MotionDemo trace is bundled until a new licensed external clip or source-preserving extraction passes review",
+        "contact_policy": "do not bundle or promote until the app-visible avatar preserves source-shaped overhead arms, non-sliding foot lift, closed-leg anatomy, and smooth wrist/elbow motion",
+        "primary_side": "bilateral_front_view",
+        "source_page": "https://www.pexels.com/video/elderly-man-doing-jumping-jacks-outside-7299359/",
+        "source_media_url": "https://www.pexels.com/download/video/7299359/",
+        "source_license": "Pexels License",
+        "source_attribution": "Kindel Media / Pexels",
+        "rejection_reason": "User-visible review and subagent critique rejected the retarget: the open frame is a straight high-V instead of source-bent overhead arms, feet mostly slide, closed knees stay too wide for closed feet, and adjacent wrist/elbow motion pops.",
+        "rejected_candidates": [
+          {
+            "source_page": "https://commons.wikimedia.org/wiki/File:Jumping_jack_Animation.gif",
+            "source_media_url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Jumping_jack_Animation.gif",
+            "source_license": "CC-BY-SA 4.0",
+            "source_attribution": "Original: gnokii at openclipart.org; Animation: MichaelFrey / Wikimedia Commons",
+            "decision": "rejected",
+            "reason": "Openly licensed animated illustration, not a workout clip with human pose evidence; do not extract or retarget as accepted motion data."
+          },
+          {
+            "source_page": "https://www.pexels.com/fr-fr/video/sain-personne-clairiere-sauter-4764124/",
+            "source_media_url": "https://videos.pexels.com/video-files/4764124/4764124-uhd_2560_1440_30fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "Gustavo Fring / Pexels",
+            "decision": "rejected_after_pose_review",
+            "reason": "Source video shows real front-view jumping jacks, but local pose extraction is not guide-safe: raw review frames show floating head/face landmarks, unstable lower limbs, and arm/foot phase mismatch. Do not promote without a cleaner source-preserving extraction."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/men-doing-jumping-jacks-at-the-gym-6326725/",
+            "source_media_url": "https://www.pexels.com/download/video/6326725/",
+            "source_license": "Pexels License",
+            "source_attribution": "Pavel Danilyuk / Pexels",
+            "decision": "rejected_after_quality_gate_review",
+            "reason": "Right-subject crop produces a real, mostly coherent raw rep and 3x upsampling fixes smoothness, but source-preserving output still fails shape gates: closed knee/ankle ratio 2.2898 exceeds 1.35, open wrist spread ratio 2.7846 exceeds 1.6, and max wrist spread ratio 3.9395 exceeds 2.0."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/a-woman-doing-jumping-exercises-by-the-riverside-3048954/",
+            "source_media_url": "https://videos.pexels.com/video-files/3048954/3048954-hd_1920_1080_25fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "Pressmaster / Pexels",
+            "decision": "rejected_after_pose_review",
+            "reason": "First 3.5s window is a real single-subject jumping-jack clip, but the usable portion rotates from near-front to side view; raw review shows narrow side-view skeletons, floating head landmarks, and unstable upper-body/foot confidence, so it is not guide-safe."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/a-woman-doing-jumping-jacks-7746545/",
+            "source_media_url": "https://videos.pexels.com/video-files/7746545/7746545-hd_1080_1920_30fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "Polina Tankilevitch / Pexels",
+            "decision": "rejected_after_quality_gate_review",
+            "reason": "Vertical front-view clip is a strong source candidate, but the best clean window (82..88..94) still fails app-guide quality gates: closed knee/ankle ratio 3.4435 exceeds 1.35, max wrist spread 3.8081 exceeds 2.0, max adjacent arm delta 0.0793 exceeds 0.055, max second difference 0.1075 exceeds 0.04, and left ankle vertical travel is only 0.0213."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/woman-doing-jumping-jacks-outdoors-4767084/",
+            "source_media_url": "https://videos.pexels.com/video-files/4767084/4767084-uhd_3840_2160_30fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "Gustavo Fring / Pexels",
+            "decision": "rejected_after_pose_review",
+            "reason": "4K horizontal source has clean human motion, but local MediaPipe extraction does not preserve the leg opening: peak candidates show ankle spread around 0.27..0.60 despite visible open legs, and raw review confirms unreliable foot/ankle tracking near the mat crop."
+          },
+          {
+            "source_page": "https://coverr.co/videos/jumping-jacks-ts0zfkd0xk",
+            "source_media_url": "https://cdn.coverr.co/videos/coverr-jumping-jacks-5469/1080p.mp4",
+            "source_license": "Coverr Free Commercial Rights",
+            "source_attribution": "Coverr",
+            "decision": "rejected - license caveat and shape gate",
+            "reason": "Raw extraction is visually the closest candidate and cycle 17..30..47 is smooth, but Coverr's license includes dataset/AI-training caveats that make derived motion-data packaging risky; the cycle also fails current shape gates with closed knee/ankle ratio 1.4152 over 1.35, open wrist spread 3.5213 over 1.6, and max wrist spread 4.14 over 2.0."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "source_timed_anatomical_retarget_from_raw_mediapipe_wrist_height_plus_ankle_spread",
+        "top": "arms by sides, feet together",
+        "bottom": "arms overhead, feet wide"
+      },
+      "normalizer": {
+        "status": "rejected_after_user_visual_review",
+        "script": "scripts/motion_reference/normalize_jumping_jack_trace.py",
+        "retarget": "source_timed_anatomical_front_view_avatar_rig",
+        "cycle_mode": "real_closed_open_closed_source_cycle",
+        "cycle_start_index": 98,
+        "cycle_open_index": 105,
+        "cycle_end_index": 112,
+        "mirror_return": false,
+        "closing_hold_frames": 0
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "left.shoulder",
+        "left.elbow",
+        "left.wrist",
+        "left.hip",
+        "left.knee",
+        "left.ankle",
+        "right.shoulder",
+        "right.elbow",
+        "right.wrist",
+        "right.hip",
+        "right.knee",
+        "right.ankle"
+      ],
+      "quality_gates": {
+        "enforce_when": "accepted_reference_clip",
+        "max_manifest_summary_values": {
+          "cycle.max_open_wrist_spread_ratio": 1.6,
+          "cycle.max_wrist_spread_ratio": 2.0,
+          "cycle.max_closed_knee_ankle_ratio": 1.35
+        },
+        "motion_smoothness": {
+          "landmarks": [
+            "left.elbow",
+            "left.wrist",
+            "right.elbow",
+            "right.wrist"
+          ],
+          "max_adjacent_delta": 0.055,
+          "max_second_difference": 0.04
+        },
+        "min_landmark_y_ranges": [
+          {
+            "label": "ankle_vertical_travel",
+            "landmarks": [
+              "left.ankle",
+              "right.ankle"
+            ],
+            "min_y_range": 0.025
+          }
+        ],
+        "source_shape_residual": {
+          "raw_trace": "dist/motion-reference/bodyweight_jumping_jack/pexels_7299359/extract_0_full/raw_mediapipe.jsonl",
+          "source_frame_id": 105,
+          "max_wrist_spread_ratio_delta": 0.6,
+          "max_elbow_angle_delta_degrees": 35.0
+        }
+      },
+      "qa_gates": [
+        "loop_boundary_stable",
+        "source_timed_anatomical_retarget",
+        "forced_loop_delta_below_0.08",
+        "real_closed_open_closed_source_cycle",
+        "bone_length_stable",
+        "head_neck_anchor_stable",
+        "controlled_torso_bounce",
+        "bounded_foot_lift",
+        "overhead_high_v_without_goalpost_collapse",
+        "transition_wrist_spread_bounded",
+        "closed_arms_outside_torso",
+        "closed_feet_readable",
+        "no_crossed_leg_joints",
+        "no_frame_local_avatar_rescale",
+        "no_duplicate_adjacent_frames",
+        "engine_counts_one_rep",
+        "clean_trace_no_selected_form_cues",
+        "agent_visual_reviewed",
+        "failed_user_visible_app_review",
+        "needs_source_shape_residual_gate"
+      ]
+    },
+    {
       "exercise_id": "bodyweight_plank",
       "archetype": "static_hold",
-      "viewer_status": "bundled_canonical_trace",
-      "measurement_status": "preset_acceptance_tested",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "reference_capture_required",
       "capture": {
-        "status": "pending_first_party_capture",
+        "status": "pending_visual_rig_review",
         "required_view": "side",
-        "clip": "trainer holds a clean forearm plank for at least 3 seconds",
-        "contact_policy": "forearms or hands and toes planted according to preset variant",
-        "primary_side": "camera_side"
+        "clip": "Pexels 7801720 side-view forearm plank clip; selected first 6 seconds as a stable static hold",
+        "source_page": "https://www.pexels.com/video/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720/",
+        "source_media_url": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
+        "source_license": "Pexels License",
+        "source_attribution": "Pexels / video 7801720",
+        "contact_policy": "forearms and toes planted throughout the hold",
+        "primary_side": "left_camera_side",
+        "rejected_candidates": [
+          {
+            "source_page": "https://www.pexels.com/video/woman-doing-plank-position-6437916/",
+            "source_video": "dist/motion-reference/bodyweight_plank/source/pexels-woman-doing-plank-position-6437916.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "Pexels / video 6437916",
+            "evidence": [
+              "dist/motion-reference/bodyweight_plank/pexels_plank_6437916_review/contact.jpg",
+              "dist/motion-reference/bodyweight_plank/pexels_plank_6437916_0_6/raw_mediapipe.jsonl"
+            ],
+            "decision": "rejected",
+            "reason": "The source looked visually promising for a plank hold, but MediaPipe placed lower-leg landmarks outside the normalized image bounds during the reviewed extraction, so it was not source-preserving enough for guide promotion."
+          }
+        ],
+        "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass.",
+        "rejection_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass."
       },
       "phase": {
         "driver": "hold_pose",
@@ -165,9 +357,10 @@
         "bottom": "not_applicable"
       },
       "normalizer": {
-        "status": "implemented",
-        "script": "scripts/motion_reference/compile_archetype_trace.py",
-        "retarget": "static-hold"
+        "status": "blocked_visual_rig_review_failed",
+        "script": "scripts/motion_reference/normalize_plank_trace.py",
+        "retarget": "static_median_external_reference_hold",
+        "blocked_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass."
       },
       "required_contacts": [
         "primary.elbow",
@@ -181,11 +374,712 @@
         "primary.ankle"
       ],
       "qa_gates": [
+        "source_clip_reviewed",
+        "full_body_primary_side_visible",
+        "static_median_hold_pose",
         "contact_locked",
         "body_line_stable",
-        "hold_duration_present",
         "engine_accepts_hold",
+        "visual_rig_review_failed"
+      ]
+    },
+    {
+      "exercise_id": "standing_miniband_hip_flexion",
+      "archetype": "standing_hip_flexion",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "pending_licensed_reference_clip",
+        "required_view": "side",
+        "clip": "locate a licensed external workout clip: trainer performs a side-view standing miniband hip-flexion cycle, starting and ending with the working knee down and stance foot planted",
+        "contact_policy": "stance foot remains planted heel-to-toe; lifted foot intentionally moves through the cycle; miniband tension is not pose-visible",
+        "primary_side": "left_working_leg",
+        "rejected_candidates": [
+          {
+            "source_page": "https://www.pexels.com/video/a-female-person-working-out-with-a-resistance-band-8416674/",
+            "source_media_url": "https://videos.pexels.com/video-files/8416674/8416674-hd_1080_1920_25fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "SHVETS production / Pexels video 8416674",
+            "evidence": [
+              "dist/motion-reference/standing_miniband_hip_flexion/source_candidates/a-female-person-working-out-with-a-resistance-band-8416674_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Tight crop shows hands pulling a band near the thigh, not a full-body side-view standing miniband hip-flexion knee-drive cycle; hip, knee, ankle, and stance-foot landmarks are not visible enough for source-preserving extraction."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/a-woman-exercising-her-legs-with-a-resistance-band-8837226/",
+            "source_media_url": "https://videos.pexels.com/video-files/8837226/8837226-uhd_2732_1440_25fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "MART PRODUCTION / Pexels video 8837226",
+            "evidence": [
+              "dist/motion-reference/standing_miniband_hip_flexion/source_candidates/a-woman-exercising-her-legs-with-a-resistance-band-8837226_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Standing miniband leg exercise, but the visible motion is lateral hip abduction rather than forward hip flexion/knee drive."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/woman-doing-a-leg-exercise-using-a-resistance-band-8836976/",
+            "source_media_url": "https://videos.pexels.com/video-files/8836976/8836976-uhd_1440_2732_25fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "MART PRODUCTION / Pexels video 8836976",
+            "evidence": [
+              "dist/motion-reference/standing_miniband_hip_flexion/source_candidates/woman-doing-a-leg-exercise-using-a-resistance-band-8836976_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Standing miniband leg exercise, but the repeated cycle is lateral abduction from a front/oblique crop, not the required side-view knee-drive hip-flexion pattern."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/women-using-resistance-band-for-leg-workout-7477907/",
+            "source_media_url": "https://videos.pexels.com/video-files/7477907/7477907-uhd_1440_2560_24fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "Angela Roma / Pexels video 7477907",
+            "evidence": [
+              "dist/motion-reference/standing_miniband_hip_flexion/source_candidates/women-using-resistance-band-for-leg-workout-7477907_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Licensed leg-band clip, but it is lying floor work rather than standing hip flexion with a planted stance foot."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "working-leg hip flexion angle",
+        "top": "standing tall with the working knee down",
+        "bottom": "knee driven forward and up without torso lean"
+      },
+      "normalizer": {
+        "status": "pending_source_preserving_normalizer",
+        "script": "scripts/motion_reference/compile_archetype_trace.py",
+        "retarget": "side-view-standing-hip-flexion",
+        "cycle_mode": "down-up-down"
+      },
+      "required_contacts": [
+        "right.heel",
+        "right.foot.index"
+      ],
+      "required_output_landmarks": [
+        "left.shoulder",
+        "left.hip",
+        "left.knee",
+        "left.ankle",
+        "right.hip",
+        "right.knee",
+        "right.ankle"
+      ],
+      "qa_gates": [
+        "stance_foot_contact_locked",
+        "loop_boundary_stable",
+        "controlled_hip_flexion_then_return",
+        "engine_counts_one_rep",
         "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "resistance_band_reverse_curl",
+      "archetype": "standing_reverse_curl",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "pending_licensed_reference_clip",
+        "required_view": "side",
+        "clip": "locate a licensed external workout clip: trainer performs a side-view resistance-band reverse-curl cycle, starting and ending with the arm extended",
+        "contact_policy": "feet and band anchor remain out of measurement scope; the elbow-flexion cycle is pose-visible while band tension and pronated grip are not",
+        "primary_side": "camera_side_arm",
+        "rejected_candidates": [
+          {
+            "source_page": "https://www.pexels.com/video/men-working-out-together-using-a-resistance-band-6326763/",
+            "source_license": "Pexels License",
+            "source_attribution": "Pavel Danilyuk / Pexels video 6326763",
+            "reviewed_segments": [
+              "normal crop 18.0s-23.5s",
+              "wide crop 18.0s-23.5s"
+            ],
+            "evidence": [
+              "dist/motion-reference/resistance_band_reverse_curl/pexels_6326763/extract_18000_23500/raw_review_sheet.jpg",
+              "dist/motion-reference/resistance_band_reverse_curl/pexels_6326763/extract_wide_18000_23500/raw_review_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Clip reads as a resistance-band curl, but grip pronation is ambiguous from the crop; the cleanest MediaPipe side still has right-wrist out-of-bounds frames, while the visible left arm has low confidence, so it would promote a generic elbow-flexion trace rather than accurate reverse-curl data."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/focused-indoor-workout-with-resistance-bands-35585827/",
+            "source_license": "Pexels License",
+            "source_attribution": "khezez / Pexels video 35585827",
+            "reviewed_segments": [
+              "web search result and source metadata"
+            ],
+            "decision": "rejected",
+            "reason": "Free/downloadable Pexels resistance-band clip, but the source is tagged and described as generic resistance-band/bicep-curl work; it does not prove a pronated reverse-curl grip or the required side-view reverse-curl cycle."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "primary elbow flexion angle",
+        "top": "standing tall with the working arm extended",
+        "bottom": "forearm curled up while the upper arm stays mostly still"
+      },
+      "normalizer": {
+        "status": "pending_source_preserving_normalizer",
+        "script": "scripts/motion_reference/compile_archetype_trace.py",
+        "retarget": "side-view-standing-reverse-curl",
+        "cycle_mode": "extended-flexed-extended"
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "left.shoulder",
+        "left.elbow",
+        "left.wrist",
+        "left.hip"
+      ],
+      "qa_gates": [
+        "loop_boundary_stable",
+        "elbow_extension_flexion_extension",
+        "upper_arm_stable",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "bodyweight_pike",
+      "archetype": "bodyweight_pike",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "visual_rig_review_failed",
+      "capture": {
+        "status": "pending_visual_rig_review",
+        "required_view": "side",
+        "clip": "Pexels yoga flow in urban loft clip, segment 0.8s-3.2s: trainer moves from side-view high plank into a planted-hands-and-feet pike/downward-dog shape",
+        "source_page": "https://www.pexels.com/video/yoga-flow-in-urban-loft-with-natural-light-31794279/",
+        "source_media_url": "https://videos.pexels.com/video-files/31794279/13544679_2560_1440_24fps.mp4",
+        "source_license": "Pexels License",
+        "source_attribution": "K / Pexels video 31794279",
+        "contact_policy": "hands and toes stay planted while the hips lift; the single source descent is mirrored to close the app guide loop",
+        "primary_side": "right_camera_side",
+        "visual_review_failure": "2026-06-09 installed app fixed-frame review at 2407 ms showed detached head/neck and broken avatar rig at deepest pike frame; keep source extraction as repair candidate only.",
+        "rejected_candidates": [
+          {
+            "source_page": "https://www.pexels.com/video/yoga-flow-in-urban-loft-with-natural-light-31794279/",
+            "source_media_url": "https://videos.pexels.com/video-files/31794279/13544679_2560_1440_24fps.mp4",
+            "source_license": "Pexels License",
+            "source_attribution": "K / Pexels video 31794279",
+            "decision": "rejected - visual rig review failed",
+            "reason": "Installed-app fixed-frame review at 2407 ms showed detached head/neck and broken avatar rig at the deepest pike frame, so this source extraction remains repair-candidate-only and cannot be Trackable."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "primary shoulder-hip-ankle pike angle",
+        "top": "long high plank with hands and toes planted",
+        "bottom": "hips lifted into a pike while knees and elbows stay long"
+      },
+      "normalizer": {
+        "status": "blocked_visual_rig_review_failed",
+        "script": "scripts/motion_reference/normalize_pike_trace.py",
+        "retarget": "raw_mediapipe_side_view_with_planted_contact_lock",
+        "cycle_mode": "descent-mirror"
+      },
+      "required_contacts": [
+        "primary.wrist",
+        "primary.foot.index"
+      ],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.elbow",
+        "primary.wrist",
+        "primary.hip",
+        "primary.knee",
+        "primary.ankle"
+      ],
+      "qa_gates": [
+        "licensed_source_recorded",
+        "raw_pose_reviewed",
+        "hand_and_toe_contact_locked",
+        "loop_boundary_stable",
+        "controlled_hip_pike_then_return",
+        "knees_and_elbows_stay_long",
+        "visual_rig_review_failed",
+        "engine_replay_candidate_only"
+      ]
+    },
+    {
+      "exercise_id": "single_arm_dumbbell_preacher_curl",
+      "archetype": "preacher_curl",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "reference_capture_required",
+      "capture": {
+        "status": "pending_visual_rig_review",
+        "required_view": "side",
+        "clip": "Pixabay 66991 Crossfit Gym Workout Training, source frames 41..56..64 plus a short extended settle",
+        "source_page": "https://pixabay.com/videos/crossfit-gym-workout-training-66991/",
+        "source_license": "Pixabay Content License",
+        "source_attribution": "tixonov_valentin / Pixabay",
+        "contact_policy": "upper-arm support and dumbbell load are setup/equipment requirements; the elbow-flexion cycle is pose-visible",
+        "primary_side": "right_camera_side_arm",
+        "rejected_sources": {
+          "status": "none_retained_for_promotion_review",
+          "review_scope": "Promotion review retained the Pixabay 66991 source and no alternate rejected source-candidate records were preserved in this slice.",
+          "reason": "The accepted source is pinned by source page, license, attribution, raw trace, normalizer, visual review, engine replay, and artifact integrity. Future source changes must add rejected_candidates before promotion."
+        },
+        "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review.",
+        "rejection_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review."
+      },
+      "phase": {
+        "driver": "primary elbow flexion angle",
+        "top": "working arm extended on preacher support",
+        "bottom": "dumbbell curled up while the upper arm stays supported"
+      },
+      "normalizer": {
+        "status": "blocked_visual_rig_review_failed",
+        "script": "scripts/motion_reference/normalize_single_arm_dumbbell_preacher_curl_trace.py",
+        "retarget": "source_timed_anatomical_side_view_avatar_rig",
+        "cycle_mode": "source_extended-flexed-extended_with_extended_settle",
+        "blocked_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review."
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.elbow",
+        "primary.wrist",
+        "primary.hip"
+      ],
+      "qa_gates": [
+        "licensed_source_recorded",
+        "raw_pose_reviewed",
+        "single_subject_side_view_preacher_curl",
+        "real_extended_flexed_extended_source_cycle",
+        "source_timed_anatomical_retarget",
+        "loop_boundary_stable",
+        "elbow_extension_flexion_extension",
+        "upper_arm_stable",
+        "constant_forearm_length",
+        "engine_counts_one_rep",
+        "visual_rig_review_failed"
+      ]
+    },
+    {
+      "exercise_id": "wide_grip_preacher_curl_with_ez_bar",
+      "archetype": "preacher_curl",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "pending_licensed_reference_clip",
+        "required_view": "side",
+        "clip": "locate a licensed external workout clip: trainer performs a side-view wide-grip EZ-bar preacher-curl cycle, starting and ending with the camera-side elbow extended",
+        "contact_policy": "EZ-bar presence, load, grip width, both-arm symmetry, and preacher-bench contact are setup/equipment requirements; the camera-side elbow-flexion cycle is pose-visible",
+        "primary_side": "camera_side_arm",
+        "rejected_candidates": [
+          {
+            "source_page": "https://wger.de/api/v2/exerciseinfo/?limit=1000&language=2",
+            "source_media_url": "https://wger.de/media/exercise-video/465/b64ca95b-c677-4f3b-bb50-f75edc81aa74.MOV",
+            "source_license": "CC-BY-SA 4",
+            "source_attribution": "Goulart / wger exercise 465 video 53",
+            "evidence": [
+              "dist/motion-reference/wide_grip_preacher_curl_with_ez_bar/source_candidates/wger_465_video53/source_fps2_sheet.jpg",
+              "dist/motion-reference/wide_grip_preacher_curl_with_ez_bar/wger_465_video53/extract_0_12000/raw_mediapipe.jsonl",
+              "dist/motion-reference/wide_grip_preacher_curl_with_ez_bar/wger_465_video53/extract_0_12000/raw_review_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Openly licensed preacher-curl record with SZ-Bar metadata, but the video is a plate-loaded/preacher-station variation and does not prove the exact wide-grip free EZ-bar setup. Raw MediaPipe can follow the camera-side elbow cycle, but semantic exactness still fails."
+          },
+          {
+            "source_page": "https://wger.de/api/v2/exerciseinfo/?limit=1000&language=2",
+            "source_media_url": "https://wger.de/media/exercise-video/465/5d2339a4-815f-46ba-aa19-8a763cfdeba0.MOV",
+            "source_license": "CC-BY-SA 4",
+            "source_attribution": "Goulart / wger exercise 465 video 54",
+            "evidence": [
+              "dist/motion-reference/wide_grip_preacher_curl_with_ez_bar/source_candidates/wger_465_video54/source_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Openly licensed preacher-curl video, but it uses a dumbbell/handle style rather than a wide-grip EZ bar."
+          },
+          {
+            "source_page": "https://commons.wikimedia.org/wiki/File:Video_of_EZ_Bar_Curl_and_Straight_Bar_Curl.webm",
+            "source_license": "CC BY 3.0",
+            "source_attribution": "Wikimedia Commons",
+            "decision": "rejected",
+            "reason": "Downloadable EZ-bar curl source, but it is a standing curl rather than a preacher-bench curl with supported upper arms."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "primary elbow flexion angle",
+        "top": "camera-side arm extended on preacher support",
+        "bottom": "EZ bar curled up while the camera-side upper arm stays supported"
+      },
+      "normalizer": {
+        "status": "pending_source_preserving_normalizer",
+        "script": "scripts/motion_reference/compile_archetype_trace.py",
+        "retarget": "side-view-preacher-curl",
+        "cycle_mode": "extended-flexed-extended"
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.elbow",
+        "primary.wrist",
+        "primary.hip"
+      ],
+      "qa_gates": [
+        "loop_boundary_stable",
+        "elbow_extension_flexion_extension",
+        "upper_arm_stable",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "single_arm_chest_supported_incline_row",
+      "archetype": "chest_supported_row",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "pending_licensed_reference_clip",
+        "required_view": "side",
+        "clip": "locate a licensed external workout clip: trainer performs a side-view left-arm chest-supported incline row, starting and ending with the left arm long",
+        "contact_policy": "dumbbell load, bench incline, chest contact, and grip/path quality are setup/equipment requirements; the left elbow row cycle and shoulder path are pose-visible",
+        "primary_side": "left_arm",
+        "rejected_candidates": [
+          {
+            "source_page": "https://www.exercises.com.au/incline-dumbbell-row/",
+            "source_license": "all rights reserved",
+            "source_attribution": "Exercises.com.au incline dumbbell row page",
+            "decision": "rejected",
+            "reason": "Semantic fit is close for incline dumbbell row, but the page does not provide permissive/downloadable video rights."
+          },
+          {
+            "source_page": "https://trainest.com/exercise/incline-dumbbell-row",
+            "source_license": "all rights reserved",
+            "source_attribution": "Trainest incline dumbbell row exercise page",
+            "decision": "rejected",
+            "reason": "Semantic fit is close, but the parsed page exposes images/text rather than a clearly downloadable permissive video and the site footer is all-rights-reserved."
+          },
+          {
+            "source_page": "https://tenor.com/view/chest-supported-row-gif-25615009",
+            "source_license": "unknown/no permissive source license identified",
+            "source_attribution": "Tenor chest-supported-row GIF 25615009",
+            "decision": "rejected",
+            "reason": "Exact-ish chest-supported dumbbell row GIF/MP4, but no clear permissive license or source provenance, with low resolution and watermark/source ambiguity."
+          },
+          {
+            "source_page": "https://commons.wikimedia.org/wiki/File:Bent-over_row_-_exercise_demonstration_video.webm",
+            "source_license": "downloadable Wikimedia Commons source; license not accepted for this preset because semantic fit failed first",
+            "source_attribution": "Wikimedia Commons bent-over row demonstration video",
+            "decision": "rejected",
+            "reason": "Downloadable Commons row source, but it is an unsupported bent-over row, not a chest-supported incline row."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "left elbow flexion angle",
+        "top": "left arm hanging long while the chest stays supported",
+        "bottom": "left elbow pulled back along the side with the dumbbell near the ribs"
+      },
+      "normalizer": {
+        "status": "pending_source_preserving_normalizer",
+        "script": "scripts/motion_reference/compile_archetype_trace.py",
+        "retarget": "side-view-chest-supported-row",
+        "cycle_mode": "extended-rowed-extended"
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "left.shoulder",
+        "left.elbow",
+        "left.wrist",
+        "left.hip"
+      ],
+      "qa_gates": [
+        "loop_boundary_stable",
+        "left_elbow_extension_flexion_extension",
+        "left_elbow_rows_back",
+        "torso_angle_stable",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "machine_chest_supported_row",
+      "archetype": "chest_supported_row",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "reference_capture_required",
+      "capture": {
+        "status": "pending_license_review",
+        "required_view": "side",
+        "clip": "Wikimedia Commons / YouTube Machine T-Bar Row segment 84.0s-91.0s is retained as candidate evidence only; Commons still marks the imported YouTube license as needing review, so no playable app MotionDemo trace ships.",
+        "contact_policy": "machine load, handle style, chest-pad contact, and both-arm symmetry are setup/equipment requirements; the visible elbow row cycle and shoulder path are pose-visible",
+        "primary_side": "auto",
+        "source_page": "https://commons.wikimedia.org/wiki/File:How_to_properly_do_Machine_T-Bar_Rows.webm",
+        "source_media_url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/How_to_properly_do_Machine_T-Bar_Rows.webm",
+        "source_file_url": "https://www.youtube.com/watch?v=TyLoy3n_a10",
+        "source_license": "CC BY 3.0; YouTube CC verified; Commons license review still pending",
+        "source_attribution": "Colossus Fitness via Wikimedia Commons",
+        "rejected_candidates": [
+          {
+            "source_page": "https://www.pexels.com/video/man-doing-seated-row-exercise-6022753/",
+            "source_license": "Pexels License",
+            "source_attribution": "Kampus Production / Pexels video 6022753",
+            "reviewed_segments": [
+              "0.0s-15.295s"
+            ],
+            "evidence": [
+              "dist/motion-reference/machine_chest_supported_row/pexels_6022753/source_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Clip is a seated outdoor resistance-band/cable-style row without a chest pad or machine chest support, so it does not satisfy the machine chest-supported row contract."
+          },
+          {
+            "source_page": "https://commons.wikimedia.org/wiki/File:How_to_do_a_T-Bar_Row_in_strength_training_workouts.webm",
+            "source_license": "Commons/YouTube-imported source license not accepted for packaging; license review and semantic fit both failed promotion.",
+            "source_attribution": "Wikimedia Commons imported YouTube T-Bar Row candidate",
+            "decision": "rejected",
+            "reason": "Downloadable Commons T-bar source, but the movement is not chest-supported in the required sense and Commons also marks the imported YouTube license as not yet reviewed."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "visible elbow flexion angle",
+        "top": "visible arm long while the chest stays supported",
+        "bottom": "visible elbow pulled back along the side with the handle near the ribs"
+      },
+      "normalizer": {
+        "status": "accepted",
+        "script": "scripts/motion_reference/normalize_machine_chest_supported_row_trace.py",
+        "retarget": "source_timed_side_view_machine_chest_supported_row",
+        "cycle_mode": "extended-rowed-extended"
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.elbow",
+        "primary.wrist",
+        "primary.hip"
+      ],
+      "qa_gates": [
+        "loop_boundary_stable",
+        "licensed_source_recorded",
+        "raw_pose_reviewed",
+        "source_timed_retarget",
+        "visible_elbow_extension_flexion_extension",
+        "visible_elbow_rows_back",
+        "torso_angle_stable",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "bench_lying_single_arm_dumbbell_tricep_extension",
+      "archetype": "lying_tricep_extension",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "pending_licensed_reference_clip",
+        "required_view": "side",
+        "clip": "locate a licensed external workout clip: trainer performs a side-view bench-lying single-arm dumbbell tricep-extension cycle, starting and ending with the working elbow extended",
+        "contact_policy": "flat-bench support and dumbbell load are setup/equipment requirements; the elbow flexion-extension cycle is pose-visible",
+        "primary_side": "left_arm",
+        "rejected_candidates": [
+          {
+            "source_page": "https://www.pexels.com/video/woman-doing-tricep-extensions-6286166/",
+            "source_license": "Pexels License",
+            "source_attribution": "Pexels video 6286166",
+            "evidence": [
+              "dist/motion-reference/bench_lying_single_arm_dumbbell_tricep_extension/pexels_6286166/source_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Clip is an upright overhead triceps-extension movement, not a flat-bench lying single-arm dumbbell triceps extension."
+          },
+          {
+            "source_page": "https://www.pexels.com/video/intense-weight-training-on-bench-with-dumbbells-29569378/",
+            "source_license": "Pexels License",
+            "source_attribution": "JULLIAN PRODUCTION / Pexels video 29569378",
+            "reviewed_segments": [
+              "0.0s-20.42s"
+            ],
+            "evidence": [
+              "dist/motion-reference/bench_lying_single_arm_dumbbell_tricep_extension/candidate_search/pexels_29569378/source_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Clip is an incline bilateral dumbbell press pattern, not a single-arm dumbbell triceps extension with the upper arm fixed and elbow flexing near the head."
+          },
+          {
+            "source_page": "https://wger.de/api/v2/exerciseinfo/245/",
+            "source_media_url": "https://wger.de/media/exercise-video/245/c253303e-9160-4f1f-b4fe-daf1e6c8661d.MOV",
+            "source_license": "wger video license id 2 / CC-BY-SA 4",
+            "source_attribution": "Goulart / wger exercise 245 video 60",
+            "reviewed_segments": [
+              "12.0s-18.7s"
+            ],
+            "evidence": [
+              "dist/motion-reference/bench_lying_single_arm_dumbbell_tricep_extension/source_candidates/wger_245_video60/source_12_187_fps3_sheet.jpg",
+              "dist/motion-reference/bench_lying_single_arm_dumbbell_tricep_extension/wger_245_video60/extract_12000_18700/raw_mediapipe.jsonl",
+              "dist/motion-reference/bench_lying_single_arm_dumbbell_tricep_extension/wger_245_video60/extract_12000_18700/raw_review_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "License-defensible bench dumbbell skullcrusher source, but it is bilateral rather than single-arm and raw MediaPipe review has dropout/low-confidence arm landmarks, so it is not exact or clean enough to promote."
+          },
+          {
+            "source_page": "https://wger.de/api/v2/exerciseinfo/211/",
+            "source_media_url": "https://wger.de/media/exercise-video/211/85f6eb25-a76c-409e-9af9-497794ac0dfb.MOV",
+            "source_license": "wger video license id 2 / CC-BY-SA 4",
+            "source_attribution": "Goulart / wger exercise 211 video 57",
+            "evidence": [
+              "dist/motion-reference/bench_lying_single_arm_dumbbell_tricep_extension/source_candidates/wger_211_video57/source_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "License-defensible single-arm dumbbell triceps-extension clip, but the motion is seated/incline overhead rather than bench-lying with the upper arm fixed beside the head."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "left elbow angle",
+        "top": "lying on the bench with the working elbow extended",
+        "bottom": "dumbbell lowered under control while the upper arm stays steady"
+      },
+      "normalizer": {
+        "status": "pending_source_preserving_normalizer",
+        "script": "scripts/motion_reference/compile_archetype_trace.py",
+        "retarget": "side-view-lying-tricep-extension",
+        "cycle_mode": "extended-flexed-extended"
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "left.shoulder",
+        "left.elbow",
+        "left.wrist",
+        "left.hip"
+      ],
+      "qa_gates": [
+        "loop_boundary_stable",
+        "elbow_extension_flexion_extension",
+        "upper_arm_stable",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "single_arm_cable_tricep_extension",
+      "archetype": "standing_cable_tricep_extension",
+      "viewer_status": "trainer_reference_trace",
+      "measurement_status": "preset_acceptance_tested",
+      "capture": {
+        "status": "licensed_external_reference_clip",
+        "required_view": "side",
+        "clip": "wger exercise 803 video 59, source-timed visual cycle 1250..2000..3250ms",
+        "source_page": "https://wger.de/api/v2/exerciseinfo/803/",
+        "source_media_url": "https://wger.de/media/exercise-video/803/589d24e5-aaee-455d-93fd-f0f01da5d9c6.MOV",
+        "source_license": "CC-BY-SA 4",
+        "source_attribution": "Goulart / wger exercise 803 video 59",
+        "contact_policy": "cable stack, handle attachment, and load are setup/equipment requirements; the elbow extension-return cycle is pose-visible",
+        "primary_side": "left_arm",
+        "rejected_candidates": [
+          {
+            "source_page": "https://www.pexels.com/video/a-man-working-out-inside-the-gym-5319433/",
+            "source_license": "Pexels License",
+            "source_attribution": "Tima Miroshnichenko / Pexels video 5319433",
+            "reviewed_segments": [
+              "0.0s-12.64s"
+            ],
+            "evidence": [
+              "dist/motion-reference/single_arm_cable_tricep_extension/pexels_5319432/source_fps2_sheet.jpg",
+              "dist/motion-reference/single_arm_cable_tricep_extension/pexels_5319432/extract_0_12640/raw_review_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Semantically in-family, but raw MediaPipe does not reliably satisfy the left-arm contract: the left shoulder/elbow/wrist/hip chain meets visibility >=0.65 in only 25/126 frames, the opposite arm is also unstable, and local provenance is ambiguous between folder 5319432 and public page 5319433."
+          },
+          {
+            "source_page": "https://wger.de/api/v2/exerciseinfo/?limit=1000&language=2",
+            "source_media_url": "https://wger.de/media/exercise-video/95/ab770931-47d3-44fd-aef0-ac7a64c3b794.MOV",
+            "source_license": "CC-BY-SA 4",
+            "source_attribution": "Goulart / wger exercise 95 video 50",
+            "evidence": [
+              "dist/motion-reference/single_arm_cable_tricep_extension/source_candidates/wger_95_video50/source_fps2_sheet.jpg"
+            ],
+            "decision": "rejected",
+            "reason": "Openly licensed cable-machine clip, but the movement is a cable biceps curl rather than a cable triceps extension."
+          }
+        ]
+      },
+      "phase": {
+        "driver": "left elbow angle",
+        "top": "standing with the working elbow bent and upper arm pinned by the side",
+        "bottom": "handle pressed down until the elbow is nearly straight"
+      },
+      "normalizer": {
+        "status": "implemented",
+        "script": "scripts/motion_reference/normalize_single_arm_cable_tricep_extension_trace.py",
+        "retarget": "source_timed_side_view_single_arm_cable_tricep_extension",
+        "cycle_mode": "source_flexed-extended-flexed",
+        "cycle_start_ms": 1250,
+        "cycle_extend_ms": 2000,
+        "cycle_end_ms": 3250
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "left.shoulder",
+        "left.elbow",
+        "left.wrist",
+        "left.hip"
+      ],
+      "qa_gates": [
+        "licensed_source_recorded",
+        "raw_pose_reviewed",
+        "single_subject_side_view_cable_tricep_extension",
+        "source_timed_retarget",
+        "loop_boundary_stable",
+        "elbow_flexion_extension_flexion",
+        "upper_arm_stable",
+        "engine_counts_one_rep",
+        "viewer_reviewed"
+      ]
+    },
+    {
+      "exercise_id": "suspension_tricep_press",
+      "archetype": "suspension_tricep_press",
+      "viewer_status": "pending_reference_capture",
+      "measurement_status": "reference_capture_required",
+      "capture": {
+        "status": "pending_visual_rig_review",
+        "required_view": "side",
+        "clip": "Pexels 8435987 side-view suspension trainer clip; selected the 4.5s-10.0s segment and mirrored the clean flexed-to-extended half-cycle into a closed flexed-extended-flexed guide loop",
+        "source_page": "https://www.pexels.com/video/a-woman-doing-push-up-8435987/",
+        "source_media_url": "https://videos.pexels.com/video-files/8435987/8435987-hd_1920_1080_25fps.mp4",
+        "source_license": "Pexels License",
+        "source_attribution": "Pexels / video 8435987",
+        "contact_policy": "strap anchor, handle grip, and suspension load are setup/equipment requirements; the elbow press-out/return cycle and body-line posture are pose-visible",
+        "primary_side": "left_camera_side",
+        "rejected_sources": {
+          "status": "none_retained_for_promotion_review",
+          "review_scope": "Promotion review retained the Pexels 8435987 side-view suspension-trainer source and no alternate rejected source-candidate records were preserved in this slice.",
+          "reason": "The accepted source is pinned by source page, license, attribution, raw trace, normalizer, visual review, engine replay, and artifact integrity. Future source changes must add rejected_candidates before promotion."
+        },
+        "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review.",
+        "rejection_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review."
+      },
+      "phase": {
+        "driver": "primary elbow angle",
+        "top": "leaning into the straps with elbows bent",
+        "bottom": "arms pressed nearly straight while the shoulder-hip-ankle line stays long"
+      },
+      "normalizer": {
+        "status": "blocked_visual_rig_review_failed",
+        "script": "scripts/motion_reference/normalize_suspension_tricep_press_trace.py",
+        "retarget": "raw_mediapipe_side_view_preserved",
+        "cycle_mode": "extension-mirror",
+        "blocked_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review."
+      },
+      "required_contacts": [],
+      "required_output_landmarks": [
+        "primary.shoulder",
+        "primary.elbow",
+        "primary.wrist",
+        "primary.hip",
+        "primary.knee",
+        "primary.ankle"
+      ],
+      "qa_gates": [
+        "loop_boundary_stable",
+        "elbow_flexion_extension_flexion",
+        "body_line_stable",
+        "upper_arm_tracks_with_torso",
+        "engine_counts_one_rep",
+        "visual_rig_review_failed"
       ]
     }
   ]

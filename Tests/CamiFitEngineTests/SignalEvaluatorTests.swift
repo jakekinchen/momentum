@@ -45,6 +45,44 @@ final class SignalEvaluatorTests: XCTestCase {
         print("invalid-arithmetic \(divideByZero) \(degenerateAngle)")
     }
 
+    func testEvaluatesDocumentedGeometryHelpersAtRuntime() throws {
+        let evaluator = try SignalEvaluator(program: ProgramLoader.load(from: presetURL))
+
+        XCTAssertValid(
+            evaluator.evaluateExpression("distance(left.shoulder, right.shoulder)", frame: standingFrame),
+            equals: 0.30,
+            accuracy: 0.001
+        )
+        XCTAssertValid(
+            evaluator.evaluateExpression("ratio(distance(left.shoulder, right.shoulder), 0.15)", frame: standingFrame),
+            equals: 2.0,
+            accuracy: 0.001
+        )
+        XCTAssertValid(
+            evaluator.evaluateExpression("min(3, 2, 4) + max(3, 2, 4)", frame: standingFrame),
+            equals: 6.0,
+            accuracy: 0.001
+        )
+        XCTAssertValid(
+            evaluator.evaluateExpression(
+                "distance(midpoint(left.shoulder, right.shoulder), midpoint(left.hip, right.hip))",
+                frame: standingFrame
+            ),
+            equals: 0.20,
+            accuracy: 0.001
+        )
+        XCTAssertValid(
+            evaluator.evaluateExpression("angle_to_horizontal(right.shoulder, left.shoulder)", frame: standingFrame),
+            equals: 0.0,
+            accuracy: 0.001
+        )
+        XCTAssertValid(
+            evaluator.evaluateExpression("signed_angle(left.hip, left.shoulder, right.shoulder)", frame: standingFrame),
+            equals: -90.0,
+            accuracy: 0.001
+        )
+    }
+
     func testEvaluationIsDeterministic() throws {
         let program = try ProgramLoader.load(from: presetURL)
         let evaluator = try SignalEvaluator(program: program)

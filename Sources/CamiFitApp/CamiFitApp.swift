@@ -16,8 +16,10 @@ private enum MainWindowSizing {
 @main
 struct CamiFitApp: App {
     @StateObject private var viewModel = AppExerciseSessionViewModel()
+    @StateObject private var liveSession = LiveSession()
     @StateObject private var codex = CodexAppServerClient()
     @StateObject private var onboarding = OnboardingCoordinator()
+    @StateObject private var settingsSelection = AppSettingsSelection()
 
     init() {
         CamiFitBrandLogo.applyAsApplicationIcon()
@@ -28,13 +30,14 @@ struct CamiFitApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("Future Coach") {
+        WindowGroup(ProductBrand.fullName) {
             Group {
                 if let synthetic = ProcessInfo.processInfo.environment["CAMIFIT_SYNTHETIC"], !synthetic.isEmpty {
                     SyntheticDemoView(viewModel: viewModel, framesURL: URL(fileURLWithPath: synthetic))
                 } else {
-                    ContentView(viewModel: viewModel, codex: codex)
+                    ContentView(viewModel: viewModel, liveSession: liveSession, codex: codex)
                         .environmentObject(onboarding)
+                        .environmentObject(settingsSelection)
                 }
             }
             .frame(minWidth: MainWindowSizing.preferredSize.width, minHeight: MainWindowSizing.preferredSize.height)
@@ -53,7 +56,7 @@ struct CamiFitApp: App {
             }
 
             CommandGroup(after: .help) {
-                Button("Show Future Coach Tour") {
+                Button("Show Momentum Tour") {
                     onboarding.showTour()
                 }
                 .keyboardShortcut("/", modifiers: [.command, .shift])
@@ -62,7 +65,10 @@ struct CamiFitApp: App {
 
         Settings {
             CamiFitSettingsView()
+                .environmentObject(viewModel)
+                .environmentObject(liveSession)
                 .environmentObject(codex)
+                .environmentObject(settingsSelection)
         }
     }
 }

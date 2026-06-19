@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "single_arm_cable_tricep_extension",
+  "name": "Single-Arm Cable Tricep Extension",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "left.shoulder",
+      "left.elbow",
+      "left.wrist",
+      "left.hip"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "left",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Stand side-on with the working elbow bent and upper arm steady by your ribs",
+        "capture_seconds": 1.0,
+        "signals": [
+          "elbow_angle",
+          "upper_arm_tilt",
+          "torso_tilt"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "left.shoulder",
+    "elbow": "left.elbow",
+    "wrist": "left.wrist",
+    "hip": "left.hip"
+  },
+  "signals": {
+    "elbow_angle_raw": "angle(left.shoulder, left.elbow, left.wrist)",
+    "upper_arm_tilt_raw": "angle_to_vertical(left.shoulder, left.elbow)",
+    "torso_raw": "angle_to_vertical(left.shoulder, left.hip)"
+  },
+  "filters": {
+    "elbow_angle": {
+      "source": "elbow_angle_raw",
+      "type": "ema",
+      "alpha": 0.45
+    },
+    "upper_arm_tilt": {
+      "source": "upper_arm_tilt_raw",
+      "type": "median",
+      "window_ms": 200
+    },
+    "torso_tilt": {
+      "source": "torso_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "phase_signal": "elbow_angle",
+    "down_when": "elbow_angle > 150",
+    "down_min_ms": 100,
+    "bottom_min_ms": 80,
+    "up_when": "elbow_angle < 90",
+    "up_min_ms": 100,
+    "min_rom_deg": 55,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "extension_finish",
+      "when": "phase == 'bottom'",
+      "expect": "elbow_angle >= 160",
+      "min_violation_ms": 250,
+      "cue": "Press down until your elbow is nearly straight",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
+    },
+    {
+      "id": "upper_arm",
+      "when": "phase in ['descending','bottom']",
+      "expect": "upper_arm_tilt <= 25",
+      "min_violation_ms": 250,
+      "cue": "Keep your upper arm pinned by your side",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "torso",
+      "when": "phase in ['descending','bottom']",
+      "expect": "torso_tilt <= 15",
+      "min_violation_ms": 250,
+      "cue": "Stand tall while you press",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000
+    }
+  ],
+  "set": {
+    "target_reps": 12
+  }
+}

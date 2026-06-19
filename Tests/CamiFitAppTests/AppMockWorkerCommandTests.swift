@@ -60,6 +60,21 @@ final class AppMockWorkerCommandTests: XCTestCase {
         print("app-mock-worker-command-default-url path=\(url.path)")
     }
 
+    func testPackagedDefaultMockWorkerScriptURLUsesBundleResources() {
+        let launchDirectory = URL(fileURLWithPath: "/Users/kelly/Documents")
+        let resources = URL(fileURLWithPath: "/Applications/Momentum.app/Contents/Resources", isDirectory: true)
+        let url = AppExerciseSessionViewModel.defaultMockWorkerScriptURL(
+            currentDirectory: launchDirectory,
+            bundleURL: URL(fileURLWithPath: "/Applications/Momentum.app", isDirectory: true),
+            resourceURL: resources
+        )
+
+        XCTAssertEqual(url, resources.appendingPathComponent("pose_worker/pose_worker.py"))
+        XCTAssertFalse(url.path.hasPrefix(launchDirectory.path))
+
+        print("app-mock-worker-command-packaged-url path=\(url.path)")
+    }
+
     private static var packageRoot: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

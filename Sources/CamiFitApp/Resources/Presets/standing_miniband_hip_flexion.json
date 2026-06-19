@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "standing_miniband_hip_flexion",
+  "name": "Standing Miniband Hip Flexion",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "left.hip",
+      "left.knee",
+      "left.ankle",
+      "left.shoulder",
+      "right.hip",
+      "right.knee",
+      "right.ankle"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "auto_lock",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Stand side-on with the working knee down and the stance foot planted",
+        "capture_seconds": 1.0,
+        "signals": [
+          "hip_flexion",
+          "torso_tilt",
+          "stance_knee"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "left.shoulder",
+    "hip": "left.hip",
+    "knee": "left.knee",
+    "ankle": "left.ankle",
+    "stance_hip": "right.hip",
+    "stance_knee": "right.knee",
+    "stance_ankle": "right.ankle"
+  },
+  "signals": {
+    "hip_flexion_raw": "angle(left.shoulder, left.hip, left.knee)",
+    "knee_angle_raw": "angle(left.hip, left.knee, left.ankle)",
+    "torso_raw": "angle_to_vertical(left.shoulder, left.hip)",
+    "stance_knee_raw": "angle(right.hip, right.knee, right.ankle)"
+  },
+  "filters": {
+    "hip_flexion": {
+      "source": "hip_flexion_raw",
+      "type": "ema",
+      "alpha": 0.45
+    },
+    "knee_angle": {
+      "source": "knee_angle_raw",
+      "type": "ema",
+      "alpha": 0.45
+    },
+    "torso_tilt": {
+      "source": "torso_raw",
+      "type": "median",
+      "window_ms": 200
+    },
+    "stance_knee": {
+      "source": "stance_knee_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "phase_signal": "hip_flexion",
+    "down_when": "hip_flexion < 125",
+    "down_min_ms": 100,
+    "bottom_min_ms": 80,
+    "up_when": "hip_flexion > 160",
+    "up_min_ms": 100,
+    "min_rom_deg": 35,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "knee_drive",
+      "when": "phase == 'bottom'",
+      "expect": "hip_flexion <= 115",
+      "min_violation_ms": 250,
+      "cue": "Drive your knee higher",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
+    },
+    {
+      "id": "lifted_knee",
+      "when": "phase == 'bottom'",
+      "expect": "knee_angle <= 130",
+      "min_violation_ms": 250,
+      "cue": "Keep the lifted knee softly bent",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000,
+      "evaluation": "extreme"
+    },
+    {
+      "id": "torso",
+      "when": "phase in ['descending','bottom']",
+      "expect": "torso_tilt <= 12",
+      "min_violation_ms": 250,
+      "cue": "Keep your torso tall",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "stance_leg",
+      "when": "phase == 'bottom'",
+      "expect": "stance_knee >= 155",
+      "min_violation_ms": 0,
+      "cue": "Keep your standing leg tall",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000
+    }
+  ],
+  "set": {
+    "target_reps": 12
+  }
+}

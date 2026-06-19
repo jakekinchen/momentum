@@ -173,10 +173,10 @@ enum KGMemoryChatBridge {
         guard !active.isEmpty else { return nil }
         let facts = active.map { "- \($0.title): \($0.sourceText)" }.joined(separator: "\n")
         return """
-        Future Coach local KG fact cards for this user:
+        \(ProductBrand.fullName) local KG fact cards for this user:
         \(facts)
 
-        Treat these as active health/safety constraints when answering. If a workout would stress a listed body region, avoid it or suggest a gentler alternative. Do not claim you wrote the KG yourself; the Future Coach app owns KG writes.
+        Treat these as active health/safety constraints when answering. If a workout would stress a listed body region, avoid it or suggest a gentler alternative. Do not claim you wrote the KG yourself; the \(ProductBrand.fullName) app owns KG writes.
         """
     }
 }

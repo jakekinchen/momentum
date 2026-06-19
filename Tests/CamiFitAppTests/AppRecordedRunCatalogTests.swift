@@ -25,6 +25,21 @@ final class AppRecordedRunCatalogTests: XCTestCase {
         )
     }
 
+    func testPackagedRecordedRunCandidatesDoNotProbeLaunchCurrentDirectory() {
+        let launchDirectory = URL(fileURLWithPath: "/Users/kelly/Documents")
+        let candidates = AppRecordedRunCatalog.defaultSourceCandidates(
+            bundleURL: URL(fileURLWithPath: "/Applications/Momentum.app", isDirectory: true),
+            currentDirectory: launchDirectory
+        )
+        let candidatePaths = candidates.map(\.standardizedFileURL.path)
+
+        XCTAssertFalse(candidatePaths.contains {
+            $0.hasPrefix(launchDirectory.path)
+        })
+
+        print("app-recorded-runs-packaged-candidates=\(candidatePaths.joined(separator: ","))")
+    }
+
     func testCleanRecordedRunUpdatesLastSummaryThroughAppResourceCatalog() {
         let viewModel = AppExerciseSessionViewModel()
 

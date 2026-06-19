@@ -8,6 +8,7 @@ public enum RoutineValidationError: Error, Equatable, CustomStringConvertible {
     case negativeRest(block: Int, restSeconds: Int)
     case bothTargets(block: Int)
     case missingPreset(block: Int, id: String)
+    case unguidedCatalogExercise(block: Int, name: String)
     case invalidInlineExercise(block: Int, message: String)
     case incompatibleTarget(block: Int, message: String)
     case invalidTarget(block: Int, message: String)
@@ -26,6 +27,8 @@ public enum RoutineValidationError: Error, Equatable, CustomStringConvertible {
             return "Block \(index + 1) has both reps and hold seconds."
         case let .missingPreset(index, id):
             return "Block \(index + 1) uses an unavailable preset: \(id)."
+        case let .unguidedCatalogExercise(index, name):
+            return "Block \(index + 1) is recommendation-only until guide motion data is available: \(name)."
         case let .invalidInlineExercise(index, message):
             return "Block \(index + 1) inline exercise is not runnable: \(message)."
         case let .incompatibleTarget(index, message):
@@ -139,13 +142,16 @@ public struct ExecutableRoutine: Equatable, Identifiable {
 public struct RoutineCompiler {
     private let presetResolver: (String) throws -> ExerciseProgram
     private let inlineValidator: (ExerciseProgram) -> RegimenValidationError?
+    private let allowsInlinePrograms: Bool
 
     init(
         presetResolver: @escaping (String) throws -> ExerciseProgram,
-        inlineValidator: @escaping (ExerciseProgram) -> RegimenValidationError? = RegimenBlockParser.validate(program:)
+        inlineValidator: @escaping (ExerciseProgram) -> RegimenValidationError? = RegimenBlockParser.validate(program:),
+        allowsInlinePrograms: Bool = false
     ) {
         self.presetResolver = presetResolver
         self.inlineValidator = inlineValidator
+        self.allowsInlinePrograms = allowsInlinePrograms
     }
 
     public func compile(_ routine: WorkoutRoutine) throws -> ExecutableRoutine {
@@ -202,10 +208,18 @@ public struct RoutineCompiler {
                 throw RoutineValidationError.missingPreset(block: blockIndex, id: id)
             }
         case let .inline(program):
+            guard allowsInlinePrograms else {
+                throw RoutineValidationError.invalidInlineExercise(
+                    block: blockIndex,
+                    message: "Inline exercises require accepted motion-reference promotion before guided execution"
+                )
+            }
             if let error = inlineValidator(program) {
                 throw RoutineValidationError.invalidInlineExercise(block: blockIndex, message: String(describing: error))
             }
             return program
+        case let .catalog(_, name):
+            throw RoutineValidationError.unguidedCatalogExercise(block: blockIndex, name: name)
         }
     }
 

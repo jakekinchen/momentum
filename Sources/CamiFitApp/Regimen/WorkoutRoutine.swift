@@ -4,13 +4,21 @@ import Foundation
 public enum ExerciseRef: Codable, Equatable {
     case preset(id: String)
     case inline(ExerciseProgram)
+    case catalog(id: String, name: String)
 
-    private enum CodingKeys: String, CodingKey { case preset, inline }
+    private struct CatalogPayload: Codable, Equatable {
+        let id: String
+        let name: String
+    }
+
+    private enum CodingKeys: String, CodingKey { case preset, inline, catalog }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         if let id = try c.decodeIfPresent(String.self, forKey: .preset) {
             self = .preset(id: id)
+        } else if let catalog = try c.decodeIfPresent(CatalogPayload.self, forKey: .catalog) {
+            self = .catalog(id: catalog.id, name: catalog.name)
         } else {
             self = .inline(try c.decode(ExerciseProgram.self, forKey: .inline))
         }
@@ -21,7 +29,28 @@ public enum ExerciseRef: Codable, Equatable {
         switch self {
         case let .preset(id): try c.encode(id, forKey: .preset)
         case let .inline(program): try c.encode(program, forKey: .inline)
+        case let .catalog(id, name):
+            try c.encode(CatalogPayload(id: id, name: name), forKey: .catalog)
         }
+    }
+}
+
+public struct RoutineBlockGuidance: Codable, Equatable {
+    public var status: String
+    public var displayText: String
+    public var note: String?
+    public var mappedPresetID: String?
+
+    public init(
+        status: String,
+        displayText: String,
+        note: String? = nil,
+        mappedPresetID: String? = nil
+    ) {
+        self.status = status
+        self.displayText = displayText
+        self.note = note
+        self.mappedPresetID = mappedPresetID
     }
 }
 
@@ -31,19 +60,40 @@ public struct RoutineBlock: Codable, Equatable {
     public var reps: Int?
     public var holdSeconds: Double?
     public var restSeconds: Int?
+    public var guidance: RoutineBlockGuidance?
 
     public init(
         exerciseRef: ExerciseRef,
         sets: Int,
         reps: Int? = nil,
         holdSeconds: Double? = nil,
-        restSeconds: Int? = nil
+        restSeconds: Int? = nil,
+        guidance: RoutineBlockGuidance? = nil
     ) {
         self.exerciseRef = exerciseRef
         self.sets = sets
         self.reps = reps
         self.holdSeconds = holdSeconds
         self.restSeconds = restSeconds
+        self.guidance = guidance
+    }
+
+    public var isGuideAvailable: Bool {
+        if guidance?.status == "recommend_only" {
+            return false
+        }
+        switch exerciseRef {
+        case .preset:
+            break
+        case .inline, .catalog:
+            return false
+        }
+        return true
+    }
+
+    public var guidanceUnavailableText: String? {
+        guard !isGuideAvailable else { return nil }
+        return guidance?.note ?? "No guide or tracking is available for this exercise yet."
     }
 }
 
@@ -149,5 +199,38 @@ public struct WorkoutRoutine: Codable, Equatable, Identifiable {
             && name == other.name
             && description == other.description
             && blocks == other.blocks
+    }
+
+    public var guidedBlocks: [RoutineBlock] {
+        blocks.filter(\.isGuideAvailable)
+    }
+
+    public var unguidedBlocks: [RoutineBlock] {
+        blocks.filter { !$0.isGuideAvailable }
+    }
+
+    public var hasUnguidedBlocks: Bool {
+        !unguidedBlocks.isEmpty
+    }
+
+    public func guidedOnly(idSuffix: String = "-guided") -> WorkoutRoutine? {
+        guidedOnly(idSuffix: idSuffix) { $0.isGuideAvailable }
+    }
+
+    public func guidedOnly(
+        idSuffix: String = "-guided",
+        including includeBlock: (RoutineBlock) -> Bool
+    ) -> WorkoutRoutine? {
+        let guided = guidedBlocks
+            .filter(includeBlock)
+        guard !guided.isEmpty else { return nil }
+        return WorkoutRoutine(
+            schemaVersion: schemaVersion,
+            artifactType: artifactType,
+            id: "\(id)\(idSuffix)",
+            name: name,
+            description: description,
+            blocks: guided
+        )
     }
 }

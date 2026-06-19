@@ -13,21 +13,15 @@ enum FutureRoutineCatalog {
                 restSeconds: 45
             ),
             RoutineBlock(
-                exerciseRef: .preset(id: "bodyweight_lunge"),
-                sets: 1,
-                reps: 8,
-                restSeconds: 45
-            ),
-            RoutineBlock(
                 exerciseRef: .preset(id: "bodyweight_pushup"),
                 sets: 1,
                 reps: 8,
                 restSeconds: 45
             ),
             RoutineBlock(
-                exerciseRef: .preset(id: "bodyweight_plank"),
+                exerciseRef: .preset(id: "bodyweight_lunge"),
                 sets: 1,
-                holdSeconds: 30,
+                reps: 8,
                 restSeconds: 0
             )
         ]

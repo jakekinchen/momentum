@@ -2,7 +2,7 @@
 
 This file defines invariant milestones for autonomous work on CamiFit.
 
-Milestones are required outcomes, not detailed subtasks. The Executor and Reviewer choose the implementation slices needed to satisfy the next milestone. Authoritative design: `docs/design/2026-06-03-camifit-exercise-engine-design.md`.
+Milestones are required outcomes, not detailed subtasks. The Executor and Reviewer choose the implementation slices needed to satisfy the next milestone. Authoritative design: `docs/design/2026-06-03-momentum-exercise-engine-design.md`.
 
 ## Overall Goal
 

@@ -203,6 +203,8 @@ public struct FormRuleEvaluator {
     private let minSignalConfidence: Double
     private var violationStartedAtMSByRuleID: [String: Int64] = [:]
     private var lastCueEmittedAtMSByRuleID: [String: Int64] = [:]
+    private var extremeEpisodeStartedAtMSByRuleID: [String: Int64] = [:]
+    private var extremeLatchedRuleIDs: Set<String> = []
 
     public init(program: ExerciseProgram) throws {
         var compiledRules: [CompiledFormRule] = []
@@ -332,6 +334,16 @@ public struct FormRuleEvaluator {
         phase: RepPhase,
         frame: PoseFrame?
     ) -> FormRuleSnapshot {
+        if compiledRule.rule.evaluation == .extreme {
+            return updateExtreme(
+                compiledRule,
+                timestampMS: timestampMS,
+                producedValues: producedValues,
+                phase: phase,
+                frame: frame
+            )
+        }
+
         let rule = compiledRule.rule
         let isActive = compiledRule.condition.matches(phase)
 
@@ -404,6 +416,120 @@ public struct FormRuleEvaluator {
                 invalidReason: reason
             )
         }
+    }
+
+    /// Episode-extreme evaluation: the expectation passes if it was satisfied at
+    /// any frame while the rule's `when` condition held (e.g. "reached depth at
+    /// the deepest point of the bottom"). While the episode runs, frames report
+    /// pending (`expectationPassed == nil`) until the expectation latches true.
+    /// One verdict snapshot is emitted on the frame where the episode ends; a
+    /// failed episode shorter than `min_violation_ms` is discarded as a bounce.
+    private mutating func updateExtreme(
+        _ compiledRule: CompiledFormRule,
+        timestampMS: Int64,
+        producedValues: [String: SignalValue],
+        phase: RepPhase,
+        frame: PoseFrame?
+    ) -> FormRuleSnapshot {
+        let rule = compiledRule.rule
+        let isActive = compiledRule.condition.matches(phase)
+
+        guard isActive else {
+            guard let startedAtMS = extremeEpisodeStartedAtMSByRuleID.removeValue(forKey: rule.id) else {
+                return Self.inactiveSnapshot(for: rule)
+            }
+
+            let latched = extremeLatchedRuleIDs.remove(rule.id) != nil
+            let episodeMS = Int(max(0, timestampMS - startedAtMS))
+
+            if latched {
+                return FormRuleSnapshot(
+                    ruleID: rule.id,
+                    isActive: true,
+                    expectationPassed: true,
+                    cue: nil,
+                    severity: rule.severity,
+                    violationDurationMS: nil,
+                    cueCooldownRemainingMS: nil,
+                    invalidReason: nil
+                )
+            }
+
+            guard episodeMS >= rule.minViolationMS else {
+                return Self.inactiveSnapshot(for: rule)
+            }
+
+            let cooldownRemainingBeforeCue = cueCooldownRemaining(for: rule, at: timestampMS)
+            let shouldCue = cooldownRemainingBeforeCue == 0
+            if shouldCue {
+                lastCueEmittedAtMSByRuleID[rule.id] = timestampMS
+            }
+
+            return FormRuleSnapshot(
+                ruleID: rule.id,
+                isActive: true,
+                expectationPassed: false,
+                cue: shouldCue ? rule.cue : nil,
+                severity: rule.severity,
+                violationDurationMS: episodeMS,
+                cueCooldownRemainingMS: shouldCue
+                    ? rule.cooldownMS
+                    : (cooldownRemainingBeforeCue > 0 ? cooldownRemainingBeforeCue : nil),
+                invalidReason: nil
+            )
+        }
+
+        if extremeEpisodeStartedAtMSByRuleID[rule.id] == nil {
+            extremeEpisodeStartedAtMSByRuleID[rule.id] = timestampMS
+        }
+
+        let result = evaluate(
+            compiledRule.expectation,
+            producedValues: producedValues,
+            frame: frame ?? Self.emptyFrame
+        )
+
+        if result == .satisfied {
+            extremeLatchedRuleIDs.insert(rule.id)
+        }
+
+        let latchedSoFar = extremeLatchedRuleIDs.contains(rule.id)
+        if case let .invalid(reason) = result, !latchedSoFar {
+            return FormRuleSnapshot(
+                ruleID: rule.id,
+                isActive: true,
+                expectationPassed: nil,
+                cue: nil,
+                severity: rule.severity,
+                violationDurationMS: nil,
+                cueCooldownRemainingMS: nil,
+                invalidReason: reason
+            )
+        }
+
+        return FormRuleSnapshot(
+            ruleID: rule.id,
+            isActive: true,
+            expectationPassed: latchedSoFar ? true : nil,
+            cue: nil,
+            severity: rule.severity,
+            violationDurationMS: nil,
+            cueCooldownRemainingMS: nil,
+            invalidReason: nil
+        )
+    }
+
+    private static func inactiveSnapshot(for rule: FormRule) -> FormRuleSnapshot {
+        FormRuleSnapshot(
+            ruleID: rule.id,
+            isActive: false,
+            expectationPassed: nil,
+            cue: nil,
+            severity: rule.severity,
+            violationDurationMS: nil,
+            cueCooldownRemainingMS: nil,
+            invalidReason: nil
+        )
     }
 
     private func evaluate(

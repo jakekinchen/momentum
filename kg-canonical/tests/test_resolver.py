@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from kg.graph_store import load_local_graph
 from kg.resolver import resolve_text
 
 
@@ -95,6 +98,19 @@ def test_resolves_prd_db_kb_subset_with_terminal_punctuation() -> None:
     assert all(constraint.safety_behavior == "allowed_equipment_only" for constraint in constraints)
 
 
+def test_resolves_only_resistance_band_loop_alias() -> None:
+    graph = load_local_graph(Path("graph/generated/assessment_exercise_kg.generated.json"))
+    constraints = resolve_text("Build an arms routine. Only resistance band loop.", graph=graph)
+
+    assert [(constraint.constraint_type, constraint.value) for constraint in constraints] == [
+        ("Equipment", "resistance_band_loop"),
+    ]
+    assert all(constraint.hard is True for constraint in constraints)
+    assert all(constraint.safety_behavior == "allowed_equipment_only" for constraint in constraints)
+    assert all(constraint.confidence == 0.92 for constraint in constraints)
+    assert all(constraint.resolution_method == "local_fuzzy_alias" for constraint in constraints)
+
+
 def test_resolves_deadlift_family_exclusion() -> None:
     [constraint] = resolve_text("exclude deadlifts")
 
@@ -161,3 +177,26 @@ def test_unknown_or_ambiguous_terms_return_unresolved_constraint() -> None:
     assert constraint.hard is True
     assert constraint.resolution_status == "needs_review"
     assert constraint.safety_behavior == "ask_clarification"
+    assert constraint.confidence == 0.0
+    assert constraint.resolution_method == "unresolved"
+
+
+def test_local_fuzzy_aliases_keep_safety_critical_blocks_hard() -> None:
+    cases = [
+        ("kne", "BodyRegion", "knee", False, False),
+        ("no barbel", "Equipment", "barbell", True, True),
+        ("dumbell", "Equipment", "dumbbell", False, False),
+        ("kettle bell", "Equipment", "kettlebell", False, False),
+        ("exclude dead lifts", "ExerciseFamily", "deadlift_family", True, True),
+        ("low back", "BodyRegion", "lower_back", True, False),
+        ("pectorals", "MuscleGroup", "chest", False, False),
+    ]
+
+    for text, constraint_type, value, hard, negated in cases:
+        [constraint] = resolve_text(text)
+        assert constraint.constraint_type == constraint_type
+        assert constraint.value == value
+        assert constraint.hard is hard
+        assert constraint.negated is negated
+        assert constraint.confidence == 0.92
+        assert constraint.resolution_method == "local_fuzzy_alias"

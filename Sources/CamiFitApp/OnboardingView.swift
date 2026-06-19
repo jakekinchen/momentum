@@ -2,6 +2,10 @@ import SwiftUI
 
 @MainActor
 final class OnboardingCoordinator: ObservableObject {
+    nonisolated static let completedStorageKey = "camifit.onboarding.completed"
+    nonisolated static let completedVersionStorageKey = "camifit.onboarding.completedVersion"
+    nonisolated static let currentVersion = 2
+
     @Published var isPresented = false
 
     func showTour() {
@@ -34,7 +38,7 @@ struct CamiFitOnboardingStep: Identifiable, Equatable {
             id: .movement,
             eyebrow: "Live movement",
             title: "Your camera becomes a rep tracker",
-            summary: "Future Coach reads pose landmarks locally, draws the live skeleton, and turns movement into reps, holds, cues, and form feedback.",
+            summary: "\(ProductBrand.fullName) reads pose landmarks locally, draws the live skeleton, and turns movement into reps, holds, cues, and form feedback.",
             bullets: [
                 "Live Camera uses the selected webcam in the main session viewer.",
                 "Demo replays a bundled sample so the loop is visible without a camera.",
@@ -58,7 +62,7 @@ struct CamiFitOnboardingStep: Identifiable, Equatable {
             id: .coach,
             eyebrow: "Coach panel",
             title: "Chat can produce routines you can run",
-            summary: "The coach answers questions, explains form, and can attach structured Future Coach routine cards with a Start routine action.",
+            summary: "The coach answers questions, explains form, and can attach structured Momentum routine cards with a Start routine action.",
             bullets: [
                 "Connect your OpenAI account in Settings to enable coach replies.",
                 "Routine cards keep generated plans separate from normal chat text.",
@@ -70,7 +74,7 @@ struct CamiFitOnboardingStep: Identifiable, Equatable {
             id: .memory,
             eyebrow: "Memory and safety",
             title: "Health constraints stay visible",
-            summary: "The memory inspector shows what Future Coach remembers, where it came from, and whether a later correction changed it.",
+            summary: "The memory inspector shows what \(ProductBrand.fullName) remembers, where it came from, and whether a later correction changed it.",
             bullets: [
                 "Memory proposals are validated by the app before they are saved.",
                 "Corrections append a new operation instead of rewriting history.",
@@ -168,7 +172,7 @@ struct OnboardingFlowView: View {
                     moveSelection(by: 1)
                 }
             } label: {
-                Label(isLastStep ? "Start Future Coach" : "Next",
+                Label(isLastStep ? "Start Momentum" : "Next",
                       systemImage: isLastStep ? "checkmark.circle.fill" : "chevron.right")
             }
             .buttonStyle(.borderedProminent)
@@ -194,7 +198,7 @@ private struct OnboardingStepRail: View {
                     .frame(width: 22, height: 30)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Future Coach")
+                    Text(ProductBrand.fullName)
                         .font(.headline.weight(.semibold))
                     Text("Feature tour")
                         .font(.caption)

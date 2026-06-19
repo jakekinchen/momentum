@@ -81,10 +81,12 @@ public struct MotionDemoTimeline: Equatable {
     private static func mix(_ a: Double, _ b: Double, _ t: Double) -> Double {
         a + ((b - a) * t)
     }
+
 }
 
 public enum MotionDemoSourceKind: String, Codable, Equatable {
     case trainerReferenceTrace = "trainer_reference_trace"
+    case licensedExternalReferenceTrace = "licensed_external_reference_trace"
     case canonicalArchetypeTrace = "canonical_archetype_trace"
     case proceduralFallback = "procedural_fallback"
 }
@@ -126,7 +128,23 @@ public struct MotionDemoSource: Equatable {
 public enum MotionDemoCompiler {
     public static func compile(program: ExerciseProgram, frameIntervalMS: Int64 = 100) -> MotionDemoTimeline {
         let frames: [PoseFrame]
-        if program.hold != nil || program.id.contains("plank") {
+        if program.id.contains("suspension_tricep_press") {
+            frames = suspensionTricepPressFrames(intervalMS: frameIntervalMS)
+        } else if program.id.contains("cable_tricep_extension") {
+            frames = cableTricepExtensionFrames(intervalMS: frameIntervalMS)
+        } else if program.id.contains("tricep_extension") {
+            frames = lyingTricepExtensionFrames(intervalMS: frameIntervalMS)
+        } else if program.id.contains("preacher_curl") {
+            frames = preacherCurlFrames(intervalMS: frameIntervalMS)
+        } else if program.id.contains("row") || program.rep?.phaseSignal == "row_elbow" {
+            frames = chestSupportedRowFrames(intervalMS: frameIntervalMS)
+        } else if program.id.contains("reverse_curl") || program.rep?.phaseSignal == "curl_elbow" {
+            frames = reverseCurlFrames(intervalMS: frameIntervalMS)
+        } else if program.id.contains("hip_flexion") || program.rep?.phaseSignal == "hip_flexion" {
+            frames = hipFlexionFrames(program: program, intervalMS: frameIntervalMS)
+        } else if program.id.contains("pike") || program.rep?.phaseSignal == "pike_angle" {
+            frames = pikeFrames(intervalMS: frameIntervalMS)
+        } else if program.hold != nil || program.id.contains("plank") {
             frames = plankFrames(intervalMS: frameIntervalMS)
         } else if program.id.contains("push") || program.rep?.phaseSignal == "elbow" {
             frames = pushupFrames(program: program, intervalMS: frameIntervalMS)
@@ -223,6 +241,205 @@ public enum MotionDemoCompiler {
                 landmarks: landmarks
             )
             return pose
+        }
+    }
+
+    private static func pikeFrames(intervalMS: Int64) -> [PoseFrame] {
+        let factors = [0, 0, 0, 0.20, 0.45, 0.70, 0.90, 1, 1, 1, 0.80, 0.55, 0.30, 0.10, 0, 0, 0]
+        return factors.enumerated().map { index, rawFactor in
+            let factor = smoothstep(rawFactor)
+            let primary: [String: Point3D] = [
+                "nose": Point3D(mix(0.660, 0.650, factor), mix(0.390, 0.400, factor), -0.03),
+                "shoulder": Point3D(mix(0.560, 0.580, factor), mix(0.480, 0.500, factor), 0),
+                "elbow": Point3D(mix(0.620, 0.630, factor), mix(0.600, 0.590, factor), 0.03),
+                "wrist": Point3D(0.680, 0.680, 0.08),
+                "hip": Point3D(mix(0.380, 0.390, factor), mix(0.560, 0.300, factor), 0),
+                "knee": Point3D(mix(0.290, 0.300, factor), mix(0.610, 0.480, factor), 0.02),
+                "ankle": Point3D(0.200, 0.660, 0.04)
+            ]
+            return frame(
+                timestampMS: Int64(index) * intervalMS,
+                primary: primary,
+                lateralOffset: 0.09
+            )
+        }
+    }
+
+    private static func hipFlexionFrames(program: ExerciseProgram, intervalMS: Int64) -> [PoseFrame] {
+        let factors = [0, 0, 0, 0.20, 0.45, 0.70, 0.90, 1, 1, 1, 0.80, 0.55, 0.30, 0.10, 0, 0, 0]
+        return factors.enumerated().map { index, rawFactor in
+            let factor = smoothstep(rawFactor)
+            let left: [String: Point3D] = [
+                "nose": Point3D(mix(0.52, 0.51, factor), mix(0.17, 0.19, factor), -0.03),
+                "shoulder": Point3D(mix(0.52, 0.51, factor), mix(0.29, 0.31, factor), 0),
+                "elbow": Point3D(mix(0.49, 0.48, factor), mix(0.43, 0.44, factor), 0.03),
+                "wrist": Point3D(mix(0.47, 0.46, factor), mix(0.55, 0.56, factor), 0.08),
+                "hip": Point3D(0.52, 0.50, 0),
+                "knee": Point3D(mix(0.52, 0.70, factor), mix(0.69, 0.54, factor), 0.02),
+                "ankle": Point3D(mix(0.52, 0.73, factor), mix(0.86, 0.65, factor), 0.05)
+            ]
+            var landmarks: [String: PoseLandmark] = [
+                "nose": landmark(left["nose"]!),
+                "primary.nose": landmark(left["nose"]!)
+            ]
+            addNamedLandmarks(to: &landmarks, prefix: "left", points: left)
+            addNamedLandmarks(to: &landmarks, prefix: "primary", points: left)
+            addNamedLandmarks(
+                to: &landmarks,
+                prefix: "right",
+                points: [
+                    "shoulder": Point3D(0.46, 0.30, -0.16),
+                    "elbow": Point3D(0.43, 0.44, -0.16),
+                    "wrist": Point3D(0.41, 0.56, -0.16),
+                    "hip": Point3D(0.46, 0.50, -0.16),
+                    "knee": Point3D(0.46, 0.68, -0.16),
+                    "ankle": Point3D(0.46, 0.86, -0.16)
+                ]
+            )
+            return PoseFrame(
+                timestampMS: Int64(index) * intervalMS,
+                imageWidth: 1280,
+                imageHeight: 720,
+                landmarks: landmarks
+            )
+        }
+    }
+
+    private static func reverseCurlFrames(intervalMS: Int64) -> [PoseFrame] {
+        let factors = [0, 0, 0, 0.20, 0.45, 0.70, 0.90, 1, 1, 1, 0.80, 0.55, 0.30, 0.10, 0, 0, 0]
+        return factors.enumerated().map { index, rawFactor in
+            let factor = smoothstep(rawFactor)
+            let primary: [String: Point3D] = [
+                "nose": Point3D(0.525, 0.190, -0.03),
+                "shoulder": Point3D(0.520, 0.320, 0),
+                "elbow": Point3D(0.490, 0.480, 0.03),
+                "wrist": Point3D(mix(0.500, 0.630, factor), mix(0.720, 0.460, factor), 0.08),
+                "hip": Point3D(0.520, 0.545, 0),
+                "knee": Point3D(0.520, 0.710, 0.02),
+                "ankle": Point3D(0.520, 0.865, 0.05)
+            ]
+            return frame(
+                timestampMS: Int64(index) * intervalMS,
+                primary: primary,
+                lateralOffset: 0.09
+            )
+        }
+    }
+
+    private static func preacherCurlFrames(intervalMS: Int64) -> [PoseFrame] {
+        let factors = [0, 0, 0, 0.20, 0.45, 0.70, 0.90, 1, 1, 1, 0.80, 0.55, 0.30, 0.10, 0, 0, 0]
+        return factors.enumerated().map { index, rawFactor in
+            let factor = smoothstep(rawFactor)
+            let primary: [String: Point3D] = [
+                "nose": Point3D(0.495, 0.180, -0.03),
+                "shoulder": Point3D(0.500, 0.300, 0),
+                "elbow": Point3D(0.600, 0.540, 0.03),
+                "wrist": Point3D(mix(0.680, 0.460, factor), mix(0.760, 0.500, factor), 0.08),
+                "hip": Point3D(0.470, 0.590, 0),
+                "knee": Point3D(0.580, 0.720, 0.02),
+                "ankle": Point3D(0.630, 0.860, 0.05)
+            ]
+            return frame(
+                timestampMS: Int64(index) * intervalMS,
+                primary: primary,
+                lateralOffset: 0.09
+            )
+        }
+    }
+
+    private static func chestSupportedRowFrames(intervalMS: Int64) -> [PoseFrame] {
+        let factors = [0, 0, 0, 0.20, 0.45, 0.70, 0.90, 1, 1, 1, 0.80, 0.55, 0.30, 0.10, 0, 0, 0]
+        return factors.enumerated().map { index, rawFactor in
+            let factor = smoothstep(rawFactor)
+            let left: [String: Point3D] = [
+                "nose": Point3D(0.430, 0.270, -0.03),
+                "shoulder": Point3D(0.460, 0.400, 0),
+                "elbow": Point3D(mix(0.550, 0.390, factor), mix(0.560, 0.500, factor), 0.03),
+                "wrist": Point3D(mix(0.660, 0.500, factor), mix(0.730, 0.550, factor), 0.08),
+                "hip": Point3D(0.580, 0.600, 0),
+                "knee": Point3D(0.720, 0.710, 0.02),
+                "ankle": Point3D(0.840, 0.830, 0.05)
+            ]
+            var landmarks: [String: PoseLandmark] = [
+                "nose": landmark(left["nose"]!),
+                "primary.nose": landmark(left["nose"]!)
+            ]
+            addNamedLandmarks(to: &landmarks, prefix: "left", points: left)
+            addNamedLandmarks(to: &landmarks, prefix: "primary", points: left)
+            var right: [String: Point3D] = [:]
+            for (joint, point) in left where joint != "nose" {
+                right[joint] = Point3D(point.x + 0.09, point.y, point.z + 0.12)
+            }
+            addNamedLandmarks(to: &landmarks, prefix: "right", points: right)
+            return PoseFrame(
+                timestampMS: Int64(index) * intervalMS,
+                imageWidth: 1280,
+                imageHeight: 720,
+                landmarks: landmarks
+            )
+        }
+    }
+
+    private static func lyingTricepExtensionFrames(intervalMS: Int64) -> [PoseFrame] {
+        let factors = [0, 0, 0, 0.20, 0.45, 0.70, 0.90, 1, 1, 1, 0.80, 0.55, 0.30, 0.10, 0, 0, 0]
+        return factors.enumerated().map { index, rawFactor in
+            let factor = smoothstep(rawFactor)
+            let primary: [String: Point3D] = [
+                "nose": Point3D(0.300, 0.540, -0.03),
+                "shoulder": Point3D(0.380, 0.550, 0),
+                "elbow": Point3D(0.540, 0.380, 0.03),
+                "wrist": Point3D(mix(0.700, 0.430, factor), mix(0.210, 0.310, factor), 0.08),
+                "hip": Point3D(0.700, 0.600, 0),
+                "knee": Point3D(0.820, 0.640, 0.02),
+                "ankle": Point3D(0.920, 0.680, 0.05)
+            ]
+            return frame(
+                timestampMS: Int64(index) * intervalMS,
+                primary: primary,
+                lateralOffset: -0.06
+            )
+        }
+    }
+
+    private static func cableTricepExtensionFrames(intervalMS: Int64) -> [PoseFrame] {
+        let factors = [0, 0, 0, 0.20, 0.45, 0.70, 0.90, 1, 1, 1, 0.80, 0.55, 0.30, 0.10, 0, 0, 0]
+        return factors.enumerated().map { index, rawFactor in
+            let factor = smoothstep(rawFactor)
+            let primary: [String: Point3D] = [
+                "nose": Point3D(0.525, 0.190, -0.03),
+                "shoulder": Point3D(0.520, 0.320, 0),
+                "elbow": Point3D(0.500, 0.480, 0.03),
+                "wrist": Point3D(mix(0.590, 0.510, factor), mix(0.470, 0.720, factor), 0.08),
+                "hip": Point3D(0.520, 0.545, 0),
+                "knee": Point3D(0.520, 0.710, 0.02),
+                "ankle": Point3D(0.520, 0.865, 0.05)
+            ]
+            return frame(
+                timestampMS: Int64(index) * intervalMS,
+                primary: primary,
+                lateralOffset: 0.09
+            )
+        }
+    }
+
+    private static func suspensionTricepPressFrames(intervalMS: Int64) -> [PoseFrame] {
+        let factors = [0, 0, 0, 0.20, 0.45, 0.70, 0.90, 1, 1, 1, 0.80, 0.55, 0.30, 0.10, 0, 0, 0]
+        return factors.enumerated().map { index, rawFactor in
+            let factor = smoothstep(rawFactor)
+            let primary: [String: Point3D] = [
+                "nose": Point3D(0.370, 0.250, -0.03),
+                "shoulder": Point3D(0.420, 0.360, 0),
+                "elbow": Point3D(0.510, 0.460, 0.03),
+                "wrist": Point3D(mix(0.400, 0.620, factor), mix(0.490, 0.580, factor), 0.08),
+                "hip": Point3D(0.620, 0.580, 0),
+                "knee": Point3D(0.730, 0.700, 0.02),
+                "ankle": Point3D(0.840, 0.820, 0.05)
+            ]
+            return frame(
+                timestampMS: Int64(index) * intervalMS,
+                primary: primary,
+                lateralOffset: 0.09
+            )
         }
     }
 
@@ -347,6 +564,11 @@ public enum MotionDemoCompiler {
 
     private static func mix(_ a: Double, _ b: Double, _ t: Double) -> Double {
         a + ((b - a) * t)
+    }
+
+    private static func smoothstep(_ t: Double) -> Double {
+        let clamped = min(max(t, 0), 1)
+        return clamped * clamped * (3 - (2 * clamped))
     }
 }
 

@@ -7,9 +7,17 @@ Research artifacts live here. They are evidence and input material, not automati
 | File | Purpose |
 |---|---|
 | [`2026-06-03-chatgpt-pro-pose-stack-research-prompt.md`](2026-06-03-chatgpt-pro-pose-stack-research-prompt.md) | Prompt used for the deep research pass. |
-| [`2026-06-03-chatgpt-pro-pose-stack-response.md`](2026-06-03-chatgpt-pro-pose-stack-response.md) | Research response used to draft the CamiFit PRD. |
-| [`2026-06-03-chatgpt-pro-pose-stack-source-links.json`](2026-06-03-chatgpt-pro-pose-stack-source-links.json) | Source-link export for the research pass. |
 
-## Generated protocol references
+The response and source-link export referenced in earlier workflow logs are not
+present in this worktree. Treat the checked-in prompt as preserved research
+input only; use current product and release docs for active direction:
 
-[`codex-app-server/`](codex-app-server/) contains generated JSON schema/reference material for the Codex app server protocol. Keep it separate from prose research when scanning for product direction.
+- [`../product/`](../product/)
+- [`../release/2026-06-06-conformance-release-closeout.md`](../release/2026-06-06-conformance-release-closeout.md)
+- [`../design/2026-06-04-momentum-fitgraph-synthesis.md`](../design/2026-06-04-momentum-fitgraph-synthesis.md)
+
+## Generated Protocol References
+
+Generated Codex app-server protocol references mentioned in older docs are not
+present in this worktree. If restored later, keep them under a dedicated
+subdirectory and separate them from product research.

@@ -450,7 +450,7 @@ def test_readme_safe_checks_do_not_require_candidate_resume_brief() -> None:
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     safe_checks = _markdown_section(readme, "Safe Checks")
 
-    assert "uv run pytest" in safe_checks
+    assert "uv run python -m pytest" in safe_checks
     assert "bash scripts/audit_autonomous_workflow.sh" in safe_checks
     assert "bash scripts/plan_next_manager_log.sh" in safe_checks
     assert "bash scripts/plan_next_resume_brief.sh" in safe_checks

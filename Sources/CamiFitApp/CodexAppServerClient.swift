@@ -32,6 +32,8 @@ final class CodexAppServerClient: ObservableObject {
     private var stdout: FileHandle?
     private var stderr: FileHandle?
     private var readBuffer = Data()
+    private var stderrTail = ""
+    private let stderrLock = NSLock()
     private var nextID = 1
     private var threadID: String?
     private var threadGeneration = 0
@@ -52,6 +54,7 @@ final class CodexAppServerClient: ObservableObject {
     private let openURL: (URL) -> Bool
 
     private static let turnWatchdogSeconds: TimeInterval = 300
+    private static let maxStderrTailCharacters = 4_000
     static let coachTurnEffort = "low"
 
     /// The chat coach must NOT freehand-author exercise programs. Per the FitGraph/KG synthesis
@@ -181,8 +184,11 @@ final class CodexAppServerClient: ObservableObject {
     """#
 
     private var baseInstructions: String {
+        let supportedExerciseIDs = AppExerciseTrackingGate.guideReadyPresetIDs
+            .sorted()
+            .joined(separator: ", ")
         let persona = """
-        You are Future Coach's friendly fitness coach. Answer questions about exercise form, reps, \
+        You are the friendly fitness coach inside Momentum - Your Future Coach. Answer questions about exercise form, reps, \
         holds, and general workout guidance in clear, encouraging text. Never run shell commands or \
         edit files. You may only ask the app to act through the structured future-coach-action \
         block described below; the app validates every action locally before doing anything.
@@ -192,11 +198,21 @@ final class CodexAppServerClient: ObservableObject {
         exactly one fenced code block tagged future-kg-operation. The block must be JSON:
         {"operation_type":"AddMedicalConstraint","constraint_type":"BodyRegion","value":"left_knee","source_text":"the user's exact limitation text","hard":true,"reason":"why this should affect coaching"}.
         Use lower_snake_case body-region values such as left_knee, right_knee, shoulder, back, \
-        wrist, or ankle. Do not say the memory is saved; the Future Coach app will validate and save \
+        wrist, or ankle. Do not say the memory is saved; the Momentum - Your Future Coach app will validate and save \
         it locally if allowed.
 
-        If the app provides Future Coach local KG fact cards in the user message, treat them as active \
+        If the app provides Momentum - Your Future Coach local KG fact cards in the user message, treat them as active \
         health/safety constraints for that reply.
+        """
+        let factInstructions = """
+        When the user asks for member context that should come from the local member graph, reply with \
+        one short sentence and then end the message with exactly one fenced code block tagged \
+        future-kg-fact-request. Use this JSON shape:
+        {"schemaVersion":1,"tool":"lookup_member_fact","query":"sleep","prompt":"the user's fact question","reason":"why this local member graph lookup is relevant"}.
+        Valid query values are brief, adherence, sleep, changed, message_pattern, and churn. Use these \
+        requests for questions such as morning brief, adherence trend, sleep this week, changes since \
+        last week, message pattern, or churn risk. Do not invent member facts yourself; the app reads \
+        the graph and renders any evidence card locally.
         """
         let actionInstructions = """
         When the user asks to see how to do a supported exercise, check their form on a supported \
@@ -206,33 +222,30 @@ final class CodexAppServerClient: ObservableObject {
         Use this JSON shape:
         {"schemaVersion":1,"tool":"activate_exercise","exerciseID":"bodyweight_squat","mode":"guide","reason":"User asked to see squat form"}.
 
-        Supported exercise IDs are bodyweight_squat, bodyweight_lunge, bodyweight_pushup, and \
-        bodyweight_plank. Use mode "guide" for requests like "show me how", mode "camera" for \
+        Supported exercise IDs are \(supportedExerciseIDs). \
+        Other packaged prototype presets require a licensed reference \
+        clip before you may activate them from chat. Use mode "guide" for requests like "show me how", mode "camera" for \
         requests like "let me practice", and mode "match_form" for requests like "check my form". \
         Write your prose as if the app action card appears immediately below it.
         """
         let routineInstructions = """
-        When the user asks you to create a workout, plan, or routine, reply with a short \
-        encouraging explanation and then end the message with exactly one fenced code block tagged \
-        future-routine. The app hides that block and renders it as a routine card after your reply, \
-        so write your prose as if the card appears immediately below it. Do not put the artifact in \
-        the middle of the response.
-
-        The future-routine block must contain JSON with this small schema:
-        {"schemaVersion":1,"artifactType":"routine","id":"short-lowercase-slug","name":"Routine Name","description":"one sentence","blocks":[{"exerciseRef":{"preset":"bodyweight_squat"},"sets":3,"reps":10,"restSeconds":60}]}.
-        Use only these preset exercise IDs unless the app explicitly provides more: bodyweight_squat, \
-        bodyweight_lunge, bodyweight_pushup, bodyweight_plank. For holds, use holdSeconds instead of \
-        reps. Pick a stable, readable id from the routine name and request; do not add random numbers, \
-        timestamps, or UUIDs. The app will avoid save collisions.
+        Workout, plan, and routine generation is executed locally by Momentum - Your Future Coach's KGKit planner. \
+        When the user asks for a workout, routine, or plan, interpret the user's request into exactly \
+        one fenced code block tagged future-workout-plan after a short normal reply. Use this JSON shape:
+        {"schemaVersion":1,"tool":"generate_workout","prompt":"the workout goal in plain user-facing words","minutes":50,"reason":"why this request should use the local planner"}.
+        Use the prompt field to preserve important user intent such as lower body, bodyweight, time, \
+        equipment, or a requested starting movement. Omit minutes when the user did not specify a \
+        duration. Do not emit future-routine JSON, do not list routine exercises yourself, and do not \
+        choose exercise eligibility yourself; the app validates the request and the graph decides.
         """
         guard Self.exerciseAuthoringEnabled else {
-            return persona + "\n\n" + actionInstructions + "\n\n" + routineInstructions + "\n\n" + """
+            return persona + "\n\n" + factInstructions + "\n\n" + actionInstructions + "\n\n" + routineInstructions + "\n\n" + """
             Do not author brand-new future-exercise artifacts or inline ExerciseProgram JSON. If a \
-            requested routine needs an unsupported movement, explain the limitation in prose and build \
-            the runnable future-routine card from supported preset exercise IDs only.
+            requested routine needs an unsupported movement, explain the limitation in prose and let \
+            the local planner handle any runnable routine.
             """
         }
-        return persona + "\n\n" + actionInstructions + "\n\n" + routineInstructions + "\n\n" + """
+        return persona + "\n\n" + factInstructions + "\n\n" + actionInstructions + "\n\n" + routineInstructions + "\n\n" + """
         When the user asks you to create a brand-new exercise, include a single fenced code block tagged \
         future-exercise containing a full \
           ExerciseProgram JSON. Keep schemaVersion 1; signals are angle(...) expressions over \
@@ -255,10 +268,33 @@ final class CodexAppServerClient: ObservableObject {
             let bundled = exeDir.appendingPathComponent("codex")
             if FileManager.default.isExecutableFile(atPath: bundled.path) { return bundled }
         }
-        for path in ["/opt/homebrew/bin/codex", "/usr/local/bin/codex"] {
+        for path in codexCandidatePaths() {
             if FileManager.default.isExecutableFile(atPath: path) { return URL(fileURLWithPath: path) }
         }
         return nil
+    }
+
+    static func codexCandidatePaths() -> [String] {
+        [
+            "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
+            "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-x64/vendor/x86_64-apple-darwin/bin/codex",
+            "/usr/local/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
+            "/usr/local/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-x64/vendor/x86_64-apple-darwin/bin/codex",
+            "/opt/homebrew/bin/codex",
+            "/usr/local/bin/codex"
+        ]
+    }
+
+    static func codexProcessEnvironment(base: [String: String] = ProcessInfo.processInfo.environment) -> [String: String] {
+        var environment = base
+        let guiSafeSearchPath = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+        let existingPath = (base["PATH"] ?? "")
+            .split(separator: ":")
+            .map(String.init)
+            .filter { !$0.isEmpty }
+        let mergedPath = guiSafeSearchPath + existingPath.filter { !guiSafeSearchPath.contains($0) }
+        environment["PATH"] = mergedPath.joined(separator: ":")
+        return environment
     }
 
     private static func openURLInWorkspace(_ url: URL) -> Bool {
@@ -286,10 +322,13 @@ final class CodexAppServerClient: ObservableObject {
             return
         }
         state = .starting
+        readBuffer.removeAll()
+        clearStderrTail()
 
         let proc = Process()
         proc.executableURL = codexURL
         proc.arguments = ["app-server"]
+        proc.environment = Self.codexProcessEnvironment()
         let stdinPipe = Pipe()
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -305,8 +344,10 @@ final class CodexAppServerClient: ObservableObject {
             guard !data.isEmpty else { return }
             DispatchQueue.main.async { self?.ingest(data) }
         }
-        stderr?.readabilityHandler = { handle in
-            _ = handle.availableData
+        stderr?.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            guard !data.isEmpty else { return }
+            self?.appendStderr(data)
         }
         proc.terminationHandler = { [weak self] _ in
             DispatchQueue.main.async { self?.handleTermination() }
@@ -321,7 +362,7 @@ final class CodexAppServerClient: ObservableObject {
         process = proc
 
         sendRequest(method: "initialize",
-                    params: ["clientInfo": ["name": "Future Coach", "version": "0.1.0"],
+                    params: ["clientInfo": ["name": ProductBrand.fullName, "version": "0.1.0"],
                              "capabilities": ["experimentalApi": true]]) { [weak self] _ in
             guard let self else { return }
             self.sendNotification("initialized", params: nil)
@@ -356,6 +397,8 @@ final class CodexAppServerClient: ObservableObject {
         activeTurn = nil
         responseHandlers.removeAll()
         shouldStartLoginAfterInitialize = false
+        pendingLoginId = nil
+        clearStderrTail()
         account = .unknown
         state = .idle
     }
@@ -433,16 +476,70 @@ final class CodexAppServerClient: ObservableObject {
         return url
     }
 
+    private func appendStderr(_ data: Data) {
+        let fragment = String(decoding: data, as: UTF8.self)
+        stderrLock.lock()
+        stderrTail += fragment
+        if stderrTail.count > Self.maxStderrTailCharacters {
+            stderrTail = String(stderrTail.suffix(Self.maxStderrTailCharacters))
+        }
+        stderrLock.unlock()
+    }
+
+    private func clearStderrTail() {
+        stderrLock.lock()
+        stderrTail = ""
+        stderrLock.unlock()
+    }
+
+    private func currentStderrTail() -> String {
+        stderrLock.lock()
+        let tail = stderrTail
+        stderrLock.unlock()
+        return tail
+    }
+
+    private func codexTerminationDetail() -> String {
+        let stderrText = currentStderrTail().trimmingCharacters(in: .whitespacesAndNewlines)
+        if stderrText.localizedCaseInsensitiveContains("env: node")
+            || stderrText.localizedCaseInsensitiveContains("node: no such file") {
+            return "Codex could not start because Node was not found. Install Codex's native binary or make Homebrew's Node available."
+        }
+        guard !stderrText.isEmpty else {
+            return "Codex stopped before sign-in."
+        }
+        let lines = stderrText
+            .split(whereSeparator: \.isNewline)
+            .suffix(2)
+            .map(String.init)
+        return "Codex stopped before sign-in: \(lines.joined(separator: " "))"
+    }
+
     private func handleTermination() {
+        let wasStarting = state == .starting
+        let wasPendingLogin = account == .pending || shouldStartLoginAfterInitialize || pendingLoginId != nil
+
         stdout?.readabilityHandler = nil
         stderr?.readabilityHandler = nil
+        if let stderrData = stderr?.readDataToEndOfFile(), !stderrData.isEmpty {
+            appendStderr(stderrData)
+        }
+        let terminationDetail = codexTerminationDetail()
         process = nil
         stdin = nil
         stdout = nil
         stderr = nil
         threadID = nil
+        pendingLoginId = nil
         shouldStartLoginAfterInitialize = false
-        if case .failed = state {} else { state = .idle }
+        if wasStarting || wasPendingLogin {
+            state = .failed(terminationDetail)
+            account = .signedOut
+            accountEmail = nil
+            accountDetail = terminationDetail
+        } else if case .failed = state {} else {
+            state = .idle
+        }
         if let turn = activeTurn {
             activeTurn = nil
             turn.onError("Codex stopped unexpectedly.")

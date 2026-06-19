@@ -2,9 +2,57 @@
   "exercise_id": "bodyweight_pushup",
   "source_kind": "trainer_reference_trace",
   "source_label": "first-party webcam push-up capture; primary_side=left",
+  "acceptance_status": "accepted_source_preserving_reference",
+  "playable_trace_packaged": true,
   "source_video": "dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup_reference.mov",
+  "source_license": "First-party CamiFit user capture",
+  "source_attribution": "CamiFit first-party webcam capture user_capture_20260606-005504",
   "raw_trace": "dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/raw_mediapipe.jsonl",
+  "output_trace": "dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup.normalized.jsonl",
   "normalizer": "scripts/motion_reference/normalize_pushup_trace.py",
+  "golden_comparison": {
+    "status": "not_applicable",
+    "reason": "No protected push-up-family golden comparator exists yet; Bodyweight Lunge remains the protected lunge-family extractor comparator."
+  },
+  "visual_review": {
+    "status": "passed",
+    "evidence": "App avatar review passed for the first-party push-up guide trace before guide-ready promotion."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_final_reps": 1
+  },
+  "live_app_review": {
+    "status": "passed",
+    "evidence": "2026-06-09 visual regression follow-up kept this exercise guide-ready; the installed app inventory now contains exactly four playable JSONL traces after demoting visually failed plank, preacher curl, and suspension tricep press.",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 4,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension"
+    ]
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 17468864,
+      "sha256": "e29d4725907b20877b8f224bbc1ec4371b04f87ef1fb09924c867188eb98bc1f"
+    },
+    "raw_trace": {
+      "bytes": 742986,
+      "sha256": "33e32315f75f3a5d28dc4ecb787b8b3d6223c43c39f4f484ed39a990a747acf7"
+    },
+    "normalizer": {
+      "bytes": 10699,
+      "sha256": "c3d84dbb1a42cbf8e7a0dc90decd84b39d103258876d277bf2d3db4eae0b9b7e"
+    },
+    "output_trace": {
+      "bytes": 135738,
+      "sha256": "321d483ddaf2971a60da5a4b1da2b71e7172fa293689439ada260e643e5a0acb"
+    }
+  },
   "cycle_start_index": 54,
   "cycle_end_index": 104,
   "contact_policy": "pin_primary_wrist_heel_toe",

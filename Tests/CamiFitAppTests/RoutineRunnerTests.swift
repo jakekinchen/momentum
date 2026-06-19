@@ -44,6 +44,34 @@ final class RoutineRunnerTests: XCTestCase {
         XCTAssertEqual(runner.progressText, "1 set complete")
     }
 
+    func testRunnerPublishesRepFeedbackEventWhenRepCounts() throws {
+        let viewModel = Self.makeViewModel()
+        let runner = RoutineRunner(viewModel: viewModel, autoStartsTimers: false)
+
+        try runner.start(Self.oneSquatRoutine)
+        runner.timerTick()
+        runner.skipGuide()
+        runner.updateCameraReadiness(.streaming(.zero))
+        let frames = try Self.loadPoseFixture("synthetic_squat_clean_trace.json")
+        runner.ingest(frames[0])
+        runner.timerTick()
+        runner.timerTick()
+        runner.timerTick()
+
+        for frame in frames {
+            runner.ingest(frame)
+        }
+
+        let event = try XCTUnwrap(viewModel.lastFeedbackEvent)
+        XCTAssertEqual(event.kind, .repCounted)
+        XCTAssertEqual(event.emphasis, .complete)
+        XCTAssertEqual(event.repsCompleted, 1)
+        XCTAssertEqual(event.targetReps, 1)
+        XCTAssertEqual(event.primaryText, "1")
+        XCTAssertEqual(event.detailText, "Set complete")
+        XCTAssertEqual(event.spokenText, "1. Set complete.")
+    }
+
     func testPauseFreezesRoutineProgressAndResumeRestoresPhase() throws {
         let viewModel = Self.makeViewModel()
         let runner = RoutineRunner(viewModel: viewModel, autoStartsTimers: false)
@@ -70,7 +98,7 @@ final class RoutineRunnerTests: XCTestCase {
             name: "Resting Routine",
             blocks: [
                 RoutineBlock(exerciseRef: .preset(id: "bodyweight_squat"), sets: 1, reps: 1, restSeconds: 30),
-                RoutineBlock(exerciseRef: .preset(id: "bodyweight_plank"), sets: 1, holdSeconds: 30, restSeconds: 0)
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_pushup"), sets: 1, reps: 1, restSeconds: 0)
             ]
         )
 
@@ -101,32 +129,32 @@ final class RoutineRunnerTests: XCTestCase {
             name: "Two Blocks",
             blocks: [
                 RoutineBlock(exerciseRef: .preset(id: "bodyweight_squat"), sets: 2, reps: 10, restSeconds: 30),
-                RoutineBlock(exerciseRef: .preset(id: "bodyweight_plank"), sets: 1, holdSeconds: 30, restSeconds: 0)
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_pushup"), sets: 1, reps: 10, restSeconds: 0)
             ]
         )
 
         try runner.start(routine)
-        XCTAssertEqual(runner.nextExerciseTitle, "Bodyweight Plank")
+        XCTAssertEqual(runner.nextExerciseTitle, "Bodyweight Push-up")
 
         runner.skipToNextExercise()
 
         XCTAssertEqual(runner.cursor.blockIndex, 1)
         XCTAssertEqual(runner.cursor.setIndex, 0)
-        XCTAssertEqual(runner.currentBlock?.title, "Bodyweight Plank")
+        XCTAssertEqual(runner.currentBlock?.title, "Bodyweight Push-up")
         XCTAssertEqual(runner.phase, .preparing)
     }
 
-    func testThirtySecondRoutineHoldDoesNotCompleteAtPresetOneSecondTarget() throws {
+    func testHighRepRoutineSetDoesNotCompleteAtPresetOneRepTarget() throws {
         let viewModel = Self.makeViewModel()
         let runner = RoutineRunner(viewModel: viewModel, autoStartsTimers: false)
         let routine = WorkoutRoutine(
-            id: "long-plank",
-            name: "Long Plank",
+            id: "long-pushup",
+            name: "Long Push-up",
             blocks: [
-                RoutineBlock(exerciseRef: .preset(id: "bodyweight_plank"), sets: 1, holdSeconds: 30, restSeconds: 0)
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_pushup"), sets: 1, reps: 30, restSeconds: 0)
             ]
         )
-        let frames = try Self.loadPoseFixture("synthetic_plank_clean_hold_trace.json")
+        let frames = try Self.loadPoseFixture("synthetic_pushup_clean_trace.json")
 
         try runner.start(routine)
         runner.timerTick()
@@ -143,8 +171,50 @@ final class RoutineRunnerTests: XCTestCase {
         }
 
         XCTAssertEqual(runner.phase, .working)
-        XCTAssertLessThan(viewModel.state.holdSeconds, 30)
-        XCTAssertFalse(viewModel.state.holdTargetReached)
+        XCTAssertLessThan(viewModel.state.repCount, 30)
+    }
+
+    func testInlineRoutineBlockRequiresReferencePromotionBeforeRunnerStart() throws {
+        let viewModel = Self.makeViewModel()
+        let runner = RoutineRunner(viewModel: viewModel, autoStartsTimers: false)
+        let program = try ProgramLoader.load(from: Self.presetsDirectory.appendingPathComponent("bodyweight_squat.json"))
+        let routine = WorkoutRoutine(
+            id: "inline-squat",
+            name: "Inline Squat",
+            blocks: [
+                RoutineBlock(exerciseRef: .inline(program), sets: 1, reps: 10, restSeconds: 0)
+            ]
+        )
+        let initiallySelected = viewModel.state.selectedExerciseID
+
+        XCTAssertFalse(routine.blocks[0].isGuideAvailable)
+        XCTAssertThrowsError(try runner.start(routine)) { error in
+            guard case let .invalidInlineExercise(message) = error as? AppExerciseSessionError else {
+                return XCTFail("Expected invalidInlineExercise, got \(error)")
+            }
+            XCTAssertTrue(message.contains("motion-reference promotion"))
+        }
+        XCTAssertEqual(runner.phase, .idle)
+        XCTAssertEqual(viewModel.state.selectedExerciseID, initiallySelected)
+    }
+
+    func testReferenceCapturePresetRoutineIsRejectedBeforeRunnerStart() throws {
+        let viewModel = Self.makeViewModel()
+        let runner = RoutineRunner(viewModel: viewModel, autoStartsTimers: false)
+        let routine = WorkoutRoutine(
+            id: "stale-pike-preset",
+            name: "Stale Pike Preset",
+            blocks: [
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_pike"), sets: 1, reps: 8, restSeconds: 0)
+            ]
+        )
+        let initiallySelected = viewModel.state.selectedExerciseID
+
+        XCTAssertThrowsError(try runner.start(routine)) { error in
+            XCTAssertEqual(error as? AppExerciseSessionError, .presetRequiresReferenceCapture("bodyweight_pike"))
+        }
+        XCTAssertEqual(runner.phase, .idle)
+        XCTAssertEqual(viewModel.state.selectedExerciseID, initiallySelected)
     }
 
     private static let oneSquatRoutine = WorkoutRoutine(

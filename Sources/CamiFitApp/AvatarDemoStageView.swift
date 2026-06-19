@@ -64,27 +64,46 @@ private struct AvatarDemoBackdrop: View {
 
 private struct AvatarDemoTimelineView: View {
     let program: ExerciseProgram
-    private let timeline: MotionDemoTimeline
+    private let timeline: MotionDemoTimeline?
+    private let normalizationContext: AvatarSceneNormalizationContext?
 
     init(program: ExerciseProgram) {
         self.program = program
-        timeline = MotionDemoBundleStore.timeline(for: program) ?? MotionDemoCompiler.compile(program: program)
+        let resolvedTimeline = MotionDemoBundleStore.guideTimeline(for: program)
+        timeline = resolvedTimeline
+        normalizationContext = resolvedTimeline.flatMap { AvatarSceneNormalizationContext(frames: $0.frames) }
     }
 
     var body: some View {
-        if let fixedElapsedMS = Self.fixedGuideElapsedMS {
-            AvatarSceneView(frame: timeline.frame(atElapsedMS: fixedElapsedMS))
-                .allowsHitTesting(false)
-        } else {
-            TimelineView(.animation) { context in
-                let elapsedMS = elapsedMilliseconds(from: context.date)
-                AvatarSceneView(frame: timeline.frame(atElapsedMS: elapsedMS))
+        if let timeline {
+            if let fixedElapsedMS = Self.fixedGuideElapsedMS {
+                AvatarSceneView(
+                    frame: timeline.frame(atElapsedMS: fixedElapsedMS),
+                    normalizationContext: normalizationContext
+                )
                     .allowsHitTesting(false)
+            } else {
+                TimelineView(.animation) { context in
+                    let elapsedMS = elapsedMilliseconds(from: context.date, timeline: timeline)
+                    AvatarSceneView(
+                        frame: timeline.frame(atElapsedMS: elapsedMS),
+                        normalizationContext: normalizationContext
+                    )
+                        .allowsHitTesting(false)
+                }
             }
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 34, weight: .regular))
+                Text("Reference clip needed")
+                    .font(.title3.weight(.semibold))
+            }
+            .foregroundStyle(.white)
         }
     }
 
-    private func elapsedMilliseconds(from date: Date) -> Int64 {
+    private func elapsedMilliseconds(from date: Date, timeline: MotionDemoTimeline) -> Int64 {
         let raw = date.timeIntervalSinceReferenceDate * 1000
         return Int64(raw.truncatingRemainder(dividingBy: Double(timeline.durationMS)))
     }
@@ -100,6 +119,8 @@ private struct AvatarDemoTimelineView: View {
 
 private struct AvatarSceneView: NSViewRepresentable {
     let frame: PoseFrame
+    var mirrored = false
+    var normalizationContext: AvatarSceneNormalizationContext?
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -114,13 +135,18 @@ private struct AvatarSceneView: NSViewRepresentable {
         view.layer?.backgroundColor = NSColor.clear.cgColor
         view.allowsCameraControl = false
         view.autoenablesDefaultLighting = false
-        view.preferredFramesPerSecond = 30
-        view.isPlaying = true
+        view.rendersContinuously = false
+        view.isPlaying = false
         return view
     }
 
     func updateNSView(_ nsView: SCNView, context: Context) {
-        context.coordinator.update(frame: frame)
+        context.coordinator.update(
+            frame: frame,
+            mirrored: mirrored,
+            normalizationContext: normalizationContext
+        )
+        nsView.needsDisplay = true
     }
 
     final class Coordinator {
@@ -135,8 +161,12 @@ private struct AvatarSceneView: NSViewRepresentable {
             configureLights()
         }
 
-        func update(frame: PoseFrame) {
-            let points = normalizedScenePoints(frame.landmarks)
+        func update(frame: PoseFrame, mirrored: Bool, normalizationContext: AvatarSceneNormalizationContext?) {
+            let points = AvatarScenePointNormalizer.normalizedScenePoints(
+                frame.landmarks,
+                mirrored: mirrored,
+                context: normalizationContext
+            )
             rig.update(points: points)
         }
 
@@ -169,33 +199,164 @@ private struct AvatarSceneView: NSViewRepresentable {
             scene.rootNode.addChildNode(fillNode)
         }
 
-        private func normalizedScenePoints(_ landmarks: [String: PoseLandmark]) -> [String: SCNVector3] {
-            var points = landmarks.mapValues(scenePoint)
-            let visible = points.filter { AvatarRig.visibleJointNames.contains($0.key) }
-            guard !visible.isEmpty else { return points }
+    }
+}
 
-            let minY = visible.map(\.value.y).min() ?? 0
-            let minX = visible.map(\.value.x).min() ?? 0
-            let maxX = visible.map(\.value.x).max() ?? 0
-            let xCenter = (minX + maxX) / 2
-            let yOffset = Self.floorY - minY
+struct AvatarSceneNormalizationContext: Equatable {
+    let xCenter: CGFloat
+    let yOffset: CGFloat
+    let scale: CGFloat
 
-            for (key, point) in points {
-                points[key] = SCNVector3(point.x - xCenter, point.y + yOffset, point.z)
-            }
+    init?(frames: [PoseFrame], mirrored: Bool = false) {
+        let framePoints = frames
+            .map { AvatarScenePointNormalizer.rawScenePoints($0.landmarks, mirrored: mirrored) }
+            .filter { !$0.isEmpty }
+        guard !framePoints.isEmpty else { return nil }
 
-            return points
+        self = Self.context(for: framePoints)
+    }
+
+    fileprivate static func context(for framePoints: [[String: SCNVector3]]) -> AvatarSceneNormalizationContext {
+        let visiblePoints = framePoints.flatMap { points in
+            points.filter { AvatarRig.visibleJointNames.contains($0.key) }.map(\.value)
+        }
+        let fallbackPoints = framePoints.flatMap { Array($0.values) }
+        let points = visiblePoints.isEmpty ? fallbackPoints : visiblePoints
+        let minY = points.map(\.y).min() ?? 0
+        let maxY = points.map(\.y).max() ?? minY
+
+        let stanceCenters = framePoints.compactMap { AvatarScenePointNormalizer.stanceCenterX(in: $0) }
+        let xCenter: CGFloat
+        if stanceCenters.isEmpty {
+            let minX = points.map(\.x).min() ?? 0
+            let maxX = points.map(\.x).max() ?? 0
+            xCenter = (minX + maxX) / 2
+        } else {
+            xCenter = stanceCenters.reduce(CGFloat(0), +) / CGFloat(stanceCenters.count)
         }
 
-        private func scenePoint(_ landmark: PoseLandmark) -> SCNVector3 {
-            SCNVector3(
-                Float((landmark.x - 0.52) * 3.45),
-                Float((0.58 - landmark.y) * 3.10),
-                Float(landmark.z * 1.80)
+        let yOffset = AvatarScenePointNormalizer.floorY - minY
+        let maxYAfterOffset = maxY + yOffset
+        let scale = maxYAfterOffset > AvatarScenePointNormalizer.ceilingY
+            ? (AvatarScenePointNormalizer.ceilingY - AvatarScenePointNormalizer.floorY)
+                / max(maxYAfterOffset - AvatarScenePointNormalizer.floorY, 0.000_001)
+            : 1
+
+        return AvatarSceneNormalizationContext(xCenter: xCenter, yOffset: yOffset, scale: scale)
+    }
+
+    private init(xCenter: CGFloat, yOffset: CGFloat, scale: CGFloat) {
+        self.xCenter = xCenter
+        self.yOffset = yOffset
+        self.scale = scale
+    }
+}
+
+enum AvatarScenePointNormalizer {
+    static func normalizedScenePoints(
+        _ landmarks: [String: PoseLandmark],
+        mirrored: Bool,
+        context: AvatarSceneNormalizationContext? = nil
+    ) -> [String: SCNVector3] {
+        let points = rawScenePoints(landmarks, mirrored: mirrored)
+        guard !points.isEmpty else { return points }
+        let context = context ?? AvatarSceneNormalizationContext.context(for: [points])
+
+        return normalized(points, context: context)
+    }
+
+    fileprivate static func rawScenePoints(_ landmarks: [String: PoseLandmark], mirrored: Bool) -> [String: SCNVector3] {
+        landmarks.mapValues { scenePoint($0, mirrored: mirrored) }
+    }
+
+    private static func normalized(
+        _ rawPoints: [String: SCNVector3],
+        context: AvatarSceneNormalizationContext
+    ) -> [String: SCNVector3] {
+        var points = rawPoints
+        guard !points.isEmpty else { return points }
+
+        for (key, point) in points {
+            points[key] = SCNVector3(point.x - context.xCenter, point.y + context.yOffset, point.z)
+        }
+
+        if context.scale < 1 {
+            for (key, point) in points {
+                points[key] = SCNVector3(
+                    point.x * context.scale,
+                    floorY + ((point.y - floorY) * context.scale),
+                    point.z * context.scale
+                )
+            }
+        }
+
+        return points
+    }
+
+    private static func scenePoint(_ landmark: PoseLandmark, mirrored: Bool) -> SCNVector3 {
+        let x = Float((landmark.x - 0.52) * 3.45)
+        return SCNVector3(
+            mirrored ? -x : x,
+            Float((0.58 - landmark.y) * 3.10),
+            Float(landmark.z * 1.80)
+        )
+    }
+
+    fileprivate static func stanceCenterX(in points: [String: SCNVector3]) -> CGFloat? {
+        let primaryCenters = footCenters(for: ["primary", "secondary"], in: points)
+        if primaryCenters.count >= 2 {
+            return averageX(primaryCenters)
+        }
+
+        let sideCenters = footCenters(for: ["left", "right"], in: points)
+        if sideCenters.count >= 2 {
+            return averageX(sideCenters)
+        }
+
+        if !primaryCenters.isEmpty {
+            return averageX(primaryCenters)
+        }
+
+        if !sideCenters.isEmpty {
+            return averageX(sideCenters)
+        }
+
+        return nil
+    }
+
+    private static func footCenters(for prefixes: [String], in points: [String: SCNVector3]) -> [SCNVector3] {
+        prefixes.compactMap { prefix in
+            guard let heel = points["\(prefix).heel"],
+                  let toe = points["\(prefix).foot.index"] else {
+                return nil
+            }
+            return SCNVector3(
+                (heel.x + toe.x) / 2,
+                (heel.y + toe.y) / 2,
+                (heel.z + toe.z) / 2
             )
         }
+    }
 
-        private static let floorY: CGFloat = -1.06
+    private static func averageX(_ points: [SCNVector3]) -> CGFloat {
+        points.reduce(CGFloat(0)) { $0 + $1.x } / CGFloat(points.count)
+    }
+
+    fileprivate static let floorY: CGFloat = -1.06
+    fileprivate static let ceilingY: CGFloat = 1.18
+}
+
+enum AvatarHeadPlacement {
+    static func shouldUseRawAttachment(torsoAxis: SCNVector3) -> Bool {
+        isHorizontalPose(torsoAxis) || isInvertedPose(torsoAxis)
+    }
+
+    static func isHorizontalPose(_ torsoAxis: SCNVector3) -> Bool {
+        abs(torsoAxis.x) > abs(torsoAxis.y) * 1.15
+    }
+
+    static func isInvertedPose(_ torsoAxis: SCNVector3) -> Bool {
+        torsoAxis.y > 0
     }
 }
 
@@ -203,15 +364,25 @@ struct AvatarReferencePoseView: View {
     let frame: PoseFrame
     let opacity: Double
     let matchProgress: Double
+    let mirrored: Bool
+    let normalizationContext: AvatarSceneNormalizationContext?
 
-    init(frame: PoseFrame, opacity: Double = 0.42, matchProgress: Double = 0) {
+    init(
+        frame: PoseFrame,
+        opacity: Double = 0.42,
+        matchProgress: Double = 0,
+        mirrored: Bool = false,
+        normalizationContext: AvatarSceneNormalizationContext? = nil
+    ) {
         self.frame = frame
         self.opacity = opacity
         self.matchProgress = matchProgress
+        self.mirrored = mirrored
+        self.normalizationContext = normalizationContext
     }
 
     var body: some View {
-        AvatarSceneView(frame: frame)
+        AvatarSceneView(frame: frame, mirrored: mirrored, normalizationContext: normalizationContext)
             .opacity(min(max(opacity + (matchProgress * 0.14), 0.24), 0.70))
             .saturation(0.82 + (matchProgress * 0.18))
             .shadow(color: .green.opacity(0.22 * matchProgress), radius: 18 * matchProgress, y: 4)
@@ -238,6 +409,8 @@ private final class NeutralMannequinRig {
     private let nearLowerLeg: SCNNode
     private let farUpperLeg: SCNNode
     private let farLowerLeg: SCNNode
+    private let nearFootBridge = SCNNode()
+    private let farFootBridge = SCNNode()
     private let nearFoot: SCNNode
     private let farFoot: SCNNode
     private let nearHand: SCNNode
@@ -331,6 +504,12 @@ private final class NeutralMannequinRig {
                 root.addChildNode(node)
             }
         }
+        if nearFootBridge.parent == nil {
+            root.addChildNode(nearFootBridge)
+        }
+        if farFootBridge.parent == nil {
+            root.addChildNode(farFootBridge)
+        }
 
         root.name = usesAssetGeometry ? "camifit.avatar.glbHumanoidRig" : "camifit.avatar.mannequinRig"
         for node in allNodes {
@@ -352,6 +531,8 @@ private final class NeutralMannequinRig {
         nearLowerLeg.name = "rig.near.lowerLeg"
         farUpperLeg.name = "rig.far.upperLeg"
         farLowerLeg.name = "rig.far.lowerLeg"
+        nearFootBridge.name = "rig.near.footBridge"
+        farFootBridge.name = "rig.far.footBridge"
         nearFoot.name = "rig.near.foot"
         farFoot.name = "rig.far.foot"
         nearHand.name = "rig.near.hand"
@@ -410,14 +591,14 @@ private final class NeutralMannequinRig {
             hipCenter.y - shoulderCenter.y,
             hipCenter.z - shoulderCenter.z
         )
-        let isHorizontalPose = abs(torsoAxis.x) > abs(torsoAxis.y) * 1.15
+        let shouldUseRawHeadAttachment = AvatarHeadPlacement.shouldUseRawAttachment(torsoAxis: torsoAxis)
         let rawHeadCenter = SCNVector3(headPoint.x, headPoint.y + 0.005, headPoint.z + 0.02)
-        let headCenter = usesAssetGeometry && !isHorizontalPose
+        let headCenter = usesAssetGeometry && !shouldUseRawHeadAttachment
             ? headAnchoredToTorso(rawHeadCenter, chestCenter: chestPoint)
             : rawHeadCenter
         let neckBottom: SCNVector3
         let neckTop: SCNVector3
-        if usesAssetGeometry && isHorizontalPose {
+        if usesAssetGeometry && shouldUseRawHeadAttachment {
             neckBottom = midpoint(shoulderCenter, headCenter, factor: 0.20)
             neckTop = midpoint(shoulderCenter, headCenter, factor: 0.58)
         } else {
@@ -455,8 +636,16 @@ private final class NeutralMannequinRig {
         updateJoint(nearKnee, at: visualPrimary.knee, radius: 0.064)
         updateJoint(nearAnkle, at: visualPrimary.ankle, radius: 0.048)
         if let heel = primary.heel, let toe = primary.footIndex {
+            updateCapsule(
+                nearFootBridge,
+                from: visualPrimary.ankle,
+                to: footAttachmentPoint(ankle: visualPrimary.ankle, heel: heel, toe: toe),
+                radius: 0.036,
+                material: limbMaterial
+            )
             updateFoot(nearFoot, from: heel, to: toe, maxLength: 0.28, thickness: 0.075, depth: 0.14, material: accentMaterial)
         } else {
+            nearFootBridge.isHidden = true
             nearFoot.isHidden = true
         }
 
@@ -476,26 +665,34 @@ private final class NeutralMannequinRig {
             updateJoint(farKnee, at: visualSecondary.knee, radius: 0.050)
             updateJoint(farAnkle, at: visualSecondary.ankle, radius: 0.040)
             if let heel = secondary.heel, let toe = secondary.footIndex {
+                updateCapsule(
+                    farFootBridge,
+                    from: visualSecondary.ankle,
+                    to: footAttachmentPoint(ankle: visualSecondary.ankle, heel: heel, toe: toe),
+                    radius: 0.030,
+                    material: farLimbMaterial
+                )
                 updateFoot(farFoot, from: heel, to: toe, maxLength: 0.24, thickness: 0.060, depth: 0.11, material: farLimbMaterial)
             } else {
+                farFootBridge.isHidden = true
                 farFoot.isHidden = true
             }
         } else {
             hide(
                 shoulderBridge, hipBridge,
                 farUpperArm, farForearm, farHand, farElbow,
-                farUpperLeg, farLowerLeg, farFoot, farKnee, farAnkle
+                farUpperLeg, farLowerLeg, farFootBridge, farFoot, farKnee, farAnkle
             )
         }
     }
 
     private var allNodes: [SCNNode] {
         [
-            farUpperArm, farForearm, farUpperLeg, farLowerLeg, farFoot, farHand,
+            farUpperArm, farForearm, farUpperLeg, farLowerLeg, farFootBridge, farFoot, farHand,
             farElbow, farKnee, farAnkle,
             shoulderBridge, hipBridge,
             torso, chest, abdomen, pelvis, neck, head,
-            nearUpperArm, nearForearm, nearUpperLeg, nearLowerLeg, nearFoot, nearHand,
+            nearUpperArm, nearForearm, nearUpperLeg, nearLowerLeg, nearFootBridge, nearFoot, nearHand,
             nearElbow, nearKnee, nearAnkle
         ]
     }
@@ -526,6 +723,13 @@ private final class NeutralMannequinRig {
         }
 
         if usesAssetGeometry {
+            if node.geometry == nil {
+                let geometry = SCNCapsule(capRadius: CGFloat(Self.assetCapsuleRadius), height: CGFloat(Self.assetCapsuleHeight))
+                geometry.radialSegmentCount = 18
+                geometry.heightSegmentCount = 4
+                geometry.firstMaterial = material
+                node.geometry = geometry
+            }
             node.simdPosition = SIMD3<Float>(
                 Float((start.x + end.x) / 2),
                 Float((start.y + end.y) / 2),
@@ -605,6 +809,28 @@ private final class NeutralMannequinRig {
         node.simdPosition = center
         node.simdOrientation = simd_quatf(from: SIMD3<Float>(1, 0, 0), to: direction)
         node.isHidden = false
+    }
+
+    private func footAttachmentPoint(ankle: SCNVector3, heel: SCNVector3, toe: SCNVector3) -> SCNVector3 {
+        let foot = SIMD3<Float>(
+            Float(toe.x - heel.x),
+            Float(toe.y - heel.y),
+            Float(toe.z - heel.z)
+        )
+        let footLengthSquared = simd_length_squared(foot)
+        guard footLengthSquared > 0.0001 else { return heel }
+
+        let ankleOffset = SIMD3<Float>(
+            Float(ankle.x - heel.x),
+            Float(ankle.y - heel.y),
+            Float(ankle.z - heel.z)
+        )
+        let projection = max(0, min(1, simd_dot(ankleOffset, foot) / footLengthSquared))
+        return SCNVector3(
+            heel.x + ((toe.x - heel.x) * CGFloat(projection)),
+            heel.y + ((toe.y - heel.y) * CGFloat(projection)),
+            heel.z + ((toe.z - heel.z) * CGFloat(projection))
+        )
     }
 
     private func updateSphere(_ node: SCNNode, at position: SCNVector3) {
@@ -723,8 +949,8 @@ private final class NeutralMannequinRig {
 
     private static let assetCapsuleRadius: Float = 0.18
     private static let assetCapsuleHeight: Float = 1.0
-    private static let primaryLowerLegMaxRatio: CGFloat = 0.90
-    private static let secondaryLowerLegMaxRatio: CGFloat = 0.84
+    private static let primaryLowerLegMaxRatio: CGFloat = 1.22
+    private static let secondaryLowerLegMaxRatio: CGFloat = 1.22
     private static let assetChestCenterFactor: CGFloat = 0.42
     private static let assetNeckChestAttachmentOffset: CGFloat = 0.30
     private static let assetNeckHeadAttachmentOffset: CGFloat = 0.155
@@ -761,12 +987,12 @@ private struct AvatarHumanoidGLBAsset {
     let farAnkle: SCNNode
 
     static func loadNeutralRig() -> AvatarHumanoidGLBAsset? {
-        guard let url = Bundle.module.url(
+        guard let url = AppResourceBundle.url(
             forResource: "neutral_humanoid",
             withExtension: "glb",
             subdirectory: "Avatars"
         ) else {
-            AvatarDiagnostics.logger.error("neutral_humanoid.glb missing from Bundle.module Avatars resources")
+            AvatarDiagnostics.logger.error("neutral_humanoid.glb missing from packaged Avatars resources")
             return nil
         }
 
@@ -913,8 +1139,16 @@ private enum AvatarRig {
 }
 
 enum MotionDemoBundleStore {
+    static func guideTimeline(for program: ExerciseProgram) -> MotionDemoTimeline? {
+        timeline(for: program)
+    }
+
     static func timeline(for program: ExerciseProgram) -> MotionDemoTimeline? {
-        guard let url = Bundle.module.url(
+        guard AppExerciseTrackingGate.guideReadyPresetIDs.contains(program.id) else {
+            return nil
+        }
+
+        guard let url = AppResourceBundle.url(
             forResource: program.id,
             withExtension: "jsonl",
             subdirectory: "MotionDemos"
@@ -923,10 +1157,14 @@ enum MotionDemoBundleStore {
         }
 
         do {
-            let frames = try MediaPipePoseJSONLDecoder.decode(contentsOf: url)
-            guard !frames.isEmpty else { return nil }
-            let duration = (frames.last?.timestampMS ?? 0) + 100
-            let manifest = MotionDemoManifest.load(nextTo: url)
+            let decoded = try MediaPipePoseJSONLDecoder.decode(contentsOf: url)
+            guard !decoded.isEmpty else { return nil }
+            let frames = MotionDemoKeyframeSmoother.smooth(decoded)
+            let duration = timelineDuration(for: frames)
+            guard let manifest = MotionDemoManifest.load(nextTo: url) else {
+                return nil
+            }
+            guard manifest.isGuideEligible(for: program.id) else { return nil }
             return MotionDemoTimeline(
                 programID: program.id,
                 programName: program.name,
@@ -938,26 +1176,374 @@ enum MotionDemoBundleStore {
             return nil
         }
     }
-}
 
-private struct MotionDemoManifest: Decodable {
-    let sourceKind: MotionDemoSourceKind?
-    let sourceLabel: String?
+    private static func timelineDuration(for frames: [PoseFrame]) -> Int64 {
+        guard let first = frames.first, let last = frames.last else { return 1 }
+        guard frames.count > 1 else { return max(last.timestampMS, 1) }
 
-    private enum CodingKeys: String, CodingKey {
-        case sourceKind = "source_kind"
-        case sourceLabel = "source_label"
+        let intervals = zip(frames, frames.dropFirst())
+            .map { max($1.timestampMS - $0.timestampMS, 0) }
+            .filter { $0 > 0 }
+        let fallbackInterval = intervals.first ?? 100
+        let interval = intervals.isEmpty
+            ? fallbackInterval
+            : intervals.sorted()[intervals.count / 2]
+
+        return posesMatch(first, last)
+            ? max(last.timestampMS, interval)
+            : max(last.timestampMS + interval, 1)
     }
 
-    static func load(nextTo traceURL: URL) -> MotionDemoManifest {
+    private static func posesMatch(_ first: PoseFrame, _ last: PoseFrame) -> Bool {
+        let names = Set(first.landmarks.keys).intersection(last.landmarks.keys)
+        guard !names.isEmpty else { return false }
+
+        let maxDelta = names.reduce(Double(0)) { partial, name in
+            guard let a = first.landmarks[name], let b = last.landmarks[name] else {
+                return partial
+            }
+            return max(
+                partial,
+                abs(a.x - b.x),
+                abs(a.y - b.y),
+                abs(a.z - b.z)
+            )
+        }
+        return maxDelta < 0.000_001
+    }
+}
+
+struct MotionDemoManifest: Decodable {
+    let exerciseID: String?
+    let sourceKind: MotionDemoSourceKind?
+    let sourceLabel: String?
+    let acceptanceStatus: String?
+    let playableTracePackaged: Bool
+    let normalizerStatus: String?
+    let rejectionReason: String?
+    let sourcePage: String?
+    let sourceURL: String?
+    let sourceMediaURL: String?
+    let sourceVideo: String?
+    let sourceLicense: String?
+    let sourceAttribution: String?
+    let rawTrace: String?
+    let normalizer: String?
+    let outputTrace: String?
+    let goldenComparison: GoldenComparison?
+    let visualReview: VisualReview?
+    let engineReplay: EngineReplay?
+    let liveAppReview: LiveAppReview?
+    let rejectedSources: RejectedSources?
+    let rejectedCandidates: [RejectedCandidate]?
+
+    private enum CodingKeys: String, CodingKey {
+        case exerciseID = "exercise_id"
+        case sourceKind = "source_kind"
+        case sourceLabel = "source_label"
+        case acceptanceStatus = "acceptance_status"
+        case playableTracePackaged = "playable_trace_packaged"
+        case normalizerStatus = "normalizer_status"
+        case rejectionReason = "rejection_reason"
+        case sourcePage = "source_page"
+        case sourceURL = "source_url"
+        case sourceMediaURL = "source_media_url"
+        case sourceVideo = "source_video"
+        case sourceLicense = "source_license"
+        case sourceAttribution = "source_attribution"
+        case rawTrace = "raw_trace"
+        case normalizer
+        case outputTrace = "output_trace"
+        case goldenComparison = "golden_comparison"
+        case visualReview = "visual_review"
+        case engineReplay = "engine_replay"
+        case liveAppReview = "live_app_review"
+        case rejectedSources = "rejected_sources"
+        case rejectedCandidates = "rejected_candidates"
+    }
+
+    struct GoldenComparison: Decodable {
+        let status: String?
+        let reason: String?
+        let goldenTrace: String?
+        let candidateTrace: String?
+        let comparisonReport: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case status
+            case reason
+            case goldenTrace = "golden_trace"
+            case candidateTrace = "candidate_trace"
+            case comparisonReport = "comparison_report"
+        }
+
+        var isPromotionDecisionRecorded: Bool {
+            let normalizedStatus = status?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            switch normalizedStatus {
+            case "not_applicable":
+                return reason?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            case "passed", "reviewed":
+                return Self.hasText(goldenTrace)
+                    && Self.hasText(candidateTrace)
+                    && Self.hasText(comparisonReport)
+            default:
+                return false
+            }
+        }
+
+        private static func hasText(_ value: String?) -> Bool {
+            value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }
+    }
+
+    struct VisualReview: Decodable {
+        let status: String?
+        let evidence: String?
+
+        var isPassed: Bool {
+            let normalizedStatus = status?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return ["passed", "reviewed"].contains(normalizedStatus)
+                && evidence?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }
+    }
+
+    struct EngineReplay: Decodable {
+        let status: String?
+        let test: String?
+        let actualFinalReps: Double?
+        let actualHoldTargetReached: Bool?
+
+        private enum CodingKeys: String, CodingKey {
+            case status
+            case test
+            case actualFinalReps = "actual_final_reps"
+            case actualHoldTargetReached = "actual_hold_target_reached"
+        }
+
+        var isPassed: Bool {
+            let normalizedStatus = status?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return normalizedStatus == "passed"
+                && test?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                && (actualFinalReps != nil || actualHoldTargetReached != nil)
+        }
+    }
+
+    struct LiveAppReview: Decodable {
+        let status: String?
+        let evidence: String?
+        let appBundle: String?
+        let installedPlayableJSONLs: Int?
+        let installedPlayableTraceIDs: [String]?
+
+        private enum CodingKeys: String, CodingKey {
+            case status
+            case evidence
+            case appBundle = "app_bundle"
+            case installedPlayableJSONLs = "installed_playable_jsonls"
+            case installedPlayableTraceIDs = "installed_playable_trace_ids"
+        }
+
+        func isPassed(for exerciseID: String?) -> Bool {
+            let normalizedStatus = status?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let normalizedIDs = installedPlayableTraceIDs?.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) } ?? []
+            let expectedExerciseID = exerciseID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return normalizedStatus == "passed"
+                && Self.hasText(evidence)
+                && Self.hasText(appBundle)
+                && (installedPlayableJSONLs ?? 0) > 0
+                && installedPlayableJSONLs == normalizedIDs.count
+                && !expectedExerciseID.isEmpty
+                && normalizedIDs.contains(expectedExerciseID)
+        }
+
+        private static func hasText(_ value: String?) -> Bool {
+            value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }
+    }
+
+    struct RejectedSources: Decodable {
+        let status: String?
+        let reviewScope: String?
+        let reason: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case status
+            case reviewScope = "review_scope"
+            case reason
+        }
+
+        var isRecorded: Bool {
+            let normalizedStatus = status?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return [
+                "none_retained_for_promotion_review",
+                "none_rejected_after_review"
+            ].contains(normalizedStatus)
+                && Self.hasText(reviewScope)
+                && Self.hasText(reason)
+        }
+
+        private static func hasText(_ value: String?) -> Bool {
+            value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }
+    }
+
+    struct RejectedCandidate: Decodable {
+        let sourcePage: String?
+        let sourceMediaURL: String?
+        let sourceURL: String?
+        let sourceVideo: String?
+        let sourceLicense: String?
+        let sourceAttribution: String?
+        let decision: String?
+        let reason: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case sourcePage = "source_page"
+            case sourceMediaURL = "source_media_url"
+            case sourceURL = "source_url"
+            case sourceVideo = "source_video"
+            case sourceLicense = "source_license"
+            case sourceAttribution = "source_attribution"
+            case decision
+            case reason
+        }
+
+        var isRejectedSourceRecord: Bool {
+            let normalizedDecision = decision?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return hasSource
+                && Self.hasText(sourceLicense)
+                && Self.hasText(sourceAttribution)
+                && normalizedDecision.contains("rejected")
+                && Self.hasText(reason)
+        }
+
+        private var hasSource: Bool {
+            [sourcePage, sourceMediaURL, sourceURL, sourceVideo].contains { Self.hasText($0) }
+        }
+
+        private static func hasText(_ value: String?) -> Bool {
+            value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }
+    }
+
+    init(
+        exerciseID: String? = nil,
+        sourceKind: MotionDemoSourceKind?,
+        sourceLabel: String?,
+        acceptanceStatus: String?,
+        playableTracePackaged: Bool = false,
+        normalizerStatus: String?,
+        rejectionReason: String?,
+        sourcePage: String? = nil,
+        sourceURL: String? = nil,
+        sourceMediaURL: String? = nil,
+        sourceVideo: String? = nil,
+        sourceLicense: String? = nil,
+        sourceAttribution: String? = nil,
+        rawTrace: String? = nil,
+        normalizer: String? = nil,
+        outputTrace: String? = nil,
+        goldenComparison: GoldenComparison? = nil,
+        visualReview: VisualReview? = nil,
+        engineReplay: EngineReplay? = nil,
+        liveAppReview: LiveAppReview? = nil,
+        rejectedSources: RejectedSources? = nil,
+        rejectedCandidates: [RejectedCandidate] = []
+    ) {
+        self.exerciseID = exerciseID
+        self.sourceKind = sourceKind
+        self.sourceLabel = sourceLabel
+        self.acceptanceStatus = acceptanceStatus
+        self.playableTracePackaged = playableTracePackaged
+        self.normalizerStatus = normalizerStatus
+        self.rejectionReason = rejectionReason
+        self.sourcePage = sourcePage
+        self.sourceURL = sourceURL
+        self.sourceMediaURL = sourceMediaURL
+        self.sourceVideo = sourceVideo
+        self.sourceLicense = sourceLicense
+        self.sourceAttribution = sourceAttribution
+        self.rawTrace = rawTrace
+        self.normalizer = normalizer
+        self.outputTrace = outputTrace
+        self.goldenComparison = goldenComparison
+        self.visualReview = visualReview
+        self.engineReplay = engineReplay
+        self.liveAppReview = liveAppReview
+        self.rejectedSources = rejectedSources
+        self.rejectedCandidates = rejectedCandidates
+    }
+
+    static func load(nextTo traceURL: URL) -> MotionDemoManifest? {
         let manifestURL = traceURL
             .deletingPathExtension()
             .appendingPathExtension("manifest.json")
         guard let data = try? Data(contentsOf: manifestURL),
               let manifest = try? JSONDecoder().decode(MotionDemoManifest.self, from: data) else {
-            return MotionDemoManifest(sourceKind: .trainerReferenceTrace, sourceLabel: nil)
+            return nil
         }
         return manifest
+    }
+
+    var isGuideEligible: Bool {
+        if rejectionReason?.isEmpty == false {
+            return false
+        }
+
+        for status in [acceptanceStatus, normalizerStatus].compactMap({ $0?.lowercased() }) {
+            if status.contains("pending") || status.contains("required") || status.contains("rejected") {
+                return false
+            }
+        }
+
+        let acceptedStatus = acceptanceStatus?.lowercased() ?? ""
+        guard acceptedStatus.hasPrefix("accepted") || acceptedStatus.hasPrefix("protected_golden") else {
+            return false
+        }
+        guard playableTracePackaged else {
+            return false
+        }
+        guard hasText(sourceLabel),
+              hasText(sourceVideo),
+              hasText(sourceLicense),
+              hasText(sourceAttribution),
+              hasText(rawTrace),
+              hasText(normalizer),
+              hasText(outputTrace),
+              goldenComparison?.isPromotionDecisionRecorded == true,
+              visualReview?.isPassed == true,
+              engineReplay?.isPassed == true,
+              liveAppReview?.isPassed(for: exerciseID) == true else {
+            return false
+        }
+
+        switch sourceKind {
+        case .trainerReferenceTrace:
+            return true
+        case .licensedExternalReferenceTrace:
+            return hasText(sourcePage) && hasText(sourceMediaURL) && hasRejectedSourceReview
+        case .canonicalArchetypeTrace, .proceduralFallback, .none:
+            return false
+        }
+    }
+
+    func isGuideEligible(for programID: String) -> Bool {
+        let normalizedManifestID = exerciseID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let normalizedProgramID = programID.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !normalizedManifestID.isEmpty
+            && normalizedManifestID == normalizedProgramID
+            && isGuideEligible
+    }
+
+    private var hasRejectedSourceReview: Bool {
+        if rejectedCandidates?.contains(where: { $0.isRejectedSourceRecord }) == true {
+            return true
+        }
+        return rejectedSources?.isRecorded == true
+    }
+
+    private func hasText(_ value: String?) -> Bool {
+        value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 
     func source(for traceURL: URL) -> MotionDemoSource {
@@ -966,7 +1552,7 @@ private struct MotionDemoManifest: Decodable {
         switch sourceKind {
         case .canonicalArchetypeTrace:
             return .canonicalArchetypeTrace(provenance: "Bundled canonical archetype trace: \(label)")
-        case .trainerReferenceTrace, .proceduralFallback, .none:
+        case .trainerReferenceTrace, .licensedExternalReferenceTrace, .proceduralFallback, .none:
             return .trainerReferenceTrace(provenance: "Bundled reference trace: \(label)")
         }
     }

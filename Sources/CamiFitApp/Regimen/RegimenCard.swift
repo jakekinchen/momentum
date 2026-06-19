@@ -51,7 +51,8 @@ struct RegimenCard: View {
                         index: index + 1,
                         title: refLabel(block.exerciseRef),
                         target: targetLabel(block),
-                        rest: restLabel(block)
+                        rest: restLabel(block),
+                        guidance: block.guidance?.displayText
                     )
                 }
             }
@@ -106,6 +107,8 @@ struct RegimenCard: View {
             return humanizedPresetName(id)
         case let .inline(program):
             return program.name
+        case let .catalog(_, name):
+            return name
         }
     }
 
@@ -180,6 +183,7 @@ private struct RoutineExerciseRow: View {
     let title: String
     let target: String
     let rest: String?
+    let guidance: String?
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -212,6 +216,12 @@ private struct RoutineExerciseRow: View {
                 }
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                if let guidance {
+                    Label(guidance, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

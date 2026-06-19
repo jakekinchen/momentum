@@ -133,7 +133,7 @@ final class MediaPipePoseProviderTests: XCTestCase {
         let deepestIndex = try XCTUnwrap(kneeAngles.indices.min { kneeAngles[$0] < kneeAngles[$1] })
         let deepest = frames[deepestIndex]
 
-        XCTAssertEqual(frames.count, 89)
+        XCTAssertEqual(frames.count, 108)
         XCTAssertEqual(first.timestampMS, 0)
         XCTAssertTrue(zip(frames, frames.dropFirst()).allSatisfy { $1.timestampMS > $0.timestampMS })
         for name in [
@@ -151,15 +151,29 @@ final class MediaPipePoseProviderTests: XCTestCase {
         }
         XCTAssertLessThan(Self.kneeAngle(in: deepest), 105)
         XCTAssertGreaterThan(Self.kneeAngle(in: first), 160)
-        XCTAssertTrue(
-            zip(kneeAngles[0...deepestIndex], kneeAngles[1...deepestIndex]).allSatisfy { next, current in
-                current <= next + 0.000_001
-            }
+        XCTAssertGreaterThan(Self.kneeAngle(in: last), 160)
+        XCTAssertGreaterThan(deepestIndex, frames.count / 3)
+        XCTAssertLessThan(deepestIndex, (frames.count * 2) / 3)
+
+        let smoothedKneeAngles = Self.centeredMovingAverage(kneeAngles, radius: 4)
+        let smoothedDeepestIndex = try XCTUnwrap(
+            smoothedKneeAngles.indices.min { smoothedKneeAngles[$0] < smoothedKneeAngles[$1] }
         )
-        XCTAssertTrue(
-            zip(kneeAngles[deepestIndex..<kneeAngles.endIndex], kneeAngles[(deepestIndex + 1)..<kneeAngles.endIndex]).allSatisfy { current, next in
-                next >= current - 0.000_001
-            }
+        XCTAssertLessThan(smoothedKneeAngles[smoothedDeepestIndex], 105)
+        XCTAssertGreaterThan(smoothedKneeAngles[0] - smoothedKneeAngles[smoothedDeepestIndex], 70)
+        XCTAssertGreaterThan(smoothedKneeAngles[smoothedKneeAngles.count - 1] - smoothedKneeAngles[smoothedDeepestIndex], 70)
+        XCTAssertEqual(
+            Self.phaseReversalCount(smoothedKneeAngles, start: 0, end: smoothedDeepestIndex, expectedDirection: .decreasing),
+            0
+        )
+        XCTAssertEqual(
+            Self.phaseReversalCount(
+                smoothedKneeAngles,
+                start: smoothedDeepestIndex,
+                end: smoothedKneeAngles.count - 1,
+                expectedDirection: .increasing
+            ),
+            0
         )
 
         let contactLandmarks = [
@@ -210,7 +224,7 @@ final class MediaPipePoseProviderTests: XCTestCase {
         )
     }
 
-    func testBundledCanonicalMotionDemoTracesDecodeAndReplayThroughEngine() throws {
+    func testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine() throws {
         enum Mode {
             case rep
             case hold
@@ -230,16 +244,27 @@ final class MediaPipePoseProviderTests: XCTestCase {
                 requiredLandmarks: ["primary.shoulder", "primary.hip", "primary.knee", "primary.ankle"]
             ),
             Case(
+                exerciseID: "bodyweight_lunge",
+                mode: .rep,
+                contactLandmarks: ["primary.heel", "primary.foot.index", "secondary.foot.index"],
+                requiredLandmarks: [
+                    "primary.shoulder", "primary.hip", "primary.knee", "primary.ankle",
+                    "secondary.hip", "secondary.knee", "secondary.ankle"
+                ]
+            ),
+            Case(
                 exerciseID: "bodyweight_pushup",
                 mode: .rep,
                 contactLandmarks: ["primary.wrist", "secondary.wrist", "primary.foot.index", "secondary.foot.index"],
                 requiredLandmarks: ["primary.shoulder", "primary.elbow", "primary.wrist", "primary.hip", "primary.ankle"]
             ),
             Case(
-                exerciseID: "bodyweight_plank",
-                mode: .hold,
-                contactLandmarks: ["primary.elbow", "secondary.elbow", "primary.foot.index", "secondary.foot.index"],
-                requiredLandmarks: ["primary.shoulder", "primary.hip", "primary.ankle"]
+                exerciseID: "single_arm_cable_tricep_extension",
+                mode: .rep,
+                contactLandmarks: [],
+                requiredLandmarks: [
+                    "left.shoulder", "left.elbow", "left.wrist", "left.hip"
+                ]
             )
         ]
 
@@ -343,6 +368,41 @@ final class MediaPipePoseProviderTests: XCTestCase {
         let ankleMagnitude = sqrt((ankleVector.x * ankleVector.x) + (ankleVector.y * ankleVector.y))
         let cosine = min(max(dot / max(hipMagnitude * ankleMagnitude, 0.000_001), -1), 1)
         return acos(cosine) * 180 / .pi
+    }
+
+    private enum PhaseDirection {
+        case decreasing
+        case increasing
+    }
+
+    private static func centeredMovingAverage(_ values: [Double], radius: Int) -> [Double] {
+        values.indices.map { index in
+            let lower = max(values.startIndex, index - radius)
+            let upper = min(values.endIndex, index + radius + 1)
+            let window = values[lower..<upper]
+            return window.reduce(0, +) / Double(window.count)
+        }
+    }
+
+    private static func phaseReversalCount(
+        _ values: [Double],
+        start: Int,
+        end: Int,
+        expectedDirection: PhaseDirection,
+        tolerance: Double = 1.0
+    ) -> Int {
+        guard start < end else { return 0 }
+        var reversals = 0
+        for index in start..<end {
+            let delta = values[index + 1] - values[index]
+            switch expectedDirection {
+            case .decreasing:
+                if delta > tolerance { reversals += 1 }
+            case .increasing:
+                if delta < -tolerance { reversals += 1 }
+            }
+        }
+        return reversals
     }
 
     private static func minimalLandmarksJSON(includePresence: Bool) -> String {

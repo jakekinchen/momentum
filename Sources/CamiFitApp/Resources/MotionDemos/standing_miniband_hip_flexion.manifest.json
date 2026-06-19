@@ -1,0 +1,33 @@
+{
+  "exercise_id": "standing_miniband_hip_flexion",
+  "source_kind": "canonical_archetype_trace",
+  "source_label": "standing_hip_flexion canonical motion profile",
+  "archetype": "standing_hip_flexion",
+  "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
+  "compiler": "scripts/motion_reference/compile_archetype_trace.py",
+  "output_trace": null,
+  "playable_trace_packaged": false,
+  "acceptance_status": "pending_reference_capture",
+  "normalizer_status": "pending_source_preserving_normalizer",
+  "interval_ms": 100,
+  "retarget": "side-view-standing-hip-flexion",
+  "required_contacts": [
+    "right.heel",
+    "right.foot.index"
+  ],
+  "required_output_landmarks": [
+    "left.shoulder",
+    "left.hip",
+    "left.knee",
+    "left.ankle",
+    "right.hip",
+    "right.knee",
+    "right.ankle"
+  ],
+  "summary": {
+    "frames": 17,
+    "min_left_hip_flexion_angle": 105.54,
+    "max_left_hip_flexion_angle": 180.0
+  },
+  "replacement_plan": "Locate an exact licensed external workout clip and source-preserving normalizer before packaging any playable guide trace."
+}

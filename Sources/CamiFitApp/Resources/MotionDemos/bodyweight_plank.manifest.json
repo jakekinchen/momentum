@@ -1,28 +1,91 @@
 {
   "exercise_id": "bodyweight_plank",
-  "source_kind": "canonical_archetype_trace",
-  "source_label": "static_hold canonical motion profile",
-  "archetype": "static_hold",
-  "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
-  "compiler": "scripts/motion_reference/compile_archetype_trace.py",
-  "output_trace": "Sources/CamiFitApp/Resources/MotionDemos/bodyweight_plank.jsonl",
-  "interval_ms": 100,
-  "retarget": "static-hold",
-  "required_contacts": [
-    "primary.elbow",
-    "secondary.elbow",
-    "primary.foot.index",
-    "secondary.foot.index"
+  "source_kind": "licensed_external_reference_trace",
+  "source_label": "Pexels woman doing plank exercise on a yoga mat",
+  "acceptance_status": "blocked_visual_rig_review_failed",
+  "playable_trace_packaged": false,
+  "source_page": "https://www.pexels.com/video/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720/",
+  "source_media_url": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
+  "source_video": "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
+  "source_license": "Pexels License",
+  "source_attribution": "Pexels / video 7801720",
+  "rejected_candidates": [
+    {
+      "source_page": "https://www.pexels.com/video/woman-doing-plank-position-6437916/",
+      "source_video": "dist/motion-reference/bodyweight_plank/source/pexels-woman-doing-plank-position-6437916.mp4",
+      "source_license": "Pexels License",
+      "source_attribution": "Pexels / video 6437916",
+      "evidence": [
+        "dist/motion-reference/bodyweight_plank/pexels_plank_6437916_review/contact.jpg",
+        "dist/motion-reference/bodyweight_plank/pexels_plank_6437916_0_6/raw_mediapipe.jsonl"
+      ],
+      "decision": "rejected",
+      "reason": "The source looked visually promising for a plank hold, but MediaPipe placed lower-leg landmarks outside the normalized image bounds during the reviewed extraction, so it was not source-preserving enough for guide promotion."
+    }
   ],
-  "required_output_landmarks": [
-    "primary.shoulder",
-    "primary.hip",
-    "primary.ankle"
-  ],
-  "summary": {
-    "frames": 31,
-    "min_primary_plank_line_angle": 180.0,
-    "max_primary_plank_line_angle": 180.0
+  "raw_trace": "dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/raw_mediapipe.jsonl",
+  "output_trace": "dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/bodyweight_plank.static_median.jsonl",
+  "normalizer": "scripts/motion_reference/normalize_plank_trace.py",
+  "golden_comparison": {
+    "status": "not_applicable",
+    "reason": "No protected plank or static-hold golden comparator exists yet; Bodyweight Lunge remains the protected dynamic lunge-family extractor comparator."
   },
-  "replacement_plan": "Replace with first_party_trainer_reference_video when captured; keep this trace as the deterministic archetype fallback."
+  "visual_review": {
+    "status": "failed",
+    "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_hold_target_reached": true
+  },
+  "live_app_review": {
+    "status": "failed",
+    "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass.",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 4,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension"
+    ]
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 12055907,
+      "sha256": "134712b11aaf6b939b3b5e78e193271e30cc7b255b0a25bd568e2bd0140dc116"
+    },
+    "raw_trace": {
+      "bytes": 424077,
+      "sha256": "5968224c232521a6b60c651f898e3aab9c011ac00e1dc434d7a2726578d1efcf"
+    },
+    "normalizer": {
+      "bytes": 11481,
+      "sha256": "155cf56de0adf20aa8932a36d325f5df8e8e926d989bec08ebcda234b338cc05"
+    },
+    "output_trace": {
+      "bytes": 240164,
+      "sha256": "17a7b2be25fcbd446887109f639ba0a90b42427540ef72ef622ed0bad9c0b0d8"
+    }
+  },
+  "retarget": "static_median_external_reference_hold",
+  "primary_side": "left",
+  "frame_count": 31,
+  "source_frame_start": 0,
+  "source_frame_end": 59,
+  "source_timestamp_start_ms": 0,
+  "source_timestamp_end_ms": 5900,
+  "contact_policy": "median_pin_forearms_and_toes",
+  "qa_gates": [
+    "source_clip_reviewed",
+    "full_body_primary_side_visible",
+    "static_median_hold_pose",
+    "contact_locked",
+    "body_line_stable",
+    "engine_accepts_hold",
+    "viewer_reviewed"
+  ],
+  "viewer_command": "cp dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/bodyweight_plank.static_median.jsonl Sources/CamiFitApp/Resources/MotionDemos/bodyweight_plank.jsonl && CAMIFIT_GUIDE_EXERCISE=bodyweight_plank ./script/build_and_run.sh --verify # DEMOTED 2026-06-09: review-only until fixed-frame installed-app avatar visual review passes.",
+  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass."
 }

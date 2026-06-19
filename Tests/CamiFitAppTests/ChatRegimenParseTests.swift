@@ -3,7 +3,14 @@ import XCTest
 
 final class ChatRegimenParseTests: XCTestCase {
     func testParseAttachesExerciseCardToMessage() throws {
-        let squat = try String(contentsOf: Bundle.module.url(forResource: "bodyweight_squat", withExtension: "json", subdirectory: "Presets")!)
+        let squat = try String(
+            contentsOf: Bundle.module.url(
+                forResource: "bodyweight_squat",
+                withExtension: "json",
+                subdirectory: "Presets"
+            )!,
+            encoding: .utf8
+        )
         let text = "Try this:\n```future-exercise\n\(squat)\n```"
         let results = RegimenBlockParser.parse(message: text)
         XCTAssertEqual(results.count, 1)
@@ -17,7 +24,7 @@ final class ChatRegimenParseTests: XCTestCase {
         Here is a knee-friendly option.
 
         ```future-routine
-        {"schemaVersion":1,"artifactType":"routine","id":"knee-friendly-lower-body","name":"Knee-Friendly Lower Body","description":"A gentle lower-body routine.","blocks":[{"exerciseRef":{"preset":"bodyweight_squat"},"sets":3,"reps":8,"restSeconds":75},{"exerciseRef":{"preset":"bodyweight_plank"},"sets":3,"holdSeconds":20,"restSeconds":60}]}
+        {"schemaVersion":1,"artifactType":"routine","id":"knee-friendly-lower-body","name":"Knee-Friendly Lower Body","description":"A gentle lower-body routine.","blocks":[{"exerciseRef":{"preset":"bodyweight_squat"},"sets":3,"reps":8,"restSeconds":75},{"exerciseRef":{"preset":"bodyweight_lunge"},"sets":3,"reps":8,"restSeconds":60}]}
         ```
         """
 
@@ -35,5 +42,23 @@ final class ChatRegimenParseTests: XCTestCase {
         } else {
             XCTFail("expected routine artifact")
         }
+    }
+
+    func testParserRejectsLegacyFutureRoutineWithReferenceCapturePreset() throws {
+        let text = """
+        ```future-routine
+        {"schemaVersion":1,"artifactType":"routine","id":"stale-pike","name":"Stale Pike","blocks":[{"exerciseRef":{"preset":"bodyweight_pike"},"sets":1,"reps":8}]}
+        ```
+        """
+
+        let results = RegimenBlockParser.parse(message: text)
+
+        XCTAssertEqual(results.count, 1)
+        guard case let .invalid(kind, message) = results[0] else {
+            return XCTFail("expected invalid routine")
+        }
+        XCTAssertEqual(kind, .routine)
+        XCTAssertTrue(message.contains("bodyweight_pike"))
+        XCTAssertTrue(message.contains("not guide-ready"))
     }
 }

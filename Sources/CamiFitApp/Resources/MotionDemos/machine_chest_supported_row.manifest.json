@@ -1,0 +1,45 @@
+{
+  "exercise_id": "machine_chest_supported_row",
+  "source_kind": "licensed_external_reference_trace",
+  "source_label": "Wikimedia Commons Machine T-Bar Row",
+  "acceptance_status": "pending_source_license_review",
+  "playable_trace_packaged": false,
+  "candidate_status": "license_review_needed",
+  "source_page": "https://commons.wikimedia.org/wiki/File:How_to_properly_do_Machine_T-Bar_Rows.webm",
+  "source_media_url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/How_to_properly_do_Machine_T-Bar_Rows.webm",
+  "source_file_url": "https://www.youtube.com/watch?v=TyLoy3n_a10",
+  "source_video": "dist/motion-reference/machine_chest_supported_row/commons_machine_tbar_row/source.webm",
+  "source_license": "CC BY 3.0; YouTube CC verified by live metadata and Wayback captures; Commons marks the imported video as License review needed",
+  "source_attribution": "Colossus Fitness via Wikimedia Commons",
+  "raw_trace": "dist/motion-reference/machine_chest_supported_row/commons_machine_tbar_row/extract_84000_91000/raw_mediapipe.jsonl",
+  "normalizer": "scripts/motion_reference/normalize_machine_chest_supported_row_trace.py",
+  "retarget": "source_timed_side_view_machine_chest_supported_row",
+  "cycle_mode": "source_extended-rowed-extended",
+  "output_trace": "dist/motion-reference/machine_chest_supported_row/commons_machine_tbar_row/extract_84000_91000/machine_chest_supported_row.external.jsonl",
+  "required_output_landmarks": [
+    "primary.shoulder",
+    "primary.elbow",
+    "primary.wrist",
+    "primary.hip"
+  ],
+  "qa": {
+    "phase_summary": {
+      "source_side": "left",
+      "source_min_elbow_angle": 119.44,
+      "source_max_elbow_angle": 179.61,
+      "source_rom_degrees": 60.17,
+      "source_good_frames": 84,
+      "peak_frame_index": 42,
+      "peak_timestamp_ms": 3500
+    },
+    "summary": {
+      "frames": 84,
+      "min_primary_elbow_angle": 79.45,
+      "max_primary_elbow_angle": 176.45
+    },
+    "loop_closure": {
+      "max_endpoint_delta_before": 0.0,
+      "max_endpoint_delta_after": 0.0
+    }
+  }
+}

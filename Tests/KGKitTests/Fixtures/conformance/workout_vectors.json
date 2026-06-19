@@ -20,7 +20,9 @@
           "graph_paths": [],
           "source_text": "Left knee flare-up since 2026-05-10 active injury",
           "safety_behavior": "block_if_safety_critical",
-          "resolution_status": "resolved"
+          "resolution_status": "resolved",
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ],
       "expected": {
@@ -90,7 +92,9 @@
           "graph_paths": [],
           "source_text": "Left knee flare-up since 2026-05-10 active injury",
           "safety_behavior": "block_if_safety_critical",
-          "resolution_status": "resolved"
+          "resolution_status": "resolved",
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ],
       "expected": {
@@ -174,7 +178,9 @@
           "graph_paths": [],
           "source_text": "Left knee flare-up since 2026-05-10 active injury",
           "safety_behavior": "block_if_safety_critical",
-          "resolution_status": "resolved"
+          "resolution_status": "resolved",
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ],
       "expected": {

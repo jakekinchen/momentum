@@ -4,7 +4,7 @@
 
 ## Objective
 
-Scaffold the CamiFit Swift package and encode the **Exercise-Program contract** (per `docs/design/2026-06-03-camifit-exercise-engine-design.md` §5) as validated `Codable` models, proven by loading the bundled squat preset and **rejecting** a structurally-invalid program at load. This is the smallest useful slice: it establishes the keystone contract and the load-time validation gate that every later slice and (eventually) the agent depend on.
+Scaffold the CamiFit Swift package and encode the **Exercise-Program contract** (per `docs/design/2026-06-03-momentum-exercise-engine-design.md` §5) as validated `Codable` models, proven by loading the bundled squat preset and **rejecting** a structurally-invalid program at load. This is the smallest useful slice: it establishes the keystone contract and the load-time validation gate that every later slice and (eventually) the agent depend on.
 
 This slice is **pure Swift + JSON and must stay offline** — no MediaPipe, no Python worker, no network, no `pip`/SwiftPM remote dependencies.
 

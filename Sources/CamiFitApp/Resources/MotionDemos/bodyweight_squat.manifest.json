@@ -1,17 +1,65 @@
 {
   "exercise_id": "bodyweight_squat",
   "source_kind": "trainer_reference_trace",
-  "source_label": "first-party webcam squat capture user_capture_20260606-013521; primary_side=right",
-  "source_video": "dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/bodyweight_squat_reference.mov",
-  "raw_trace": "dist/motion-reference/bodyweight_squat/user_capture_20260606-013521/raw_mediapipe.jsonl",
+  "source_label": "first-party webcam squat capture user_capture_20260608-152116; primary_side=left",
+  "acceptance_status": "accepted_source_preserving_reference",
+  "playable_trace_packaged": true,
+  "source_video": "dist/motion-reference/bodyweight_squat/user_capture_20260608-152116/squat_isolated_review.mp4",
+  "source_license": "First-party CamiFit user capture",
+  "source_attribution": "CamiFit first-party webcam capture user_capture_20260608-152116",
+  "raw_trace": "dist/motion-reference/bodyweight_squat/user_capture_20260608-152116/raw_squat_isolated_mediapipe.jsonl",
+  "output_trace": "dist/motion-reference/bodyweight_squat/user_capture_20260608-152116/bodyweight_squat.isolated.normalized.jsonl",
   "normalizer": "scripts/motion_reference/normalize_squat_trace.py",
+  "golden_comparison": {
+    "status": "not_applicable",
+    "reason": "No protected squat-family golden comparator exists yet; Bodyweight Lunge remains the protected lunge-family extractor comparator."
+  },
+  "visual_review": {
+    "status": "passed",
+    "evidence": "App avatar review passed for the first-party squat guide trace before guide-ready promotion."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_final_reps": 1
+  },
+  "live_app_review": {
+    "status": "passed",
+    "evidence": "2026-06-09 visual regression follow-up kept this exercise guide-ready; the installed app inventory now contains exactly four playable JSONL traces after demoting visually failed plank, preacher curl, and suspension tricep press.",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 4,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension"
+    ]
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 78202,
+      "sha256": "64ee4958e29bbd3b5d4441d97ac9577b61859230ca6e25265f159981805a5678"
+    },
+    "raw_trace": {
+      "bytes": 240592,
+      "sha256": "56c5ded3db5e9682de6f833d920df67ff575e9b7bedb7ca7e049a54c15143851"
+    },
+    "normalizer": {
+      "bytes": 25915,
+      "sha256": "b814e431d344c0164cef3b54c1691cd932b60ee4a6d5a2a7f65851e2916dfb4e"
+    },
+    "output_trace": {
+      "bytes": 75021,
+      "sha256": "afc6c18821f6a1129f7bc6a93446e02078990a699abcad0cfda30383d4143695"
+    }
+  },
   "retarget": "canonical-squat",
   "cycle_mode": "captured_ascent_mirrored_to_top_bottom_top",
-  "cycle_bottom_index": 21,
-  "cycle_top_index": 45,
+  "cycle_bottom_index": 16,
+  "cycle_top_index": 26,
   "contact_policy": "pin_primary_and_synthetic_secondary_ankle_heel_toe",
   "secondary_policy": "canonical_depth_offset",
   "smooth_window": 5,
   "phase_window": 5,
-  "frame_count": 50
+  "frame_count": 25
 }

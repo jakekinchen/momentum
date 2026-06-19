@@ -1,0 +1,27 @@
+{
+  "exercise_id": "resistance_band_reverse_curl",
+  "source_kind": "canonical_archetype_trace",
+  "source_label": "standing_reverse_curl canonical motion profile",
+  "archetype": "standing_reverse_curl",
+  "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
+  "compiler": "scripts/motion_reference/compile_archetype_trace.py",
+  "output_trace": null,
+  "playable_trace_packaged": false,
+  "acceptance_status": "pending_reference_capture",
+  "normalizer_status": "pending_source_preserving_normalizer",
+  "interval_ms": 100,
+  "retarget": "side-view-standing-reverse-curl",
+  "required_contacts": [],
+  "required_output_landmarks": [
+    "primary.shoulder",
+    "primary.elbow",
+    "primary.wrist",
+    "primary.hip"
+  ],
+  "summary": {
+    "frames": 17,
+    "min_primary_elbow_angle": 71.25,
+    "max_primary_elbow_angle": 166.99
+  },
+  "replacement_plan": "Locate an exact licensed external workout clip and source-preserving normalizer before packaging any playable guide trace."
+}

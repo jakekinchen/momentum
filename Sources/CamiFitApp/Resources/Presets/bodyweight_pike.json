@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "bodyweight_pike",
+  "name": "Bodyweight Pike",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "primary.shoulder",
+      "primary.elbow",
+      "primary.wrist",
+      "primary.hip",
+      "primary.knee",
+      "primary.ankle"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "auto_lock",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Start in a side-view high plank with hands and feet planted",
+        "capture_seconds": 1.0,
+        "signals": [
+          "pike_angle",
+          "knee_angle",
+          "elbow_angle"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "primary.shoulder",
+    "elbow": "primary.elbow",
+    "wrist": "primary.wrist",
+    "hip": "primary.hip",
+    "knee": "primary.knee",
+    "ankle": "primary.ankle"
+  },
+  "signals": {
+    "pike_angle_raw": "angle(primary.shoulder, primary.hip, primary.ankle)",
+    "knee_angle_raw": "angle(primary.hip, primary.knee, primary.ankle)",
+    "elbow_angle_raw": "angle(primary.shoulder, primary.elbow, primary.wrist)",
+    "shoulder_stack_raw": "angle_to_vertical(primary.shoulder, primary.wrist)"
+  },
+  "filters": {
+    "pike_angle": {
+      "source": "pike_angle_raw",
+      "type": "ema",
+      "alpha": 0.45
+    },
+    "knee_angle": {
+      "source": "knee_angle_raw",
+      "type": "median",
+      "window_ms": 200
+    },
+    "elbow_angle": {
+      "source": "elbow_angle_raw",
+      "type": "median",
+      "window_ms": 200
+    },
+    "shoulder_stack": {
+      "source": "shoulder_stack_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "phase_signal": "pike_angle",
+    "down_when": "pike_angle < 105",
+    "down_min_ms": 100,
+    "bottom_min_ms": 80,
+    "up_when": "pike_angle > 155",
+    "up_min_ms": 100,
+    "min_rom_deg": 60,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "pike_depth",
+      "when": "phase == 'bottom'",
+      "expect": "pike_angle <= 95",
+      "min_violation_ms": 250,
+      "cue": "Lift your hips higher",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
+    },
+    {
+      "id": "legs_long",
+      "when": "phase == 'bottom'",
+      "expect": "knee_angle >= 150",
+      "min_violation_ms": 250,
+      "cue": "Keep your legs long",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "arms_long",
+      "when": "phase == 'bottom'",
+      "expect": "elbow_angle >= 150",
+      "min_violation_ms": 250,
+      "cue": "Press through straight arms",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "shoulder_stack",
+      "when": "phase in ['descending','bottom']",
+      "expect": "shoulder_stack <= 45",
+      "min_violation_ms": 250,
+      "cue": "Keep your shoulders over your hands",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000
+    }
+  ],
+  "set": {
+    "target_reps": 10
+  }
+}

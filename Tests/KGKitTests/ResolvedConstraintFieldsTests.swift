@@ -8,6 +8,8 @@ final class ResolvedConstraintFieldsTests: XCTestCase {
         XCTAssertFalse(c.verified)
         XCTAssertEqual(c.resolutionStatus, "resolved")
         XCTAssertNil(c.safetyBehavior)
+        XCTAssertEqual(c.confidence, 1.0)
+        XCTAssertEqual(c.resolutionMethod, "exact")
     }
     func testRichConstruction() {
         let c = ResolvedConstraint(constraintType: "Equipment", value: "kettlebell", hard: true,

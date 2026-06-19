@@ -1,0 +1,93 @@
+{
+  "exercise_id": "suspension_tricep_press",
+  "source_kind": "licensed_external_reference_trace",
+  "source_label": "Pexels side-view suspension trainer tricep press",
+  "acceptance_status": "blocked_visual_rig_review_failed",
+  "playable_trace_packaged": false,
+  "source_page": "https://www.pexels.com/video/a-woman-doing-push-up-8435987/",
+  "source_media_url": "https://videos.pexels.com/video-files/8435987/8435987-hd_1920_1080_25fps.mp4",
+  "source_video": "dist/motion-reference/suspension_tricep_press/pexels_8435987/woman_suspension_tricep_press_8435987.mp4",
+  "source_license": "Pexels License",
+  "source_attribution": "Pexels / video 8435987",
+  "rejected_sources": {
+    "status": "none_retained_for_promotion_review",
+    "review_scope": "Promotion review retained the Pexels 8435987 side-view suspension-trainer source and no alternate rejected source-candidate records were preserved in this slice.",
+    "reason": "The accepted source is pinned by source page, license, attribution, raw trace, normalizer, visual review, engine replay, and artifact integrity. Future source changes must add rejected_candidates before promotion."
+  },
+  "raw_trace": "dist/motion-reference/suspension_tricep_press/pexels_8435987/extract_4500_10000/raw_mediapipe.jsonl",
+  "output_trace": "dist/motion-reference/suspension_tricep_press/pexels_8435987/extract_4500_10000/suspension_tricep_press.external.jsonl",
+  "normalizer": "scripts/motion_reference/normalize_suspension_tricep_press_trace.py",
+  "golden_comparison": {
+    "status": "not_applicable",
+    "reason": "No protected suspension tricep press golden comparator exists yet; Bodyweight Lunge remains the protected lunge-family extractor comparator."
+  },
+  "visual_review": {
+    "status": "failed",
+    "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_final_reps": 1
+  },
+  "live_app_review": {
+    "status": "failed",
+    "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review.",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 4,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension"
+    ]
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 6822832,
+      "sha256": "9dee8f3c8de27214b277a51396a11e6cc9c7c920d46641949061d69901722861"
+    },
+    "raw_trace": {
+      "bytes": 467575,
+      "sha256": "979af3cae16091d5c8bad9b82b33f64ed74f7d89bcab984c71eeed5584458e27"
+    },
+    "normalizer": {
+      "bytes": 17063,
+      "sha256": "b4238f98f0b61f39b1279edbf51c4ce471863a1c1d06c53f1a87e11a1ef6b9e7"
+    },
+    "output_trace": {
+      "bytes": 451164,
+      "sha256": "d8cb5c4eac7d50f0bd57832d784634635622f9d271daa0bf87c857119acb6acf"
+    }
+  },
+  "retarget": "raw_mediapipe_side_view_preserved",
+  "cycle_mode": "extension-mirror",
+  "cycle_start_index": null,
+  "cycle_extended_index": null,
+  "source_start_ms": 4500,
+  "source_end_ms": 10000,
+  "primary_side": "left",
+  "fit_viewport": true,
+  "summary": {
+    "frames": 83,
+    "min_primary_elbow_angle": 43.0,
+    "max_primary_elbow_angle": 176.93,
+    "min_primary_body_line_angle": 165.34,
+    "max_primary_body_line_angle": 172.47,
+    "min_primary_upper_arm_body_angle": 0.42,
+    "max_primary_upper_arm_body_angle": 56.2
+  },
+  "qa_gates": [
+    "licensed_source_recorded",
+    "raw_pose_reviewed",
+    "single_subject_side_view",
+    "full_body_visible",
+    "elbow_flexion_extension_flexion",
+    "body_line_stable",
+    "loop_boundary_stable",
+    "engine_counts_one_rep",
+    "viewer_reviewed"
+  ],
+  "viewer_command": "cp dist/motion-reference/suspension_tricep_press/pexels_8435987/extract_4500_10000/suspension_tricep_press.external.jsonl Sources/CamiFitApp/Resources/MotionDemos/suspension_tricep_press.jsonl && CAMIFIT_GUIDE_EXERCISE=suspension_tricep_press ./script/build_and_run.sh --verify # DEMOTED 2026-06-09: review-only until fixed-frame installed-app avatar visual review passes.",
+  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review."
+}

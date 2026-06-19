@@ -102,7 +102,7 @@ def build_motion_frames(args: argparse.Namespace, records: list[dict[str, Any]])
     frames: list[dict[str, Any]] = []
     skipped = 0
 
-    for record in records:
+    for source_frame_index, record in enumerate(records):
         mapped = named_landmarks(record)
         if not mapped:
             skipped += 1
@@ -126,6 +126,9 @@ def build_motion_frames(args: argparse.Namespace, records: list[dict[str, Any]])
                 "phase": "unlabeled",
                 "front_side": args.front_side,
                 "support_side": support_side,
+                "source_kind": args.source_kind,
+                "source_frame_id": source_frame_index,
+                "source_timestamp_ms": int(record["timestamp_ms"]),
                 "landmarks": landmarks,
             }
         )
@@ -150,6 +153,19 @@ def smooth_frames(frames: list[dict[str, Any]], alpha: float, exclude: set[str])
             previous[name] = dict(smoothed)
 
 
+def close_loop(frames: list[dict[str, Any]]) -> None:
+    if len(frames) < 2:
+        return
+    first_landmarks = frames[0].get("landmarks", {})
+    last_landmarks = frames[-1].get("landmarks", {})
+    for name, first_point in first_landmarks.items():
+        if name not in last_landmarks:
+            continue
+        last_point = last_landmarks[name]
+        for axis in ("x", "y", "z"):
+            last_point[axis] = first_point[axis]
+
+
 def anchor_contacts(frames: list[dict[str, Any]], anchors: list[str], min_confidence: float) -> dict[str, dict[str, float]]:
     solved: dict[str, dict[str, float]] = {}
     for anchor in anchors:
@@ -163,6 +179,7 @@ def anchor_contacts(frames: list[dict[str, Any]], anchors: list[str], min_confid
         solved[anchor] = {
             "x": statistics.median(sample["x"] for sample in samples),
             "y": statistics.median(sample["y"] for sample in samples),
+            "z": statistics.median(sample["z"] for sample in samples),
         }
 
     for frame in frames:
@@ -171,6 +188,7 @@ def anchor_contacts(frames: list[dict[str, Any]], anchors: list[str], min_confid
                 continue
             frame["landmarks"][anchor]["x"] = fixed["x"]
             frame["landmarks"][anchor]["y"] = fixed["y"]
+            frame["landmarks"][anchor]["z"] = fixed["z"]
     return solved
 
 
@@ -342,6 +360,44 @@ def canonical_lunge_retarget(frames: list[dict[str, Any]], mirrored_cycle: bool 
     return retargeted
 
 
+def fit_viewport(
+    frames: list[dict[str, Any]],
+    *,
+    target_x_min: float = 0.18,
+    target_x_max: float = 0.82,
+    target_y_min: float = 0.10,
+    target_y_max: float = 0.90,
+) -> None:
+    samples: list[dict[str, float]] = []
+    for frame in frames:
+        for point in frame.get("landmarks", {}).values():
+            if isinstance(point, dict) and confidence(point) >= 0.35:
+                samples.append(point)
+    if not samples:
+        return
+
+    source_x_min = min(point["x"] for point in samples)
+    source_x_max = max(point["x"] for point in samples)
+    source_y_min = min(point["y"] for point in samples)
+    source_y_max = max(point["y"] for point in samples)
+    source_width = max(source_x_max - source_x_min, 1e-6)
+    source_height = max(source_y_max - source_y_min, 1e-6)
+    target_width = target_x_max - target_x_min
+    target_height = target_y_max - target_y_min
+    scale = min(target_width / source_width, target_height / source_height)
+    fitted_width = source_width * scale
+    fitted_height = source_height * scale
+    x_offset = target_x_min + ((target_width - fitted_width) / 2)
+    y_offset = target_y_min + ((target_height - fitted_height) / 2)
+
+    for frame in frames:
+        for point in frame.get("landmarks", {}).values():
+            if not isinstance(point, dict):
+                continue
+            point["x"] = x_offset + ((point["x"] - source_x_min) * scale)
+            point["y"] = y_offset + ((point["y"] - source_y_min) * scale)
+
+
 def apply_retarget_mode(args: argparse.Namespace, frames: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if args.retarget == "raw":
         return frames
@@ -399,6 +455,41 @@ def lunge_summary(frames: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def stable_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(Path.cwd()))
+    except ValueError:
+        return str(path)
+
+
+def optional_stable_path(path: Path | None) -> str | None:
+    if path is None:
+        return None
+    return stable_path(path)
+
+
+def viewer_command(args: argparse.Namespace) -> str:
+    if args.exercise_id == "bodyweight_lunge" and not args.allow_promote_bodyweight_lunge:
+        comparison_output = args.output.with_suffix(".golden_comparison.json")
+        return (
+            "scripts/motion_reference/compare_trace_to_golden.py "
+            "--golden Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl "
+            "--candidate "
+            + stable_path(args.output)
+            + " --output "
+            + stable_path(comparison_output)
+        )
+    return (
+        "cp "
+        + stable_path(args.output)
+        + " Sources/CamiFitApp/Resources/MotionDemos/"
+        + args.exercise_id
+        + ".jsonl && CAMIFIT_GUIDE_EXERCISE="
+        + args.exercise_id
+        + " ./script/build_and_run.sh --verify"
+    )
+
+
 def write_outputs(args: argparse.Namespace, frames: list[dict[str, Any]], solved_contacts: dict[str, dict[str, float]]) -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as handle:
@@ -407,8 +498,9 @@ def write_outputs(args: argparse.Namespace, frames: list[dict[str, Any]], solved
 
     manifest = {
         "exercise_id": args.exercise_id,
-        "raw_trace": str(args.raw),
-        "output_trace": str(args.output),
+        "normalizer": "scripts/motion_reference/normalize_lunge_trace.py",
+        "raw_trace": stable_path(args.raw),
+        "output_trace": stable_path(args.output),
         "front_side": args.front_side,
         "support_side": args.support_side or ("left" if args.front_side == "right" else "right"),
         "anchor_landmarks": sorted(solved_contacts),
@@ -416,16 +508,24 @@ def write_outputs(args: argparse.Namespace, frames: list[dict[str, Any]], solved
         "cycle_start_index": args.cycle_start_index,
         "cycle_bottom_index": args.cycle_bottom_index,
         "retarget": args.retarget,
+        "fit_viewport": args.fit_viewport,
+        "source_kind": args.source_kind,
+        "source_label": args.source_label,
+        "source_page": args.source_page,
+        "source_media_url": args.source_media_url,
+        "source_video": optional_stable_path(args.source_video),
+        "source_license": args.source_license,
+        "source_attribution": args.source_attribution,
+        "qa_gates": [
+            "licensed_source_recorded",
+            "raw_pose_reviewed",
+            "contact_locked",
+            "closed_bottom_closed_cycle",
+            "engine_counts_one_rep",
+            "viewer_reviewed",
+        ],
         "summary": lunge_summary(frames),
-        "viewer_command": (
-            "cp "
-            + str(args.output)
-            + " Sources/CamiFitApp/Resources/MotionDemos/"
-            + args.exercise_id
-            + ".jsonl && CAMIFIT_GUIDE_EXERCISE="
-            + args.exercise_id
-            + " ./script/build_and_run.sh --verify"
-        ),
+        "viewer_command": viewer_command(args),
     }
     args.output.with_suffix(".manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n",
@@ -470,6 +570,27 @@ def parse_args() -> argparse.Namespace:
         default="raw",
         help="raw preserves MediaPipe image coordinates; canonical-lunge drives a stationary display rig from the reference phase",
     )
+    parser.add_argument(
+        "--fit-viewport",
+        action="store_true",
+        help="scale and recenter raw MediaPipe coordinates into a stable app viewport without changing joint angles",
+    )
+    parser.add_argument("--source-kind", default="licensed_external_reference_trace")
+    parser.add_argument("--source-label")
+    parser.add_argument("--source-page")
+    parser.add_argument("--source-media-url")
+    parser.add_argument("--source-video", type=Path)
+    parser.add_argument("--source-license")
+    parser.add_argument("--source-attribution")
+    parser.add_argument(
+        "--allow-promote-bodyweight-lunge",
+        action="store_true",
+        help=(
+            "allow the generated manifest to include a copy-into-app command for "
+            "bodyweight_lunge; by default lunge candidates are compare-only because "
+            "the shipped lunge is the protected golden guide"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -494,6 +615,8 @@ def main() -> int:
     args = parse_args()
     args.raw = args.raw.expanduser().resolve()
     args.output = args.output.expanduser().resolve()
+    if args.source_video is not None:
+        args.source_video = args.source_video.expanduser().resolve()
 
     if args.support_side == args.front_side:
         raise SystemExit("--support-side must differ from --front-side")
@@ -505,11 +628,15 @@ def main() -> int:
 
     frames = apply_cycle_mode(args, frames)
     frames = apply_retarget_mode(args, frames)
+    if args.fit_viewport:
+        fit_viewport(frames)
     anchors = contact_anchors(args)
     uses_clean_canonical_cycle = args.retarget == "canonical-lunge" and args.cycle_mode == "descent-mirror"
     if not uses_clean_canonical_cycle:
         smooth_frames(frames, args.smooth_alpha, exclude=anchors)
     solved_contacts = anchor_contacts(frames, sorted(anchors), args.min_confidence)
+    if args.cycle_mode == "descent-mirror":
+        close_loop(frames)
     write_outputs(args, frames, solved_contacts)
     summary = lunge_summary(frames)
     print(

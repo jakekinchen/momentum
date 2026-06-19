@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>CamiFit onboarding SVG experiment</title>
+    <style>
+      :root {
+        --bg: #080d0f;
+        --text: #f6f8f2;
+        --muted: rgba(246, 248, 242, 0.68);
+        --cyan: 100, 210, 255;
+        --mint: 101, 255, 210;
+        --green: 48, 209, 88;
+        --orange: 255, 159, 10;
+        --blue: 10, 132, 255;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 20% 5%, rgba(101, 255, 210, 0.08), transparent 28rem),
+          linear-gradient(180deg, #090f11 0%, #111516 100%);
+        color: var(--text);
+        font-family: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      main {
+        width: min(1100px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 32px 0 44px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        font-size: 24px;
+        line-height: 1.15;
+        font-weight: 700;
+      }
+
+      header p {
+        max-width: 520px;
+        color: var(--muted);
+        line-height: 1.55;
+        font-size: 14px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 22px;
+        align-items: start;
+      }
+
+      .visual-wrap {
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.045);
+      }
+
+      .visual-frame {
+        position: relative;
+        width: min(100%, 564px);
+        height: 250px;
+        overflow: hidden;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgb(12, 14, 19), rgb(19, 31, 28) 55%, rgb(26, 19, 28));
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+      }
+
+      .top-row {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        right: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: none;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 27px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.2;
+        font-weight: 700;
+      }
+
+      .pill[data-tint="cyan"] {
+        background: rgba(var(--cyan), 0.22);
+        border: 1px solid rgba(var(--cyan), 0.36);
+      }
+
+      .pill[data-tint="mint"] {
+        background: rgba(var(--mint), 0.22);
+        border: 1px solid rgba(var(--mint), 0.36);
+      }
+
+      .pill svg {
+        width: 13px;
+        height: 13px;
+        stroke-width: 2.5;
+      }
+
+      .chip-row {
+        position: absolute;
+        bottom: 18px;
+        left: 50%;
+        display: flex;
+        gap: 9px;
+        transform: translateX(-50%);
+      }
+
+      .metric-chip {
+        width: 76px;
+        height: 50px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        text-align: center;
+        color: #fff;
+        background-color: rgba(var(--chip-color), 0.18);
+        background-image: linear-gradient(var(--success-bg, rgba(48, 209, 88, 0)), var(--success-bg, rgba(48, 209, 88, 0)));
+        border: 1px solid rgba(var(--chip-color), 0.28);
+        box-shadow: 0 var(--success-shadow-y, 0) var(--success-shadow-blur, 0) var(--success-shadow-color, rgba(48, 209, 88, 0));
+      }
+
+      .metric-chip.success {
+        outline: 1.2px solid var(--success-outline, rgba(48, 209, 88, 0));
+        outline-offset: -1.2px;
+      }
+
+      .metric-value {
+        display: block;
+        font-size: 17px;
+        line-height: 1.1;
+        font-weight: 700;
+      }
+
+      .metric-label {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+        line-height: 1.1;
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .pose-layer {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 142px;
+        height: 138px;
+        transform: translate(-50%, -50%) translateY(-30px);
+        filter: drop-shadow(0 0 14px rgba(var(--mint), 0.45));
+      }
+
+      .pose-layer svg {
+        display: block;
+        width: 142px;
+        height: 138px;
+        overflow: visible;
+      }
+
+      .controls,
+      .notes {
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.055);
+      }
+
+      .controls {
+        margin-top: 14px;
+        padding: 14px;
+      }
+
+      .control-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 12px;
+        align-items: center;
+      }
+
+      button {
+        height: 34px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.09);
+        color: #fff;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: rgb(var(--mint));
+      }
+
+      output {
+        width: 72px;
+        text-align: right;
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .notes {
+        padding: 18px;
+      }
+
+      .notes h2 {
+        font-size: 15px;
+        margin-bottom: 10px;
+      }
+
+      .notes ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .notes li + li {
+        margin-top: 8px;
+      }
+
+      @media (max-width: 860px) {
+        header,
+        .layout {
+          display: block;
+        }
+
+        header p {
+          margin-top: 10px;
+        }
+
+        .notes {
+          margin-top: 18px;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .visual-wrap {
+          padding: 8px;
+        }
+
+        .visual-frame {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Onboarding MovementTrackingVisual SVG experiment</h1>
+          <p>
+            Standalone reconstruction of the SwiftUI first-slide animation using the same pose math,
+            chip dimensions, panel padding, and movement loop.
+          </p>
+        </div>
+      </header>
+
+      <div class="layout">
+        <section>
+          <div class="visual-wrap">
+            <div class="visual-frame" id="visual">
+              <div class="top-row">
+                <div class="pill" data-tint="cyan">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 7.5h10.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z" stroke="currentColor" />
+                    <path d="m16.5 10 5-2.8v9.6l-5-2.8Z" stroke="currentColor" />
+                  </svg>
+                  Camera
+                </div>
+                <div class="pill" data-tint="mint">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" />
+                    <path d="M12 6.5v4.8l-3.5 4.2M12 11.3l3.8 4.2M9.2 8.4 5.8 11M14.8 8.4l3.4 2.6" stroke="currentColor" stroke-linecap="round" />
+                    <path d="M5 18.5c1.4 1 2.9 1.5 4.6 1.5 2.1 0 3.7-.8 5.1-2.1 1.1-1 2.2-1.4 3.8-.9" stroke="currentColor" stroke-linecap="round" />
+                  </svg>
+                  Pose
+                </div>
+              </div>
+
+              <div class="pose-layer">
+                <svg id="pose" viewBox="0 0 142 138" role="img" aria-label="Animated squat pose skeleton"></svg>
+              </div>
+
+              <div class="chip-row">
+                <div class="metric-chip success" id="rep-chip" style="--chip-color: var(--orange)">
+                  <div>
+                    <span class="metric-value" id="rep-value">12</span>
+                    <span class="metric-label">Reps</span>
+                  </div>
+                </div>
+                <div class="metric-chip" style="--chip-color: var(--blue)">
+                  <div>
+                    <span class="metric-value" id="hold-value">0:30</span>
+                    <span class="metric-label">Hold</span>
+                  </div>
+                </div>
+                <div class="metric-chip" style="--chip-color: var(--green)">
+                  <div>
+                    <span class="metric-value">steady</span>
+                    <span class="metric-label">Cue</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <div class="control-row">
+              <button id="play" type="button">Pause</button>
+              <input id="phase" type="range" min="0" max="1" step="0.001" value="0" aria-label="Single-cycle phase" />
+              <output id="phase-output">0.000</output>
+            </div>
+          </div>
+        </section>
+
+        <aside class="notes">
+          <h2>Current assessment</h2>
+          <ul>
+            <li>Geometry and timing port cleanly because the SwiftUI pose is formula-driven, not based on sampled video.</li>
+            <li>High pixel similarity is blocked by browser and SwiftUI differences in SF Symbols, system colors, text antialiasing, Canvas strokes, and shadow blur.</li>
+            <li>For a 95% loop, capture fixed native frames and compare against deterministic browser frames at the same size, scale factor, phase, font stack, and color profile.</li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      const CYCLE_DURATION = 2.35;
+      const CYCLE_COUNT = 9;
+      const POSE_WIDTH = 142;
+      const POSE_HEIGHT = 138;
+      const segments = [
+        [0, 1],
+        [1, 2], [1, 3],
+        [2, 4], [3, 5],
+        [1, 6], [1, 7],
+        [6, 8], [8, 10],
+        [7, 9], [9, 11],
+      ];
+
+      const svg = document.getElementById("pose");
+      const repValue = document.getElementById("rep-value");
+      const holdValue = document.getElementById("hold-value");
+      const repChip = document.getElementById("rep-chip");
+      const playButton = document.getElementById("play");
+      const phaseSlider = document.getElementById("phase");
+      const phaseOutput = document.getElementById("phase-output");
+
+      let playing = true;
+      let manualPhase = 0;
+      let startedAt = performance.now();
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function smoothstep(value) {
+        const t = clamp(value, 0, 1);
+        return t * t * (3 - 2 * t);
+      }
+
+      function movementFromElapsed(seconds) {
+        const totalDuration = CYCLE_DURATION * CYCLE_COUNT;
+        const loopElapsed = seconds % totalDuration;
+        const rawCycleIndex = Math.floor(loopElapsed / CYCLE_DURATION);
+        const cycleIndex = clamp(rawCycleIndex, 0, CYCLE_COUNT - 1);
+        const cycleElapsed = loopElapsed - cycleIndex * CYCLE_DURATION;
+        return movementFromPhase(cycleIndex, cycleElapsed / CYCLE_DURATION);
+      }
+
+      function movementFromPhase(cycleIndex, phase) {
+        const countedIndex = Math.min(CYCLE_COUNT - 1, cycleIndex + (phase >= 0.9 ? 1 : 0));
+        let squatDepth;
+
+        if (phase < 0.42) {
+          squatDepth = smoothstep(phase / 0.42);
+        } else if (phase < 0.52) {
+          squatDepth = 1;
+        } else if (phase < 0.9) {
+          squatDepth = 1 - smoothstep((phase - 0.52) / 0.38);
+        } else {
+          squatDepth = 0;
+        }
+
+        const peakGlow = 0.52;
+        const returnGlow = phase < 0.52 ? 0 : smoothstep((phase - 0.52) / 0.48) * peakGlow;
+        const releaseGlow = phase < 0.48 ? (1 - smoothstep(phase / 0.48)) * peakGlow : 0;
+
+        return {
+          phase,
+          repCount: 12 + countedIndex,
+          holdText: `0:${30 - countedIndex}`,
+          squatDepth,
+          successGlow: Math.max(returnGlow, releaseGlow),
+        };
+      }
+
+      function midpoint(a, b) {
+        return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      }
+
+      function createPose(width, height, squat) {
+        const bounds = {
+          x: width * 0.1,
+          y: height * 0.12,
+          width: width * 0.8,
+          height: height * 0.76,
+        };
+        const scale = bounds.width;
+        const down = squat * 0.1;
+        const kneeBend = squat * 0.09;
+        const reach = squat * 0.04;
+
+        const point = (x, y) => ({
+          x: bounds.x + bounds.width * x,
+          y: bounds.y + bounds.height * y,
+        });
+
+        const pose = {
+          head: point(0.5, 0.08 + down * 0.55),
+          neck: point(0.5, 0.24 + down * 0.72),
+          leftShoulder: point(0.35, 0.34 + down * 0.64),
+          rightShoulder: point(0.65, 0.34 + down * 0.64),
+          leftWrist: point(0.28 - reach, 0.55 + down * 0.25),
+          rightWrist: point(0.72 + reach, 0.55 + down * 0.25),
+          leftHip: point(0.43, 0.56 + down),
+          rightHip: point(0.57, 0.56 + down),
+          leftKnee: point(0.36 - kneeBend, 0.76 + down * 0.32),
+          rightKnee: point(0.64 + kneeBend, 0.76 + down * 0.32),
+          leftAnkle: point(0.34, 0.94),
+          rightAnkle: point(0.66, 0.94),
+          scale,
+        };
+
+        pose.midHip = midpoint(pose.leftHip, pose.rightHip);
+        pose.leftElbow = midpoint(pose.leftShoulder, pose.leftWrist);
+        pose.rightElbow = midpoint(pose.rightShoulder, pose.rightWrist);
+        pose.points = [
+          pose.head,
+          pose.neck,
+          pose.leftShoulder,
+          pose.rightShoulder,
+          pose.leftWrist,
+          pose.rightWrist,
+          pose.leftHip,
+          pose.rightHip,
+          pose.leftKnee,
+          pose.rightKnee,
+          pose.leftAnkle,
+          pose.rightAnkle,
+        ];
+        return pose;
+      }
+
+      function lineD(points) {
+        return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
+      }
+
+      function skeletonD(pose) {
+        return segments.map(([from, to]) => {
+          const a = pose.points[from];
+          const b = pose.points[to];
+          return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} L ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
+        }).join(" ");
+      }
+
+      function path(d, stroke, width, opacity, fill = "none") {
+        return `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />`;
+      }
+
+      function drawPose(movement) {
+        const pose = createPose(POSE_WIDTH, POSE_HEIGHT, movement.squatDepth);
+        const ghostBack = createPose(POSE_WIDTH, POSE_HEIGHT, clamp(movement.squatDepth - 0.2, 0, 1));
+        const ghostFront = createPose(POSE_WIDTH, POSE_HEIGHT, clamp(movement.squatDepth + 0.2, 0, 1));
+        const success = movement.successGlow;
+        const headRadius = pose.scale * 0.105;
+        const bodyStrokeWidth = pose.scale * 0.16;
+        const torsoStrokeWidth = pose.scale * 0.1;
+        const limbStrokeWidth = pose.scale * 0.12;
+        const legStrokeWidth = pose.scale * 0.14;
+        const mannequinFill = "rgb(255,255,255)";
+        const successFill = "rgb(48,209,88)";
+        const mint = "rgb(101,255,210)";
+
+        const torso = [pose.leftShoulder, pose.neck, pose.rightShoulder, pose.rightHip, pose.leftHip, pose.leftShoulder];
+        const leftArm = [pose.leftShoulder, pose.leftElbow, pose.leftWrist];
+        const rightArm = [pose.rightShoulder, pose.rightElbow, pose.rightWrist];
+        const leftLeg = [pose.leftHip, pose.leftKnee, pose.leftAnkle];
+        const rightLeg = [pose.rightHip, pose.rightKnee, pose.rightAnkle];
+        const joints = pose.points.map((point) => `<circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="4.5" fill="white" />`).join("");
+
+        svg.innerHTML = [
+          path(skeletonD(ghostBack), mint, 2, 0.16),
+          path(skeletonD(ghostFront), mint, 2, 0.16),
+          `<circle cx="${pose.head.x.toFixed(2)}" cy="${pose.head.y.toFixed(2)}" r="${headRadius.toFixed(2)}" fill="${mannequinFill}" opacity="0.12" />`,
+          `<circle cx="${pose.head.x.toFixed(2)}" cy="${pose.head.y.toFixed(2)}" r="${headRadius.toFixed(2)}" fill="${successFill}" opacity="${(0.62 * success).toFixed(3)}" />`,
+          path(lineD([pose.neck, pose.midHip]), mannequinFill, bodyStrokeWidth.toFixed(2), 0.12),
+          path(lineD([pose.neck, pose.midHip]), successFill, bodyStrokeWidth.toFixed(2), (0.62 * success).toFixed(3)),
+          path(lineD(torso), mannequinFill, torsoStrokeWidth.toFixed(2), 0.084),
+          path(lineD(leftArm), mannequinFill, limbStrokeWidth.toFixed(2), 0.12),
+          path(lineD(rightArm), mannequinFill, limbStrokeWidth.toFixed(2), 0.12),
+          path(lineD(leftLeg), mannequinFill, legStrokeWidth.toFixed(2), 0.12),
+          path(lineD(rightLeg), mannequinFill, legStrokeWidth.toFixed(2), 0.12),
+          path(lineD(leftArm), successFill, limbStrokeWidth.toFixed(2), (0.62 * success).toFixed(3)),
+          path(lineD(rightArm), successFill, limbStrokeWidth.toFixed(2), (0.62 * success).toFixed(3)),
+          path(lineD(leftLeg), successFill, legStrokeWidth.toFixed(2), (0.62 * success).toFixed(3)),
+          path(lineD(rightLeg), successFill, legStrokeWidth.toFixed(2), (0.62 * success).toFixed(3)),
+          path(lineD(torso), mannequinFill, 1.4, 0.16),
+          path(lineD(torso), successFill, (1.4 + 0.8 * success).toFixed(2), (0.5 * success).toFixed(3)),
+          path(skeletonD(pose), mint, 3.2, 0.94),
+          joints,
+        ].join("");
+      }
+
+      function setRepSuccess(success) {
+        repChip.style.setProperty("--success-bg", `rgba(48, 209, 88, ${(0.24 * success).toFixed(3)})`);
+        repChip.style.setProperty("--success-outline", `rgba(48, 209, 88, ${(0.34 * success).toFixed(3)})`);
+        repChip.style.setProperty("--success-shadow-y", `${(2 * success).toFixed(2)}px`);
+        repChip.style.setProperty("--success-shadow-blur", `${(7 * success).toFixed(2)}px`);
+        repChip.style.setProperty("--success-shadow-color", `rgba(48, 209, 88, ${(0.14 * success).toFixed(3)})`);
+      }
+
+      function render(time) {
+        const movement = playing
+          ? movementFromElapsed((time - startedAt) / 1000)
+          : movementFromPhase(0, manualPhase);
+
+        if (playing) {
+          phaseSlider.value = movement.phase.toFixed(3);
+        }
+        phaseOutput.value = Number(phaseSlider.value).toFixed(3);
+        repValue.textContent = String(movement.repCount);
+        holdValue.textContent = movement.holdText;
+        setRepSuccess(movement.successGlow);
+        drawPose(movement);
+        requestAnimationFrame(render);
+      }
+
+      playButton.addEventListener("click", () => {
+        playing = !playing;
+        playButton.textContent = playing ? "Pause" : "Play";
+        if (playing) {
+          startedAt = performance.now() - Number(phaseSlider.value) * CYCLE_DURATION * 1000;
+        }
+      });
+
+      phaseSlider.addEventListener("input", () => {
+        manualPhase = Number(phaseSlider.value);
+        if (playing) {
+          playing = false;
+          playButton.textContent = "Play";
+        }
+        const movement = movementFromPhase(0, manualPhase);
+        phaseOutput.value = manualPhase.toFixed(3);
+        repValue.textContent = String(movement.repCount);
+        holdValue.textContent = movement.holdText;
+        setRepSuccess(movement.successGlow);
+        drawPose(movement);
+      });
+
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>

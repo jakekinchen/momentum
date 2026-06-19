@@ -1,0 +1,999 @@
+{
+  "app_presets": [
+    {
+      "demo_status": "missing",
+      "preset_id": "bench_lying_single_arm_dumbbell_tricep_extension",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "pending_licensed_reference_clip",
+        "synthetic_archetype_trace_not_guide_ready"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "ok",
+      "preset_id": "bodyweight_lunge",
+      "profile_status": "bundled_reference_trace",
+      "reasons": [],
+      "status": "guide_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "bodyweight_pike",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "visual_rig_review_failed",
+        "source_extraction_candidate_only",
+        "blocked_visual_rig_review_failed"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "bodyweight_plank",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "visual_rig_review_failed",
+        "source_extraction_candidate_only",
+        "blocked_visual_rig_review_failed"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "ok",
+      "preset_id": "bodyweight_pushup",
+      "profile_status": "trainer_reference_trace",
+      "reasons": [],
+      "status": "guide_ready"
+    },
+    {
+      "demo_status": "ok",
+      "preset_id": "bodyweight_squat",
+      "profile_status": "trainer_reference_trace",
+      "reasons": [],
+      "status": "guide_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "machine_chest_supported_row",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "pending_source_license_review",
+        "external_commons_license_review_needed"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "resistance_band_reverse_curl",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "pending_licensed_reference_clip",
+        "synthetic_archetype_trace_not_guide_ready"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "ok",
+      "preset_id": "single_arm_cable_tricep_extension",
+      "profile_status": "trainer_reference_trace",
+      "reasons": [],
+      "status": "guide_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "single_arm_chest_supported_incline_row",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "pending_licensed_reference_clip",
+        "synthetic_archetype_trace_not_guide_ready"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "single_arm_dumbbell_preacher_curl",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "visual_rig_review_failed",
+        "source_extraction_candidate_only",
+        "blocked_visual_rig_review_failed"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "standing_miniband_hip_flexion",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "pending_licensed_reference_clip",
+        "synthetic_archetype_trace_not_guide_ready"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "suspension_tricep_press",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "visual_rig_review_failed",
+        "source_extraction_candidate_only",
+        "blocked_visual_rig_review_failed"
+      ],
+      "status": "not_ready"
+    },
+    {
+      "demo_status": "missing",
+      "preset_id": "wide_grip_preacher_curl_with_ez_bar",
+      "profile_status": "pending_reference_capture",
+      "reasons": [
+        "pending_licensed_reference_clip",
+        "synthetic_archetype_trace_not_guide_ready"
+      ],
+      "status": "not_ready"
+    }
+  ],
+  "archetype_mapping_table": [
+    {
+      "family_ids": [
+        "ExerciseFamily:lunge_family"
+      ],
+      "label_contains": [],
+      "measurement_support": "Packaged preset demo only; the exact KG exercise remains recommend_only for measurement.",
+      "preset_id": "bodyweight_lunge",
+      "status_when_preset_guide_ready": "archetype_demo_only"
+    },
+    {
+      "family_ids": [
+        "ExerciseFamily:squat_family"
+      ],
+      "label_contains": [],
+      "measurement_support": "Packaged preset demo only; the exact KG exercise remains recommend_only for measurement.",
+      "preset_id": "bodyweight_squat",
+      "status_when_preset_guide_ready": "archetype_demo_only"
+    },
+    {
+      "family_ids": [
+        "ExerciseFamily:press_family"
+      ],
+      "label_contains": [
+        "push-up"
+      ],
+      "measurement_support": "Packaged preset demo only; the exact KG exercise remains recommend_only for measurement.",
+      "preset_id": "bodyweight_pushup",
+      "status_when_preset_guide_ready": "archetype_demo_only"
+    },
+    {
+      "family_ids": [
+        "ExerciseFamily:core_family"
+      ],
+      "label_contains": [
+        "plank"
+      ],
+      "measurement_support": "Packaged preset demo only; the exact KG exercise remains recommend_only for measurement.",
+      "preset_id": "bodyweight_plank",
+      "status_when_preset_guide_ready": "archetype_demo_only"
+    }
+  ],
+  "classification_semantics": {
+    "archetype_demo_only": "Explicit family or label archetype mapping to a packaged guide-ready preset; does not claim exact KG exercise measurement support.",
+    "filtered": "Exercise was removed by resolver or safety constraints before app projection.",
+    "guide_ready": "Exact KG exercise maps to a packaged preset with valid motion support.",
+    "recommend_only": "Exercise can appear as KG recommendation evidence but has no motion guide claim."
+  },
+  "classification_values": [
+    "guide_ready",
+    "archetype_demo_only",
+    "recommend_only",
+    "filtered"
+  ],
+  "generated_by": "scripts/motion_reference/audit_kg_motion_readiness.py",
+  "generated_missing_candidate_exercises": [],
+  "graphs": {
+    "generated": [
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:alternating_dumbbell_decline_bench_press",
+        "label": "Alternating Dumbbell Decline Bench Press",
+        "mapped_preset_id": "bodyweight_pushup",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:press_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:alternating_dumbbell_overhead_press",
+        "label": "Alternating Dumbbell Overhead Press",
+        "mapped_preset_id": "bodyweight_pushup",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:press_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:alternating_dumbbell_racked_crossback_lunge",
+        "label": "Alternating Dumbbell Racked Crossback Lunge",
+        "mapped_preset_id": "bodyweight_lunge",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:lunge_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:alternating_low_plank_to_low_side_plank",
+        "label": "Alternating Low Plank To Low Side Plank",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:anchored_band_rotational_lift",
+        "label": "Anchored Band Rotational Lift",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:band_assisted_chin_up_from_foot",
+        "label": "Band-Assisted Chin-Up (From Foot)",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:barbell_decline_bench_press",
+        "label": "Barbell Decline Bench Press",
+        "mapped_preset_id": "bodyweight_pushup",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:press_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:barbell_racked_forward_lunge",
+        "label": "Barbell Racked Forward Lunge",
+        "mapped_preset_id": "bodyweight_lunge",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:lunge_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:barbell_step_up_to_knee_drive",
+        "label": "Barbell Step Up to Knee-Drive",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:bench_lying_single_arm_dumbbell_tricep_extension",
+        "label": "Bench-Lying Single-Arm Dumbbell Tricep Extension",
+        "mapped_preset_id": "bench_lying_single_arm_dumbbell_tricep_extension",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "pending_licensed_reference_clip",
+          "synthetic_archetype_trace_not_guide_ready"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:bench_supported_incline_yti",
+        "label": "Bench-Supported Incline YTI",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:bodyweight_pike",
+        "label": "Bodyweight Pike",
+        "mapped_preset_id": "bodyweight_pike",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:bosu_step_over",
+        "label": "BOSU Step Over",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:cow_pose",
+        "label": "Cow Pose",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:dumbbell_goblet_split_squat",
+        "label": "Dumbbell Goblet Split Squat",
+        "mapped_preset_id": "bodyweight_lunge",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:lunge_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:dumbbell_incline_chest_fly",
+        "label": "Dumbbell Incline Chest Fly",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:dumbbell_neutral_grip_bench_press",
+        "label": "Dumbbell Neutral-Grip Bench Press",
+        "mapped_preset_id": "bodyweight_pushup",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:press_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:ground_upper_trap_stretch",
+        "label": "Ground Upper Trap Stretch",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:high_plank_bird_dog",
+        "label": "High Plank Bird Dog",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:horizontal_leg_press_calf_raises",
+        "label": "Horizontal Leg Press Calf Raises",
+        "mapped_preset_id": "bodyweight_pushup",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:press_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:isometric_pull_up",
+        "label": "Isometric Pull-Up",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:jump_rope_single_leg",
+        "label": "Jump Rope - Single-Leg",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "quarantined",
+        "kg_id": "Exercise:jumping_jack",
+        "label": "Jumping Jack",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "user_rejected_app_visible_motion",
+          "pending_clean_licensed_reference_clip"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:kettlebell_goblet_cyclist_squat",
+        "label": "Kettlebell Goblet Cyclist Squat",
+        "mapped_preset_id": "bodyweight_squat",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:squat_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:kneeling_stability_ball_lat_stretch",
+        "label": "Kneeling Stability Ball Lat Stretch",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:lacrosse_ball_upper_back_against_wall",
+        "label": "Lacrosse Ball Upper Back against Wall",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:low_copenhagen_plank",
+        "label": "Low Copenhagen Plank",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:machine_chest_supported_row",
+        "label": "Machine - Chest-Supported Row",
+        "mapped_preset_id": "machine_chest_supported_row",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "pending_source_license_review",
+          "external_commons_license_review_needed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:machine_single_arm_lat_pull_down",
+        "label": "Machine - Single-Arm Lat Pull-Down",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:med_ball_hamstring_walkout",
+        "label": "Med Ball Hamstring Walkout",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:med_ball_scoop_toss",
+        "label": "Med Ball Scoop Toss",
+        "mapped_preset_id": "bodyweight_squat",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:squat_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:med_ball_split_squat",
+        "label": "Med Ball Split Squat",
+        "mapped_preset_id": "bodyweight_lunge",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:lunge_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:one_kettlebell_hamstring_walkout",
+        "label": "One-Kettlebell Hamstring Walkout",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:push_up_to_knee_drive",
+        "label": "Push-Up to Knee-Drive",
+        "mapped_preset_id": "bodyweight_pushup",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:press_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:resistance_band_reverse_curl",
+        "label": "Resistance Band Reverse Curl",
+        "mapped_preset_id": "resistance_band_reverse_curl",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "pending_licensed_reference_clip",
+          "synthetic_archetype_trace_not_guide_ready"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:rnt_split_squat",
+        "label": "RNT Split Squat",
+        "mapped_preset_id": "bodyweight_lunge",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:lunge_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "archetype_motion_incomplete",
+        "kg_id": "Exercise:sandbag_zercher_carry",
+        "label": "Sandbag Zercher Carry",
+        "mapped_preset_id": "bodyweight_plank",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:core_family",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "guide_ready",
+        "kg_id": "Exercise:single_arm_cable_tricep_extension",
+        "label": "Single-Arm Cable Tricep Extension",
+        "mapped_preset_id": "single_arm_cable_tricep_extension",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "exact_packaged_preset_motion_support",
+        "reasons": [],
+        "status": "guide_ready"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:single_arm_chest_supported_incline_row",
+        "label": "Single-Arm Chest-Supported Incline Row",
+        "mapped_preset_id": "single_arm_chest_supported_incline_row",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "pending_licensed_reference_clip",
+          "synthetic_archetype_trace_not_guide_ready"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:single_arm_dumbbell_preacher_curl",
+        "label": "Single-Arm Dumbbell Preacher Curl",
+        "mapped_preset_id": "single_arm_dumbbell_preacher_curl",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:skierg",
+        "label": "SkiErg",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:stair_climber",
+        "label": "Stair Climber",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:standing_miniband_hip_flexion",
+        "label": "Standing Miniband Hip Flexion",
+        "mapped_preset_id": "standing_miniband_hip_flexion",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "pending_licensed_reference_clip",
+          "synthetic_archetype_trace_not_guide_ready"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:standing_neck_circles",
+        "label": "Standing Neck Circles",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:static_jump",
+        "label": "Static Jump",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:suspension_tricep_press",
+        "label": "Suspension Tricep Press",
+        "mapped_preset_id": "suspension_tricep_press",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "visual_rig_review_failed",
+          "source_extraction_candidate_only",
+          "blocked_visual_rig_review_failed"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "archetype_demo_only",
+        "kg_id": "Exercise:vertical_jump_to_broad_jump",
+        "label": "Vertical Jump to Broad Jump",
+        "mapped_preset_id": "bodyweight_squat",
+        "mapping_kind": "family_archetype",
+        "mapping_source": "ExerciseFamily:squat_family",
+        "measurement_support": "packaged_preset_archetype_demo_only",
+        "reasons": [
+          "uses_packaged_preset_demo_as_archetype",
+          "exact_kg_exercise_measurement_not_supported"
+        ],
+        "status": "archetype_demo_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:walking_toe_touches",
+        "label": "Walking Toe Touches",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "exact_motion_incomplete",
+        "kg_id": "Exercise:wide_grip_preacher_curl_with_ez_bar",
+        "label": "Wide-Grip Preacher Curl with EZ Bar",
+        "mapped_preset_id": "wide_grip_preacher_curl_with_ez_bar",
+        "mapping_kind": "exact_id",
+        "mapping_source": "kg_id",
+        "measurement_support": "none",
+        "reasons": [
+          "pending_licensed_reference_clip",
+          "synthetic_archetype_trace_not_guide_ready"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:world_s_greatest_stretch",
+        "label": "World's Greatest Stretch",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      }
+    ],
+    "shipped": [
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:barbell_back_squat",
+        "label": "Barbell Back Squat",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:barbell_bench_press",
+        "label": "Barbell Bench Press",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:dumbbell_floor_press",
+        "label": "Dumbbell Floor Press",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:glute_bridge",
+        "label": "Glute Bridge",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:goblet_squat",
+        "label": "Goblet Squat",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:jump_squat",
+        "label": "Jump Squat",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      },
+      {
+        "audit_status": "recommend_only",
+        "kg_id": "Exercise:kettlebell_deadlift",
+        "label": "Kettlebell Deadlift",
+        "mapped_preset_id": null,
+        "mapping_kind": null,
+        "mapping_source": null,
+        "measurement_support": "none",
+        "reasons": [
+          "no_app_preset_mapping"
+        ],
+        "status": "recommend_only"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "summary": {
+    "generated": {
+      "archetype_demo_only": 14,
+      "guide_ready": 1,
+      "kg_exercises": 50,
+      "mapped_incomplete": 18,
+      "recommend_only": 35
+    },
+    "shipped": {
+      "archetype_demo_only": 0,
+      "guide_ready": 0,
+      "kg_exercises": 7,
+      "mapped_incomplete": 0,
+      "recommend_only": 7
+    }
+  }
+}

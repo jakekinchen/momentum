@@ -21,7 +21,9 @@ public struct SafetyEngine {
     private func stressHitsRestriction(_ stressTarget: String, _ restrictionID: String) throws -> [String]? {
         if stressTarget == restrictionID { return [] }
         let path = try graph.partOfPath(from: stressTarget, to: restrictionID)
-        return path.isEmpty ? nil : path
+        if !path.isEmpty { return path }
+        let reversePath = try graph.partOfPath(from: restrictionID, to: stressTarget)
+        return reversePath.isEmpty ? nil : reversePath
     }
 
     // _restriction_applies_to_rule: restriction is, or is PART_OF, one of the rule's concepts.
@@ -96,8 +98,8 @@ public struct SafetyEngine {
         return DecisionReceipt(
             exerciseID: exerciseID, decision: decision, primarySeverity: severity,
             reasonCodes: reasonCodes, primaryReasonCode: primaryReason, graphPaths: graphPaths,
-            constraintFingerprint: fingerprint, graphVersion: KGVersion.graphVersion,
-            rulesetVersion: KGVersion.rulesetVersion, ontologyLockVersion: KGVersion.ontologyLockVersion)
+            constraintFingerprint: fingerprint, graphVersion: graph.graphVersion,
+            rulesetVersion: graph.rulesetVersion, ontologyLockVersion: graph.ontologyLockVersion)
     }
 
     /// Port of evaluate_candidates. When candidateIDs is nil, evaluate all Exercise nodes sorted by id.

@@ -22,6 +22,9 @@ struct RoutinePresentationSummary: Equatable {
 
     var compactDetailText: String {
         let base = "\(exerciseCountText) · \(durationText)"
+        if isRunnable, availabilityText != nil {
+            return "\(base) · Guided subset"
+        }
         guard !isRunnable else { return base }
         return "\(base) · Unavailable"
     }
@@ -52,6 +55,17 @@ enum RoutinePresentation {
                 availabilityText: nil
             )
         } catch {
+            if let guidedRoutine = compilerGatedGuidedRoutine(for: routine, compiler: compiler),
+               let executable = try? compiler.compile(guidedRoutine) {
+                let unavailableCount = max(0, routine.blocks.count - guidedRoutine.blocks.count)
+                return RoutinePresentationSummary(
+                    exerciseCount: routine.blocks.count,
+                    setCount: routine.blocks.reduce(0) { $0 + max(0, $1.sets) },
+                    estimatedSeconds: fallbackEstimatedSeconds(for: routine) ?? estimatedSeconds(for: executable),
+                    isRunnable: true,
+                    availabilityText: unguidedAvailabilityText(count: unavailableCount)
+                )
+            }
             return RoutinePresentationSummary(
                 exerciseCount: routine.blocks.count,
                 setCount: routine.blocks.reduce(0) { $0 + max(0, $1.sets) },
@@ -59,6 +73,24 @@ enum RoutinePresentation {
                 isRunnable: false,
                 availabilityText: userFacingErrorText(String(describing: error))
             )
+        }
+    }
+
+    private static func compilerGatedGuidedRoutine(
+        for routine: WorkoutRoutine,
+        compiler: RoutineCompiler
+    ) -> WorkoutRoutine? {
+        routine.guidedOnly { block in
+            guard block.isGuideAvailable else { return false }
+            let single = WorkoutRoutine(
+                schemaVersion: routine.schemaVersion,
+                artifactType: routine.artifactType,
+                id: "\(routine.id)-single-block",
+                name: routine.name,
+                description: routine.description,
+                blocks: [block]
+            )
+            return (try? compiler.compile(single)) != nil
         }
     }
 
@@ -142,6 +174,12 @@ enum RoutinePresentation {
             }
         }
         return hasAnyTarget ? total : nil
+    }
+
+    private static func unguidedAvailabilityText(count: Int) -> String? {
+        guard count > 0 else { return nil }
+        let noun = count == 1 ? "exercise has" : "exercises have"
+        return "\(count) \(noun) no guide yet; guided start will use the exercises with packaged motion data."
     }
 
     private static func fallbackTarget(for block: RoutineBlock) -> SetTarget? {

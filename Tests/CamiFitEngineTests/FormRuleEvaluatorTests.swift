@@ -11,24 +11,38 @@ final class FormRuleEvaluatorTests: XCTestCase {
         print("form-rules-preset ids=\(evaluator.ruleIDs.joined(separator: ","))")
     }
 
-    func testDepthRuleEmitsCueAtBottomWhenKneeIsTooHigh() throws {
+    func testDepthRuleEmitsCueWhenBottomEpisodeEndsShallow() throws {
         var evaluator = try Self.evaluator()
 
-        let snapshots = evaluator.update(
+        // Depth is an episode-extreme rule: a bottom phase that never reaches
+        // depth is judged once, when the episode ends.
+        let shallow = try XCTUnwrap(evaluator.update(
             timestampMS: 0,
             producedValues: ["knee": .valid(100, confidence: 1)],
             phase: .bottom
+        ).first { $0.ruleID == "depth" })
+        _ = evaluator.update(
+            timestampMS: 400,
+            producedValues: ["knee": .valid(100, confidence: 1)],
+            phase: .bottom
         )
-        let depth = try XCTUnwrap(snapshots.first { $0.ruleID == "depth" })
+        let verdict = try XCTUnwrap(evaluator.update(
+            timestampMS: 800,
+            producedValues: ["knee": .valid(165, confidence: 1)],
+            phase: .ascending
+        ).first { $0.ruleID == "depth" })
 
-        XCTAssertTrue(depth.isActive)
-        XCTAssertEqual(depth.expectationPassed, false)
-        XCTAssertEqual(depth.cue, "Go deeper")
-        XCTAssertEqual(depth.severity, .warn)
-        XCTAssertEqual(depth.violationDurationMS, 0)
-        XCTAssertNil(depth.invalidReason)
+        XCTAssertTrue(shallow.isActive)
+        XCTAssertNil(shallow.expectationPassed, "mid-episode shallow frames are pending, not failing")
+        XCTAssertNil(shallow.cue)
+        XCTAssertTrue(verdict.isActive)
+        XCTAssertEqual(verdict.expectationPassed, false)
+        XCTAssertEqual(verdict.cue, "Go deeper")
+        XCTAssertEqual(verdict.severity, .warn)
+        XCTAssertEqual(verdict.violationDurationMS, 800)
+        XCTAssertNil(verdict.invalidReason)
 
-        print("form-rule-depth-fail \(depth)")
+        print("form-rule-depth-fail \(verdict)")
     }
 
     func testTorsoRuleCuesOnlyAfterMinViolationDuration() throws {

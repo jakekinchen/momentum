@@ -276,6 +276,20 @@ public struct HoldConfig: Codable, Equatable {
     }
 }
 
+/// How a form rule's expectation is judged while its `when` condition is active.
+///
+/// `instant` evaluates every frame — right for "maintain" expectations (keep the
+/// torso tall, keep symmetry). `extreme` judges reach expectations ("get the knee
+/// to depth", "finish the extension") once per active episode: the expectation
+/// passes if it was satisfied at any frame of the episode, and a single verdict
+/// is emitted when the episode ends. Instant evaluation of reach expectations is
+/// structurally wrong because the `bottom` phase spans the ascent back to the up
+/// gate, so every rep would violate while standing back up.
+public enum FormRuleEvaluation: String, ProgramStringEnum {
+    case instant
+    case extreme
+}
+
 public struct FormRule: Codable, Equatable {
     public let id: String
     public let when: String
@@ -285,6 +299,7 @@ public struct FormRule: Codable, Equatable {
     public let severity: RuleSeverity
     public let scoreWeight: Double
     public let cooldownMS: Int
+    public let evaluation: FormRuleEvaluation
 
     public init(
         id: String,
@@ -294,7 +309,8 @@ public struct FormRule: Codable, Equatable {
         cue: String,
         severity: RuleSeverity,
         scoreWeight: Double,
-        cooldownMS: Int
+        cooldownMS: Int,
+        evaluation: FormRuleEvaluation = .instant
     ) {
         self.id = id
         self.when = when
@@ -304,6 +320,20 @@ public struct FormRule: Codable, Equatable {
         self.severity = severity
         self.scoreWeight = scoreWeight
         self.cooldownMS = cooldownMS
+        self.evaluation = evaluation
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        when = try container.decode(String.self, forKey: .when)
+        expect = try container.decode(String.self, forKey: .expect)
+        minViolationMS = try container.decode(Int.self, forKey: .minViolationMS)
+        cue = try container.decode(String.self, forKey: .cue)
+        severity = try container.decode(RuleSeverity.self, forKey: .severity)
+        scoreWeight = try container.decode(Double.self, forKey: .scoreWeight)
+        cooldownMS = try container.decode(Int.self, forKey: .cooldownMS)
+        evaluation = try container.decodeIfPresent(FormRuleEvaluation.self, forKey: .evaluation) ?? .instant
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -315,6 +345,7 @@ public struct FormRule: Codable, Equatable {
         case severity
         case scoreWeight = "score_weight"
         case cooldownMS = "cooldown_ms"
+        case evaluation
     }
 }
 

@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import CamiFitEngine
 import Combine
 import Foundation
@@ -7,6 +8,13 @@ import SwiftUI
 struct LiveWorkerPythonCommand: Equatable {
     let executableURL: URL
     let argumentsPrefix: [String]
+    let invokesScript: Bool
+
+    init(executableURL: URL, argumentsPrefix: [String], invokesScript: Bool = true) {
+        self.executableURL = executableURL
+        self.argumentsPrefix = argumentsPrefix
+        self.invokesScript = invokesScript
+    }
 
     var displayName: String {
         ([executableURL.path] + argumentsPrefix).joined(separator: " ")
@@ -16,14 +24,47 @@ struct LiveWorkerPythonCommand: Equatable {
 enum LiveWorkerPaths {
     static func resolve(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        bundleURL: URL = Bundle.main.bundleURL,
+        resourceURL: URL? = Bundle.main.resourceURL
     ) -> (python: LiveWorkerPythonCommand, script: URL, model: URL) {
         func expand(_ path: String) -> URL {
             URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
         }
-        let repo = environment["CAMIFIT_REPO_ROOT"].map(expand) ?? defaultRepoRoot()
+        if let configuredRepo = environment["CAMIFIT_REPO_ROOT"].map(expand) {
+            return workerPaths(
+                repo: configuredRepo,
+                python: resolvePython(environment: environment, repo: configuredRepo, fileManager: fileManager)
+            )
+        }
+
+        if let resourceURL,
+           let packagedHelper = packagedWorkerExecutable(
+               bundleURL: bundleURL,
+               resourceURL: resourceURL,
+               fileManager: fileManager
+           ) {
+            return (
+                LiveWorkerPythonCommand(executableURL: packagedHelper, argumentsPrefix: [], invokesScript: false),
+                packagedHelper,
+                resourceURL.appendingPathComponent("pose_worker/models/pose_landmarker_lite.task")
+            )
+        }
+
+        let repo = defaultRepoRoot(fileManager: fileManager, bundleURL: bundleURL, resourceURL: resourceURL)
+        let pythonRepo = packagedRepoRoot(resourceURL: resourceURL) ?? repo
+        return workerPaths(
+            repo: repo,
+            python: resolvePython(environment: environment, repo: pythonRepo, fileManager: fileManager)
+        )
+    }
+
+    private static func workerPaths(
+        repo: URL,
+        python: LiveWorkerPythonCommand
+    ) -> (python: LiveWorkerPythonCommand, script: URL, model: URL) {
         return (
-            resolvePython(environment: environment, repo: repo, fileManager: fileManager),
+            python,
             repo.appendingPathComponent("pose_worker/pose_worker.py"),
             repo.appendingPathComponent("pose_worker/models/pose_landmarker_lite.task")
         )
@@ -58,12 +99,88 @@ enum LiveWorkerPaths {
         ]
     }
 
-    private static func defaultRepoRoot() -> URL {
-        let bundleURL = Bundle.main.bundleURL
+    private static func defaultRepoRoot(
+        fileManager: FileManager,
+        bundleURL: URL,
+        resourceURL: URL?
+    ) -> URL {
+        for candidate in repoRootCandidates(fileManager: fileManager, bundleURL: bundleURL, resourceURL: resourceURL) {
+            if fileManager.fileExists(atPath: candidate.appendingPathComponent("pose_worker/pose_worker.py").path) {
+                return candidate
+            }
+        }
+
         if bundleURL.pathExtension == "app" {
-            return bundleURL.deletingLastPathComponent().deletingLastPathComponent()
+            if let resourceURL {
+                return resourceURL
+            }
+
+            let packagedRoot = bundleURL.deletingLastPathComponent().deletingLastPathComponent()
+            if packagedRoot.path != "/" {
+                return packagedRoot
+            }
         }
         return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    }
+
+    private static func repoRootCandidates(
+        fileManager: FileManager,
+        bundleURL: URL,
+        resourceURL: URL?
+    ) -> [URL] {
+        var candidates: [URL] = []
+
+        if let resourceURL {
+            candidates.append(resourceURL)
+        }
+
+        if let markerRoot = packagedRepoRoot(resourceURL: resourceURL) {
+            candidates.append(markerRoot)
+        }
+
+        if bundleURL.pathExtension == "app" {
+            candidates.append(bundleURL.deletingLastPathComponent().deletingLastPathComponent())
+        }
+
+        if bundleURL.pathExtension != "app" {
+            let currentDirectory = URL(fileURLWithPath: fileManager.currentDirectoryPath)
+            candidates.append(currentDirectory)
+        }
+
+        var seen = Set<String>()
+        return candidates.filter { candidate in
+            let path = candidate.standardizedFileURL.path
+            guard !seen.contains(path) else { return false }
+            seen.insert(path)
+            return true
+        }
+    }
+
+    private static func packagedRepoRoot(resourceURL: URL?) -> URL? {
+        guard let markerURL = resourceURL?.appendingPathComponent("CamiFitRepoRoot.txt"),
+              let text = try? String(contentsOf: markerURL, encoding: .utf8)
+        else {
+            return nil
+        }
+
+        let path = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !path.isEmpty else { return nil }
+        return URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+    }
+
+    // The helper must be looked up under the injected resource root, not re-derived
+    // from bundleURL, so tests can fully sandbox resolution with fixture directories.
+    private static func packagedWorkerExecutable(
+        bundleURL: URL,
+        resourceURL: URL,
+        fileManager: FileManager
+    ) -> URL? {
+        guard bundleURL.pathExtension == "app" else { return nil }
+        let helper = resourceURL
+            .appendingPathComponent("camifit-pose-worker", isDirectory: true)
+            .appendingPathComponent("camifit-pose-worker")
+        guard fileManager.isExecutableFile(atPath: helper.path) else { return nil }
+        return helper
     }
 
     private static func pythonCommand(for configured: String) -> LiveWorkerPythonCommand {
@@ -90,6 +207,8 @@ enum LiveWorkerPaths {
 /// Owns the live pipeline: camera → persistent pose worker → engine. Kept as an ObservableObject
 /// so the camera frame callback captures a stable reference (not a SwiftUI value-type View).
 final class LiveSession: ObservableObject {
+    private static let cameraPermissionDeniedMessage = "Camera permission is unavailable. If Momentum is already enabled in System Settings > Privacy & Security > Camera, quit and reopen Momentum so macOS refreshes camera access."
+
     @Published var running = false
     @Published var isLiveCamera = false
     @Published var errorText: String?
@@ -99,10 +218,10 @@ final class LiveSession: ObservableObject {
     @Published var selectedCameraID: String?
     @Published var poseReadiness: PosePipelineReadiness = .idle
     @Published var cameraSettingsPromptID: UUID?
-    let recordDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Developer/camifit/dist/capture")
+    let recordDir = LiveSession.defaultRecordDirectory()
 
     let camera = LiveCameraController()
-    private var worker: LivePoseWorkerClient?
+    private var worker: (any LivePoseBackend)?
     private weak var viewModel: AppExerciseSessionViewModel?
     private var onPoseFrame: ((PoseFrame) -> Void)?
     private var cameraReadinessCancellable: AnyCancellable?
@@ -114,6 +233,23 @@ final class LiveSession: ObservableObject {
 
     var routesPoseFramesExternally: Bool {
         onPoseFrame != nil
+    }
+
+    var shouldRefreshCameraAccessAfterSettings: Bool {
+        running && isLiveCamera || camera.readiness == .denied
+    }
+
+    static func defaultRecordDirectory(fileManager: FileManager = .default) -> URL {
+        let applicationSupport = (try? fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )) ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
+
+        return applicationSupport
+            .appendingPathComponent("CamiFit", isDirectory: true)
+            .appendingPathComponent("Capture", isDirectory: true)
     }
 
     /// Renders the current overlay + HUD to a PNG via ImageRenderer (no screen-recording
@@ -195,27 +331,25 @@ final class LiveSession: ObservableObject {
     ) {
         self.viewModel = viewModel
         self.onPoseFrame = onPoseFrame
-        if viewModel.state.selectedExerciseID == nil, let first = viewModel.availablePresets.first {
+        if viewModel.state.selectedExerciseID == nil,
+           let first = viewModel.availablePresets.first(where: { $0.trackingReadiness == .guideReady }) ?? viewModel.availablePresets.first {
             try? viewModel.selectPreset(id: first.id)
         }
         viewModel.resetLiveSession()
 
-        let paths = LiveWorkerPaths.resolve()
-        let client = LivePoseWorkerClient(python: paths.python, scriptURL: paths.script, modelURL: paths.model)
+        let backend = LivePoseBackendFactory.make()
         poseReadiness = .workerStarting
         do {
-            try client.start()
+            try backend.start()
         } catch {
-            errorText = [
-                "Pose worker failed to start: \(error.localizedDescription)",
-                "Python: \(paths.python.displayName)",
-                "Worker: \(paths.script.path)",
-                "Model: \(paths.model.path)"
-            ].joined(separator: "\n")
-            poseReadiness = .failed(errorText ?? "Pose worker failed")
+            errorText = ([
+                "Pose backend failed to start: \(error.localizedDescription)",
+                "Backend: \(backend.displayName)"
+            ] + backend.startFailureDiagnostics).joined(separator: "\n")
+            poseReadiness = .failed(errorText ?? "Pose backend failed")
             return
         }
-        worker = client
+        worker = backend
         errorText = nil
 
         camera.onFrame = { [weak self] path, timestampMS, size in
@@ -255,6 +389,38 @@ final class LiveSession: ObservableObject {
         availableCameras = LiveCameraController.discoverCameras()
     }
 
+    func requestCameraPermissionOnLaunch() {
+        camera.requestPermissionIfNeeded()
+    }
+
+    func refreshCameraAccessAfterSettings() {
+        refreshCameras()
+
+        switch camera.authorizationStatus {
+        case .authorized:
+            errorText = nil
+            if running, isLiveCamera, !camera.readiness.isStreaming {
+                poseReadiness = .camera(.starting)
+                camera.start()
+            } else {
+                camera.refreshAuthorizationStatus()
+            }
+        case .notDetermined:
+            camera.requestPermissionIfNeeded()
+        case .denied, .restricted:
+            camera.refreshAuthorizationStatus()
+            errorText = Self.cameraPermissionDeniedMessage
+            if running, isLiveCamera {
+                poseReadiness = .camera(.denied)
+            }
+        @unknown default:
+            errorText = "Camera unavailable"
+            if running, isLiveCamera {
+                poseReadiness = .failed("Camera unavailable")
+            }
+        }
+    }
+
     func requestCameraSettingsIfNoCameras() {
         refreshCameras()
         guard availableCameras.isEmpty else { return }
@@ -292,6 +458,11 @@ final class LiveSession: ObservableObject {
 
     private func handleCameraReadiness(_ readiness: CameraReadiness) {
         switch readiness {
+        case .denied:
+            errorText = Self.cameraPermissionDeniedMessage
+            if running, isLiveCamera {
+                poseReadiness = .camera(readiness)
+            }
         case .noDevice:
             errorText = nil
             refreshCameras()
@@ -299,7 +470,13 @@ final class LiveSession: ObservableObject {
             if running, isLiveCamera {
                 poseReadiness = .camera(readiness)
             }
+        case let .failed(message):
+            errorText = message
+            if running, isLiveCamera {
+                poseReadiness = .camera(readiness)
+            }
         case .streaming:
+            errorText = nil
             if running, isLiveCamera, poseReadiness != .ready {
                 poseReadiness = .waitingForFirstPose
             }
@@ -321,7 +498,7 @@ struct SyntheticDemoView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Future Coach - Synthetic Demo").font(.headline)
+                Text("\(ProductBrand.fullName) - Synthetic Demo").font(.headline)
                 Spacer()
                 Text("synthetic squat trace").font(.caption).foregroundStyle(.secondary)
             }
@@ -420,31 +597,72 @@ struct CamiFitFrameSnapshot: View {
 
 /// Pose overlay that maps normalized landmarks through the SAME resizeAspectFill transform the
 /// camera preview uses, so the skeleton aligns with the body on screen (not stretched to the view).
+enum LivePoseOverlayGeometryMapper {
+    static func map(
+        point: AppPoseOverlayState.Point,
+        viewportSize: CGSize,
+        sourceSize: CGSize,
+        mirrored: Bool
+    ) -> CGPoint {
+        let viewportWidth = Double(viewportSize.width)
+        let viewportHeight = Double(viewportSize.height)
+        let sourceWidth = sourceSize.width > 0 ? Double(sourceSize.width) : viewportWidth
+        let sourceHeight = sourceSize.height > 0 ? Double(sourceSize.height) : viewportHeight
+        let scale = max(viewportWidth / sourceWidth, viewportHeight / sourceHeight)
+        let drawWidth = sourceWidth * scale
+        let drawHeight = sourceHeight * scale
+        let offsetX = (viewportWidth - drawWidth) / 2
+        let offsetY = (viewportHeight - drawHeight) / 2
+        let rawX = point.x * drawWidth + offsetX
+        let x = mirrored ? viewportWidth - rawX : rawX
+
+        return CGPoint(
+            x: x,
+            y: point.y * drawHeight + offsetY
+        )
+    }
+}
+
 struct LivePoseOverlay: View {
     let state: AppPoseOverlayState
     let sourceSize: CGSize
+    var mirrored = false
 
     var body: some View {
         GeometryReader { proxy in
-            let vw = proxy.size.width, vh = proxy.size.height
-            let sw = sourceSize.width > 0 ? sourceSize.width : vw
-            let sh = sourceSize.height > 0 ? sourceSize.height : vh
-            let scale = max(vw / sw, vh / sh)          // aspect-fill: cover the view
-            let dw = sw * scale, dh = sh * scale
-            let ox = (vw - dw) / 2, oy = (vh - dh) / 2  // centered crop, matches AVLayerVideoGravity.resizeAspectFill
             let byID = Dictionary(uniqueKeysWithValues: state.points.map { ($0.id, $0) })
             Canvas { ctx, _ in
                 for seg in state.segments {
                     guard let a = byID[seg.fromID], let b = byID[seg.toID] else { continue }
+                    let from = LivePoseOverlayGeometryMapper.map(
+                        point: a,
+                        viewportSize: proxy.size,
+                        sourceSize: sourceSize,
+                        mirrored: mirrored
+                    )
+                    let to = LivePoseOverlayGeometryMapper.map(
+                        point: b,
+                        viewportSize: proxy.size,
+                        sourceSize: sourceSize,
+                        mirrored: mirrored
+                    )
                     var path = Path()
-                    path.move(to: CGPoint(x: a.x * dw + ox, y: a.y * dh + oy))
-                    path.addLine(to: CGPoint(x: b.x * dw + ox, y: b.y * dh + oy))
+                    path.move(to: from)
+                    path.addLine(to: to)
                     ctx.stroke(path, with: .color(.cyan), lineWidth: 3)
                 }
                 for p in state.points {
-                    let x = p.x * dw + ox, y = p.y * dh + oy
+                    let point = LivePoseOverlayGeometryMapper.map(
+                        point: p,
+                        viewportSize: proxy.size,
+                        sourceSize: sourceSize,
+                        mirrored: mirrored
+                    )
                     let r = 4.0 + p.confidence * 2.0
-                    ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(.yellow))
+                    ctx.fill(
+                        Path(ellipseIn: CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)),
+                        with: .color(.yellow)
+                    )
                 }
             }
         }

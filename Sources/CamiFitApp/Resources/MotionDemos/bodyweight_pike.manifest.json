@@ -1,0 +1,58 @@
+{
+  "exercise_id": "bodyweight_pike",
+  "source_kind": "licensed_external_reference_trace",
+  "source_label": "Pexels yoga flow in urban loft with natural light",
+  "source_page": "https://www.pexels.com/video/yoga-flow-in-urban-loft-with-natural-light-31794279/",
+  "source_media_url": "https://videos.pexels.com/video-files/31794279/13544679_2560_1440_24fps.mp4",
+  "source_video": "dist/motion-reference/bodyweight_pike/source_candidates/yoga-flow-in-urban-loft-with-natural-light-31794279.mp4",
+  "source_license": "Pexels License",
+  "source_attribution": "K / Pexels video 31794279",
+  "raw_trace": "dist/motion-reference/bodyweight_pike/pexels_pike_31794279_800_3200/raw_mediapipe.jsonl",
+  "output_trace": "dist/motion-reference/bodyweight_pike/pexels_pike_31794279_800_3200/bodyweight_pike.raw_preserved.jsonl",
+  "normalizer": "scripts/motion_reference/normalize_pike_trace.py",
+  "retarget": "raw_mediapipe_side_view_with_planted_contact_lock",
+  "cycle_mode": "descent-mirror",
+  "cycle_start_index": 3,
+  "cycle_bottom_index": 28,
+  "top_pad_frames": 4,
+  "primary_side": "right",
+  "anchor_landmarks": [
+    "primary.foot.index",
+    "primary.wrist"
+  ],
+  "fit_viewport": true,
+  "summary": {
+    "frames": 59,
+    "min_primary_pike_angle": 48.99,
+    "max_primary_pike_angle": 177.68,
+    "min_primary_knee_angle": 158.6,
+    "min_primary_elbow_angle": 167.21,
+    "max_primary_shoulder_stack_angle": 35.15
+  },
+  "qa_gates": [
+    "licensed_source_recorded",
+    "raw_pose_reviewed",
+    "high_plank_to_pike_source_segment",
+    "contact_locked",
+    "descent_mirrored_to_closed_cycle",
+    "knees_and_elbows_stay_long",
+    "visual_rig_review_failed",
+    "engine_replay_candidate_only"
+  ],
+  "viewer_command": "CAMIFIT_GUIDE_EXERCISE=bodyweight_pike CAMIFIT_ALLOW_FIXED_GUIDE_FRAME=1 CAMIFIT_GUIDE_FRAME_MS=2407 ./script/build_and_run.sh --verify # review-only; do not package JSONL until visual rig passes",
+  "acceptance_status": "blocked_visual_rig_review_failed",
+  "playable_trace_packaged": false,
+  "visual_review_failure": "2026-06-09 installed app fixed-frame review at 2407 ms showed detached head/neck and broken avatar rig at deepest pike frame.",
+  "candidate_status": "source_extraction_candidate_only",
+  "repair_plan": "Keep the Pexels source extraction under dist/ as a candidate; do not restore app MotionDemos/bodyweight_pike.jsonl until avatar rig/head-neck rendering is fixed and live app screenshots pass review.",
+  "rejected_candidates": [
+    {
+      "source_page": "https://www.pexels.com/video/yoga-flow-in-urban-loft-with-natural-light-31794279/",
+      "source_media_url": "https://videos.pexels.com/video-files/31794279/13544679_2560_1440_24fps.mp4",
+      "source_license": "Pexels License",
+      "source_attribution": "K / Pexels video 31794279",
+      "decision": "rejected - visual rig review failed",
+      "reason": "Installed-app fixed-frame review at 2407 ms showed detached head/neck and broken avatar rig at the deepest pike frame, so this source extraction remains repair-candidate-only and cannot be Trackable."
+    }
+  ]
+}

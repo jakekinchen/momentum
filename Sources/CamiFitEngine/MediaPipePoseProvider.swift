@@ -167,13 +167,56 @@ public enum MediaPipePoseJSONLDecoder {
         )
     }
 
-    private static func mappedLandmarks(_ rawLandmarks: [RawMediaPipeLandmark], lineNumber: Int) throws -> [String: PoseLandmark] {
+    /// Builds an engine `PoseFrame` from raw landmark values keyed by MediaPipe-style
+    /// names (`left_shoulder`, `right_knee`, …), applying the same dot-renaming and
+    /// primary-side locking as the live worker JSONL path. This is the shared entry
+    /// point for in-process pose backends (e.g. Apple Vision), so every backend
+    /// produces identical landmark naming. Returns nil when the frame is missing a
+    /// required joint on the locked side — the "no usable pose" case.
+    public static func livePoseFrame(
+        timestampMS: Int64,
+        imageWidth: Double,
+        imageHeight: Double,
+        landmarksByRawName: [String: PoseLandmark]
+    ) -> PoseFrame? {
+        guard let landmarks = sideLockedLandmarks(byRawName: landmarksByRawName) else {
+            return nil
+        }
+
+        return PoseFrame(
+            timestampMS: timestampMS,
+            imageWidth: imageWidth,
+            imageHeight: imageHeight,
+            landmarks: landmarks
+        )
+    }
+
+    private static func sideLockedLandmarks(byRawName: [String: PoseLandmark]) -> [String: PoseLandmark]? {
         var mapped: [String: PoseLandmark] = [:]
+        mapped.reserveCapacity(byRawName.count + requiredPrimaryJoints.count)
+
+        for (rawName, landmark) in byRawName {
+            mapped[rawName.replacingOccurrences(of: "_", with: ".")] = landmark
+        }
+
+        let primarySide = strongestSide(in: mapped)
+        for joint in requiredPrimaryJoints {
+            guard let landmark = mapped["\(primarySide).\(joint)"] else {
+                return nil
+            }
+            mapped["primary.\(joint)"] = landmark
+        }
+
+        return mapped
+    }
+
+    private static func mappedLandmarks(_ rawLandmarks: [RawMediaPipeLandmark], lineNumber: Int) throws -> [String: PoseLandmark] {
+        var byRawName: [String: PoseLandmark] = [:]
+        byRawName.reserveCapacity(landmarkNames.count)
 
         for (index, name) in landmarkNames.enumerated() {
             let raw = rawLandmarks[index]
-            let engineName = name.replacingOccurrences(of: "_", with: ".")
-            mapped[engineName] = PoseLandmark(
+            byRawName[name] = PoseLandmark(
                 x: raw.x,
                 y: raw.y,
                 z: raw.z,
@@ -182,12 +225,8 @@ public enum MediaPipePoseJSONLDecoder {
             )
         }
 
-        let primarySide = strongestSide(in: mapped)
-        for joint in requiredPrimaryJoints {
-            guard let landmark = mapped["\(primarySide).\(joint)"] else {
-                throw MediaPipePoseDecodeError.invalidLine(lineNumber, "missing required \(primarySide).\(joint) landmark")
-            }
-            mapped["primary.\(joint)"] = landmark
+        guard let mapped = sideLockedLandmarks(byRawName: byRawName) else {
+            throw MediaPipePoseDecodeError.invalidLine(lineNumber, "missing required primary joint landmark")
         }
 
         return mapped

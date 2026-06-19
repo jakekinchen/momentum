@@ -73,12 +73,13 @@
     {
       "id": "depth",
       "when": "phase == 'bottom'",
-      "expect": "elbow <= 95",
-      "min_violation_ms": 0,
+      "expect": "elbow <= 90",
+      "min_violation_ms": 250,
       "cue": "Lower your chest",
       "severity": "warn",
       "score_weight": 10,
-      "cooldown_ms": 1500
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
     },
     {
       "id": "body_line",

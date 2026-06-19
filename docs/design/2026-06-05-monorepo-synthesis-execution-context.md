@@ -11,7 +11,7 @@ I have a fully verified critic punch-list and the source analyses. The draft is 
 > 4. **KGKit = 10 Swift source files** (`ls Sources/KGKit/*.swift`) + `README.md` + `Resources/Artifact/kg_artifact.v0.json` + `.gitkeep`. The "12"/"14 source files" figures in some analyses miscount README/resources/`.gitkeep` as sources. **KGKitTests = 12 Swift test files** + 1 conformance fixture (`Fixtures/conformance/safety_vectors.json`, which is data, not a suite).
 > 5. **`fitgraph` HEAD is `2597993`, working tree CLEAN, no git remote.** Older analyses report `87395dc` + a dirty tree ("10 changed files"); that in-flight test work is already committed in `2597993` and the tree is now clean (`git status --porcelain` empty). The "commit in-flight work first" step is therefore a no-op (keep it as a `git status` assertion only).
 > 6. **`feat/chat-regimen` is fully pushed** to `origin/feat/chat-regimen` (`20 0` — 20 ahead of origin/main, 0 behind its own remote). The REQS+GIT source's "20 unpushed commits" is stale; do not re-derive that conclusion.
-> 7. The doc `docs/design/2026-06-04-three-repo-kg-camifit-synthesis-plan.md` named in some prompts **does not exist on disk**; the canonical synthesis doc is `docs/design/2026-06-04-camifit-fitgraph-synthesis.md`.
+> 7. The doc `docs/design/2026-06-04-three-repo-kg-camifit-synthesis-plan.md` named in some prompts **does not exist on disk**; the canonical synthesis doc is `docs/design/2026-06-04-momentum-fitgraph-synthesis.md`.
 
 ---
 
@@ -32,7 +32,7 @@ This document lets a fresh agent (no prior context) execute the **full monorepo 
 5. The cross-language **conformance-parity gate is green**: the Swift KGKit runtime reproduces the Python oracle's receipts byte-for-byte, including the `sha256[:16]` `constraint_fingerprint`.
 6. CI gate set is wired (`kg-python`, `kg-validation`, `artifact-build`, `swift-test`, `conformance-parity`, `contracts-compat`).
 
-**Audience:** an autonomous coding agent doing the physical merge + CI wiring. This is NOT the architecture spec (that is `docs/design/2026-06-04-camifit-fitgraph-synthesis.md`, §1–§11) — this is the executable hand-off.
+**Audience:** an autonomous coding agent doing the physical merge + CI wiring. This is NOT the architecture spec (that is `docs/design/2026-06-04-momentum-fitgraph-synthesis.md`, §1–§11) — this is the executable hand-off.
 
 ---
 
@@ -65,7 +65,7 @@ This document lets a fresh agent (no prior context) execute the **full monorepo 
 - **`Sources/CamiFitApp/` (23 files):** SwiftUI shell, live camera/pose overlay, `AppExerciseSessionViewModel`, `CodexAppServerClient` (the coach), and `Regimen/` plumbing (parser/store/cards/routines). **All present on BOTH branches (shared from `9b8b8cc`)** — only the gate flag + guard test inside `CodexAppServerClient.swift`/Tests differ (see §4).
 - **`Sources/KGKit/` — 10 Swift source files + README + frozen artifact + `.gitkeep`:** the safety-core Swift port. Swift files: `Version.swift`, `GraphModel.swift`, `GraphArtifact.swift`, `ArtifactLoader.swift`, `LocalGraph.swift`, `SafetyRule.swift`, `ResolvedConstraint.swift`, `DecisionReceipt.swift`, `CanonicalJSON.swift`, `SafetyEngine.swift` (= **10**). Non-Swift tracked files: `README.md`, `Resources/Artifact/.gitkeep`, `Resources/Artifact/kg_artifact.v0.json`. The artifact header: `graph_version=fitgraph-kg-m5-validation-v0`, `ruleset_version=ruleset-m2-safety-v0`, `ontology_lock_version=ontology-lock-m0-unverified`, **28 nodes / 39 edges / 3 safety_rules** (frozen copy of the hand-curated seed).
 - **`Tests/KGKitTests/` — 12 test suites + 1 conformance fixture:** suites `ConformanceTests`, `CanonicalFingerprintTests`, `MedicalReasonsTests`, `EquipmentAndExclusionReasonsTests`, `EvaluateCandidatesTests`, `SeverityLatticeTests`, `PartOfTraversalTests`, `LocalGraphTests`, `GraphArtifactDecodeTests`, `GraphModelTests`, `NodeIDTests`, `ModuleSmokeTests` (= **12 `.swift` files**); plus the data fixture `Fixtures/conformance/safety_vectors.json` (NOT a suite) and `Fixtures/.gitkeep`.
-- **Cross-repo bridge files (already in camifit):** oracle/freezer `scripts/gen_kg_conformance_vectors.py` (imports live Python `kg/` via `FITGRAPH=` env, freezes seed→Swift artifact, emits golden vectors), CI gate `Tests/KGKitTests/ConformanceTests.swift`, canonical plan `docs/design/2026-06-04-camifit-fitgraph-synthesis.md`, KGKit plan `docs/superpowers/plans/2026-06-04-swift-kgkit-safety-core.md`.
+- **Cross-repo bridge files (already in camifit):** oracle/freezer `scripts/gen_kg_conformance_vectors.py` (imports live Python `kg/` via `FITGRAPH=` env, freezes seed→Swift artifact, emits golden vectors), CI gate `Tests/KGKitTests/ConformanceTests.swift`, canonical plan `docs/design/2026-06-04-momentum-fitgraph-synthesis.md`, KGKit plan `docs/superpowers/plans/2026-06-04-swift-kgkit-safety-core.md`.
 
 ---
 
@@ -327,7 +327,7 @@ The Python `kg/` oracle is canonical truth; the Swift `kgkit/` port must reprodu
 ---
 
 ### Key absolute paths
-- Canonical synthesis spec: `/Users/kelly/Developer/camifit/docs/design/2026-06-04-camifit-fitgraph-synthesis.md`
+- Canonical synthesis spec: `/Users/kelly/Developer/camifit/docs/design/2026-06-04-momentum-fitgraph-synthesis.md`
 - KGKit plan (NOTE: likely still states the wrong "25/28" artifact counts — correct to 28/39/3): `/Users/kelly/Developer/camifit/docs/superpowers/plans/2026-06-04-swift-kgkit-safety-core.md`
 - Swift safety core: `/Users/kelly/Developer/camifit/Sources/KGKit/` (10 Swift source files + README + frozen artifact + `.gitkeep`)
 - Frozen artifact: `/Users/kelly/Developer/camifit/Sources/KGKit/Resources/Artifact/kg_artifact.v0.json` (28 nodes / 39 edges / 3 rules)

@@ -7,9 +7,24 @@ public struct AppPresetSummary: Equatable, Identifiable {
         case hold
     }
 
+    public enum TrackingReadiness: String, Equatable {
+        case guideReady = "guide_ready"
+        case referenceCaptureRequired = "reference_capture_required"
+
+        public var displayText: String {
+            switch self {
+            case .guideReady:
+                return "Guide ready"
+            case .referenceCaptureRequired:
+                return "Needs reference clip"
+            }
+        }
+    }
+
     public let id: String
     public let name: String
     public let kind: ExerciseKind
+    public let trackingReadiness: TrackingReadiness
     public let url: URL
 }
 
@@ -35,8 +50,10 @@ public struct AppExerciseSessionState: Equatable {
 
 public enum AppExerciseSessionError: Error, Equatable {
     case presetNotFound(String)
+    case presetRequiresReferenceCapture(String)
     case routineBlockOutOfRange(Int)
     case invalidInlineExercise(String)
+    case unguidedCatalogExercise(String)
 }
 
 public enum RoutineSessionPhase: Equatable {
@@ -83,6 +100,7 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     @Published public private(set) var mockWorkerPreflightStatus: AppMockWorkerPreflightStatus = .idle
     @Published public private(set) var latestHUDState: AppHUDState?
     @Published public private(set) var latestPoseOverlayState = AppPoseOverlayState.empty
+    @Published public private(set) var lastFeedbackEvent: WorkoutFeedbackEvent?
     public private(set) var resolvedPresetSourceURL: URL?
     public private(set) var resolvedRecordedRunSourceURL: URL?
 
@@ -157,6 +175,9 @@ public final class AppExerciseSessionViewModel: ObservableObject {
     public func startRoutine(_ routine: WorkoutRoutine, atBlock index: Int = 0) throws {
         guard routine.blocks.indices.contains(index) else {
             throw AppExerciseSessionError.routineBlockOutOfRange(index)
+        }
+        for block in routine.blocks {
+            try validateBlockExercise(block.exerciseRef)
         }
         activeRoutine = routine
         try activateRoutineBlock(at: index, phase: .starting)
@@ -261,18 +282,40 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         routineSession.phase = .resting(secondsRemaining: secondsRemaining - 1)
     }
 
-    /// Selects a routine block's exercise. Inline (coach-authored) programs are dry-run
-    /// validated and saved as a user preset first, so they become trackable.
+    /// Checks a routine block before mutating active routine state.
+    private func validateBlockExercise(_ ref: ExerciseRef) throws {
+        switch ref {
+        case let .preset(id):
+            try ensureGuideReadyPreset(id: id)
+            _ = try programForPreset(id: id)
+        case let .inline(program):
+            if let error = RegimenBlockParser.validate(program: program) {
+                throw AppExerciseSessionError.invalidInlineExercise(String(describing: error))
+            }
+            throw AppExerciseSessionError.invalidInlineExercise(
+                "Inline exercises require accepted motion-reference promotion before guided execution."
+            )
+        case let .catalog(_, name):
+            throw AppExerciseSessionError.unguidedCatalogExercise(name)
+        }
+    }
+
+    /// Selects a routine block's exercise. Inline programs are drafts only until
+    /// promoted through the source-preserving motion-reference gate.
     private func activateBlockExercise(_ ref: ExerciseRef, store: RegimenStore = RegimenStore()) throws {
         switch ref {
         case let .preset(id):
+            try ensureGuideReadyPreset(id: id)
             try selectPreset(id: id)
         case let .inline(program):
             if let error = RegimenBlockParser.validate(program: program) {
                 throw AppExerciseSessionError.invalidInlineExercise(String(describing: error))
             }
-            try saveGeneratedExercise(program, store: store)
-            try selectPreset(id: program.id)
+            throw AppExerciseSessionError.invalidInlineExercise(
+                "Inline exercises require accepted motion-reference promotion before guided execution."
+            )
+        case let .catalog(_, name):
+            throw AppExerciseSessionError.unguidedCatalogExercise(name)
         }
     }
 
@@ -285,18 +328,47 @@ public final class AppExerciseSessionViewModel: ObservableObject {
             state.diagnosticText = "No presets found"
         }
 
-        if state.selectedExerciseID == nil, let first = availablePresets.first {
+        if state.selectedExerciseID == nil,
+           let first = availablePresets.first(where: { $0.trackingReadiness == .guideReady }) ?? availablePresets.first {
             try? selectPreset(id: first.id)
         }
     }
 
     public func selectPreset(id: String) throws {
         guard let preset = availablePresets.first(where: { $0.id == id }) else {
+            if AppExerciseTrackingGate.requiresReferenceCapture(id) {
+                throw AppExerciseSessionError.presetRequiresReferenceCapture(id)
+            }
             throw AppExerciseSessionError.presetNotFound(id)
+        }
+        guard preset.trackingReadiness == .guideReady else {
+            throw AppExerciseSessionError.presetRequiresReferenceCapture(id)
         }
 
         let program = try ProgramLoader.load(from: preset.url)
-        activateProgram(program)
+        try activateProgram(program)
+    }
+
+    public func trackingReadiness(forPresetID id: String) -> AppPresetSummary.TrackingReadiness? {
+        if availablePresets.isEmpty {
+            loadAvailablePresets()
+        }
+        if let readiness = availablePresets.first(where: { $0.id == id })?.trackingReadiness {
+            return readiness
+        }
+        if AppExerciseTrackingGate.requiresReferenceCapture(id) {
+            return .referenceCaptureRequired
+        }
+        return nil
+    }
+
+    public func ensureGuideReadyPreset(id: String) throws {
+        guard let readiness = trackingReadiness(forPresetID: id) else {
+            throw AppExerciseSessionError.presetNotFound(id)
+        }
+        guard readiness == .guideReady else {
+            throw AppExerciseSessionError.presetRequiresReferenceCapture(id)
+        }
     }
 
     public func programForPreset(id: String) throws -> ExerciseProgram {
@@ -304,12 +376,25 @@ public final class AppExerciseSessionViewModel: ObservableObject {
             loadAvailablePresets()
         }
         guard let preset = availablePresets.first(where: { $0.id == id }) else {
+            if AppExerciseTrackingGate.requiresReferenceCapture(id) {
+                throw AppExerciseSessionError.presetRequiresReferenceCapture(id)
+            }
             throw AppExerciseSessionError.presetNotFound(id)
+        }
+        guard preset.trackingReadiness == .guideReady else {
+            throw AppExerciseSessionError.presetRequiresReferenceCapture(id)
         }
         return try ProgramLoader.load(from: preset.url)
     }
 
-    public func activateProgram(_ program: ExerciseProgram) {
+    public func activateProgram(_ program: ExerciseProgram) throws {
+        guard Self.isApprovedGuideReadyProgram(program) else {
+            throw AppExerciseSessionError.presetRequiresReferenceCapture(program.id)
+        }
+        activateTrustedGuideProgram(program)
+    }
+
+    func activateTrustedGuideProgram(_ program: ExerciseProgram) {
         selectedProgram = program
         state = AppExerciseSessionState(
             selectedExerciseID: program.id,
@@ -556,9 +641,15 @@ public final class AppExerciseSessionViewModel: ObservableObject {
             return
         }
 
+        let previousRepCount = state.repCount
+        let wasHoldTargetReached = state.holdTargetReached
         liveFrames.append(frame)
         do {
             _ = try process(frames: liveFrames)
+            publishStandaloneFeedbackIfNeeded(
+                previousRepCount: previousRepCount,
+                wasHoldTargetReached: wasHoldTargetReached
+            )
         } catch {
             state.diagnosticText = "live engine error: \(error)"
         }
@@ -568,7 +659,14 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         latestPoseOverlayState = AppPoseOverlayState(frame: frame)
     }
 
-    public func applyExerciseFrameResult(_ result: ExerciseFrameResult, program: ExerciseProgram) {
+    public func applyExerciseFrameResult(_ result: ExerciseFrameResult, program: ExerciseProgram) throws {
+        guard Self.isApprovedGuideReadyProgram(program) else {
+            throw AppExerciseSessionError.presetRequiresReferenceCapture(program.id)
+        }
+        applyTrustedExerciseFrameResult(result, program: program)
+    }
+
+    func applyTrustedExerciseFrameResult(_ result: ExerciseFrameResult, program: ExerciseProgram) {
         selectedProgram = program
         state.selectedExerciseID = program.id
         state.selectedExerciseName = program.name
@@ -589,6 +687,10 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         state.diagnosticText = result.diagnosticText
     }
 
+    func publishFeedbackEvent(_ event: WorkoutFeedbackEvent) {
+        lastFeedbackEvent = event
+    }
+
     public func resetLiveSession() {
         liveFrames.removeAll()
         state.repCount = 0
@@ -597,6 +699,27 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         state.cueText = nil
         state.diagnosticText = nil
         latestPoseOverlayState = AppPoseOverlayState.empty
+    }
+
+    private func publishStandaloneFeedbackIfNeeded(previousRepCount: Int, wasHoldTargetReached: Bool) {
+        guard let selectedProgram,
+              let target = SetTarget.defaultTarget(for: selectedProgram) else {
+            return
+        }
+
+        switch target {
+        case let .reps(targetReps):
+            guard state.repCount > previousRepCount else { return }
+            publishFeedbackEvent(.repCounted(
+                repsCompleted: state.repCount,
+                targetReps: targetReps,
+                cueText: state.cueText,
+                isSetComplete: state.repCount >= targetReps
+            ))
+        case .holdSeconds:
+            guard !wasHoldTargetReached, state.holdTargetReached else { return }
+            publishFeedbackEvent(.holdComplete(heldSeconds: state.holdSeconds))
+        }
     }
 
     private func finishRoutine() {
@@ -626,21 +749,36 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         return false
     }
 
-    private static func defaultPresetSourceCandidates() -> [URL] {
+    static func defaultPresetSourceCandidates(
+        bundleURL: URL = Bundle.main.bundleURL,
+        currentDirectory: URL? = nil
+    ) -> [URL] {
         var candidates: [URL] = []
-        if let resourceURL = Bundle.module.url(forResource: "Presets", withExtension: nil) {
+        if let resourceURL = AppResourceBundle.directory(named: "Presets") {
             candidates.append(resourceURL)
         }
 
-        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Presets"))
+        if bundleURL.pathExtension != "app" {
+            let directory = currentDirectory ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            candidates.append(directory.appendingPathComponent("Presets"))
+        }
+
         candidates.append(RegimenStore.userPresetsDirectory())
         return candidates
     }
 
     public static func defaultMockWorkerScriptURL(
-        currentDirectory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        currentDirectory: URL? = nil,
+        bundleURL: URL = Bundle.main.bundleURL,
+        resourceURL: URL? = Bundle.main.resourceURL
     ) -> URL {
-        currentDirectory.appendingPathComponent("pose_worker/pose_worker.py")
+        if bundleURL.pathExtension == "app" {
+            let resources = resourceURL ?? bundleURL.appendingPathComponent("Contents/Resources", isDirectory: true)
+            return resources.appendingPathComponent("pose_worker/pose_worker.py")
+        }
+
+        let directory = currentDirectory ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        return directory.appendingPathComponent("pose_worker/pose_worker.py")
     }
 
     private static func runDescriptor(for configured: AppConfiguredPoseProvider) -> AppPoseProviderRunDescriptor {
@@ -681,11 +819,14 @@ public final class AppExerciseSessionViewModel: ObservableObject {
         return (source, merged)
     }
 
-    /// Merge every candidate directory; later candidates win on id collision.
+    /// Merge every candidate directory; first candidate wins on id collision so
+    /// mutable user presets cannot shadow bundled guide-ready definitions.
     static func mergedPresetSummaries(from candidates: [URL]) -> [AppPresetSummary] {
         var byID: [String: AppPresetSummary] = [:]
         for candidate in candidates {
-            for preset in loadPresetSummaries(from: candidate) { byID[preset.id] = preset }
+            for preset in loadPresetSummaries(from: candidate) where byID[preset.id] == nil {
+                byID[preset.id] = preset
+            }
         }
         return byID.values.sorted { $0.name < $1.name }
     }
@@ -702,11 +843,46 @@ public final class AppExerciseSessionViewModel: ObservableObject {
                 guard let program = try? ProgramLoader.load(from: url) else {
                     return nil
                 }
-
+                guard isApprovedGuideReadyPreset(program, at: url) else {
+                    return nil
+                }
                 let kind: AppPresetSummary.ExerciseKind = program.hold == nil ? .reps : .hold
-                return AppPresetSummary(id: program.id, name: program.name, kind: kind, url: url)
+                return AppPresetSummary(
+                    id: program.id,
+                    name: program.name,
+                    kind: kind,
+                    trackingReadiness: .guideReady,
+                    url: url
+                )
             }
             .sorted { $0.name < $1.name }
+    }
+
+    private static func isApprovedGuideReadyPreset(_ program: ExerciseProgram, at url: URL) -> Bool {
+        guard AppExerciseTrackingGate.guideReadyPresetIDs.contains(program.id),
+              let approvedURL = AppResourceBundle.url(
+                forResource: program.id,
+                withExtension: "json",
+                subdirectory: "Presets"
+              ),
+              let candidateData = try? Data(contentsOf: url),
+              let approvedData = try? Data(contentsOf: approvedURL) else {
+            return false
+        }
+        return candidateData == approvedData
+    }
+
+    private static func isApprovedGuideReadyProgram(_ program: ExerciseProgram) -> Bool {
+        guard AppExerciseTrackingGate.guideReadyPresetIDs.contains(program.id),
+              let approvedURL = AppResourceBundle.url(
+                forResource: program.id,
+                withExtension: "json",
+                subdirectory: "Presets"
+              ),
+              let approvedProgram = try? ProgramLoader.load(from: approvedURL) else {
+            return false
+        }
+        return approvedProgram == program
     }
 
     private func diagnosticText(from traceFrame: EngineTraceFrame) -> String? {

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "id": "machine_chest_supported_row",
+  "name": "Machine - Chest-Supported Row",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "primary.shoulder",
+      "primary.elbow",
+      "primary.wrist",
+      "primary.hip"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "auto_lock",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Set up side-on with your chest supported on the row machine and the visible arm long",
+        "capture_seconds": 1.0,
+        "signals": [
+          "row_elbow",
+          "row_shoulder",
+          "torso_tilt"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "primary.shoulder",
+    "elbow": "primary.elbow",
+    "wrist": "primary.wrist",
+    "hip": "primary.hip"
+  },
+  "signals": {
+    "row_elbow_raw": "angle(primary.shoulder, primary.elbow, primary.wrist)",
+    "row_shoulder_raw": "angle(primary.elbow, primary.shoulder, primary.hip)",
+    "torso_raw": "angle_to_vertical(primary.shoulder, primary.hip)"
+  },
+  "filters": {
+    "row_elbow": {
+      "source": "row_elbow_raw",
+      "type": "ema",
+      "alpha": 0.45
+    },
+    "row_shoulder": {
+      "source": "row_shoulder_raw",
+      "type": "median",
+      "window_ms": 200
+    },
+    "torso_tilt": {
+      "source": "torso_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "phase_signal": "row_elbow",
+    "down_when": "row_elbow < 95",
+    "down_min_ms": 100,
+    "bottom_min_ms": 80,
+    "up_when": "row_elbow > 150",
+    "up_min_ms": 100,
+    "min_rom_deg": 55,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "row_finish",
+      "when": "phase == 'bottom'",
+      "expect": "row_elbow <= 90",
+      "min_violation_ms": 1000,
+      "cue": "Row the handle closer to your ribs",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
+    },
+    {
+      "id": "elbow_path",
+      "when": "phase == 'bottom'",
+      "expect": "row_shoulder >= 45",
+      "min_violation_ms": 250,
+      "cue": "Pull the visible elbow back along your side",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
+    },
+    {
+      "id": "torso",
+      "when": "phase in ['descending','bottom']",
+      "expect": "torso_tilt <= 50",
+      "min_violation_ms": 250,
+      "cue": "Keep your chest set against the pad",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000
+    }
+  ],
+  "set": {
+    "target_reps": 10
+  }
+}

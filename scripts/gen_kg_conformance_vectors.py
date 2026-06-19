@@ -11,17 +11,28 @@ from pathlib import Path
 FITGRAPH = Path(os.environ.get("FITGRAPH", "/Users/kelly/Developer/fitgraph"))
 sys.path.insert(0, str(FITGRAPH))
 
+from kg.assessment_import import build_assessment_import_artifacts  # noqa: E402
 from kg.graph_store import load_local_graph  # noqa: E402
 from kg.safety import load_safety_rules, ONTOLOGY_LOCK_VERSION  # noqa: E402
 from kg.validation import GRAPH_VERSION, RULESET_VERSION  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[1]
 ARTIFACT = REPO / "Sources/KGKit/Resources/Artifact/kg_artifact.v0.json"
+ASSESSMENT_ARTIFACT = REPO / "Sources/KGKit/Resources/Artifact/kg_artifact.assessment.v0.json"
+ASSESSMENT_MEMBER_GRAPH = REPO / "Sources/KGKit/Resources/Artifact/assessment_member_kg.generated.json"
+
+
+def encoded_rules() -> list[dict]:
+    rules = load_safety_rules(FITGRAPH / "graph")
+    return [
+        {"id": r.id, "severity": r.severity, "reason_code": r.reason_code,
+         "uses_concepts": list(r.uses_concepts), "match": r.match}
+        for r in rules
+    ]
 
 
 def freeze_artifact() -> None:
     graph = load_local_graph(FITGRAPH / "graph" / "exercise_kg.seed.json")
-    rules = load_safety_rules(FITGRAPH / "graph")
     artifact = {
         "graph_version": GRAPH_VERSION,
         "ruleset_version": RULESET_VERSION,
@@ -36,17 +47,45 @@ def freeze_artifact() -> None:
              "properties": e.properties or {}}
             for e in graph.edges
         ],
-        "safety_rules": [
-            {"id": r.id, "severity": r.severity, "reason_code": r.reason_code,
-             "uses_concepts": list(r.uses_concepts), "match": r.match}
-            for r in rules
-        ],
+        "safety_rules": encoded_rules(),
     }
     ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
     ARTIFACT.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {ARTIFACT.relative_to(REPO)}: "
           f"{len(artifact['nodes'])} nodes / {len(artifact['edges'])} edges / "
           f"{len(artifact['safety_rules'])} rules")
+
+
+def freeze_assessment_artifact() -> None:
+    artifacts = build_assessment_import_artifacts()
+    exercise_graph = artifacts.exercise_graph
+    summary = artifacts.conformance_summary
+    source = dict(exercise_graph.get("source") or {})
+    artifact = {
+        "artifact_kind": "assignment_assessment_runtime",
+        "graph_version": exercise_graph["graph_version"],
+        "ruleset_version": RULESET_VERSION,
+        "ontology_lock_version": ONTOLOGY_LOCK_VERSION,
+        "generated_graph_version": exercise_graph["graph_version"],
+        "source_snapshot_commit": summary["source_snapshot_commit"],
+        "source": source,
+        "source_hashes": {
+            "exercises_sha256": summary["exercise_source_sha256"],
+            "member_context_sha256": summary["member_source_sha256"],
+        },
+        "conformance_summary": summary,
+        "nodes": exercise_graph["nodes"],
+        "edges": exercise_graph["edges"],
+        "safety_rules": encoded_rules(),
+    }
+    ASSESSMENT_ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
+    ASSESSMENT_ARTIFACT.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    ASSESSMENT_MEMBER_GRAPH.write_text(json.dumps(artifacts.member_graph, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"wrote {ASSESSMENT_ARTIFACT.relative_to(REPO)}: "
+          f"{len(artifact['nodes'])} nodes / {len(artifact['edges'])} edges / "
+          f"{len(artifact['safety_rules'])} rules")
+    print(f"wrote {ASSESSMENT_MEMBER_GRAPH.relative_to(REPO)}: "
+          f"{len(artifacts.member_graph['nodes'])} nodes / {len(artifacts.member_graph['edges'])} edges")
 
 
 from kg.constraints import ResolvedConstraint  # noqa: E402
@@ -126,7 +165,8 @@ def emit_resolve_vectors() -> None:
                 {"constraint_type": c.constraint_type, "value": c.value, "hard": c.hard,
                  "negated": c.negated, "laterality": c.laterality, "graph_paths": list(c.graph_paths),
                  "verified": c.verified, "resolution_status": c.resolution_status,
-                 "safety_behavior": c.safety_behavior}
+                 "safety_behavior": c.safety_behavior,
+                 "confidence": c.confidence, "resolution_method": c.resolution_method}
                 for c in constraints
             ],
         })
@@ -192,7 +232,8 @@ def emit_workout_vectors() -> None:
                 {"constraint_type": c.constraint_type, "value": c.value, "hard": c.hard,
                  "negated": c.negated, "laterality": c.laterality, "graph_paths": list(c.graph_paths),
                  "source_text": c.source_text, "safety_behavior": c.safety_behavior,
-                 "resolution_status": c.resolution_status} for c in member_constraints
+                 "resolution_status": c.resolution_status,
+                 "confidence": c.confidence, "resolution_method": c.resolution_method} for c in member_constraints
             ],
             "expected": {
                 "warmup": out["workout"]["warmup"], "main": out["workout"]["main"],
@@ -211,6 +252,7 @@ def emit_workout_vectors() -> None:
 
 if __name__ == "__main__":
     freeze_artifact()
+    freeze_assessment_artifact()
     emit_vectors()
     emit_resolve_vectors()
     emit_alternatives_vectors()

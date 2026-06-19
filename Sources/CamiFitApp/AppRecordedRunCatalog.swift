@@ -39,16 +39,20 @@ public enum AppRecordedRunCatalog {
         )
     ]
 
-    public static func defaultSourceCandidates() -> [URL] {
+    public static func defaultSourceCandidates(
+        bundleURL: URL = Bundle.main.bundleURL,
+        currentDirectory: URL? = nil
+    ) -> [URL] {
         var candidates: [URL] = []
-        if let resourceURL = Bundle.module.url(forResource: "RecordedRuns", withExtension: nil) {
+        if let resourceURL = AppResourceBundle.directory(named: "RecordedRuns") {
             candidates.append(resourceURL)
         }
 
-        candidates.append(
-            URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-                .appendingPathComponent("Sources/CamiFitApp/Resources/RecordedRuns")
-        )
+        if bundleURL.pathExtension != "app" {
+            let directory = currentDirectory ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            candidates.append(directory.appendingPathComponent("Sources/CamiFitApp/Resources/RecordedRuns"))
+        }
+
         return candidates
     }
 

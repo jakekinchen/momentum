@@ -7,6 +7,7 @@ final class ResolveConformanceTests: XCTestCase {
             let constraint_type: String, value: String, hard: Bool, negated: Bool
             let laterality: String?, graph_paths: [String], verified: Bool
             let resolution_status: String, safety_behavior: String?
+            let confidence: Double, resolution_method: String
         }
         let text: String; let expected: [Constraint]
     }
@@ -27,8 +28,11 @@ final class ResolveConformanceTests: XCTestCase {
                 XCTAssertEqual(g.negated, e.negated, v.text)
                 XCTAssertEqual(g.laterality, e.laterality, v.text)
                 XCTAssertEqual(g.graphPaths, e.graph_paths, v.text)
+                XCTAssertEqual(g.verified, e.verified, v.text)
                 XCTAssertEqual(g.resolutionStatus, e.resolution_status, v.text)
                 XCTAssertEqual(g.safetyBehavior, e.safety_behavior, v.text)
+                XCTAssertEqual(g.confidence, e.confidence, accuracy: 0.000_001, v.text)
+                XCTAssertEqual(g.resolutionMethod, e.resolution_method, v.text)
             }
         }
     }

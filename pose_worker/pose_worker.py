@@ -310,18 +310,24 @@ class MediaPipeBackend:
             )
             return
         try:
-            import mediapipe as mp
-            from mediapipe.tasks import python as mp_python
-            from mediapipe.tasks.python import vision
+            from mediapipe.tasks.python.core.base_options import BaseOptions
+            from mediapipe.tasks.python.vision.core.image import Image
+            from mediapipe.tasks.python.vision.core.vision_task_running_mode import (
+                VisionTaskRunningMode,
+            )
+            from mediapipe.tasks.python.vision.pose_landmarker import (
+                PoseLandmarker,
+                PoseLandmarkerOptions,
+            )
 
-            base_options = mp_python.BaseOptions(model_asset_path=self.model_path)
-            options = vision.PoseLandmarkerOptions(
+            base_options = BaseOptions(model_asset_path=self.model_path)
+            options = PoseLandmarkerOptions(
                 base_options=base_options,
-                running_mode=vision.RunningMode.VIDEO,
+                running_mode=VisionTaskRunningMode.VIDEO,
                 num_poses=self.num_poses,
             )
-            self.landmarker = vision.PoseLandmarker.create_from_options(options)
-            self._mp = mp
+            self.landmarker = PoseLandmarker.create_from_options(options)
+            self._mp_image = Image
         except Exception as exc:  # pragma: no cover - defensive
             self.error = f"failed to create PoseLandmarker: {exc}"
 
@@ -337,8 +343,7 @@ class MediaPipeBackend:
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"image_path not found: {image_path}")
 
-        mp = self._mp
-        mp_image = mp.Image.create_from_file(image_path)
+        mp_image = self._mp_image.create_from_file(image_path)
         width, height = mp_image.width, mp_image.height
 
         # VIDEO mode requires monotonically increasing timestamps.

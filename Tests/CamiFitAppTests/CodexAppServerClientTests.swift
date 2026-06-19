@@ -35,6 +35,28 @@ final class CodexAppServerClientTests: XCTestCase {
             )
     }
 
+    func testCodexCandidatePathsPreferNativeBinaryBeforeHomebrewShim() {
+        let paths = CodexAppServerClient.codexCandidatePaths()
+        let nativeCodex = "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex"
+        let homebrewShim = "/opt/homebrew/bin/codex"
+
+        XCTAssertEqual(paths.first, nativeCodex)
+        XCTAssertLessThan(
+            paths.firstIndex(of: nativeCodex) ?? Int.max,
+            paths.firstIndex(of: homebrewShim) ?? Int.min
+        )
+    }
+
+    func testCodexProcessEnvironmentPrependsHomebrewPathsForGuiLaunches() {
+        let environment = CodexAppServerClient.codexProcessEnvironment(base: ["PATH": "/usr/bin:/bin:/custom/bin"])
+        let pathParts = environment["PATH"]?.split(separator: ":").map(String.init) ?? []
+
+        XCTAssertEqual(Array(pathParts.prefix(2)), ["/opt/homebrew/bin", "/usr/local/bin"])
+        XCTAssertTrue(pathParts.contains("/usr/bin"))
+        XCTAssertTrue(pathParts.contains("/custom/bin"))
+        XCTAssertEqual(pathParts.filter { $0 == "/usr/bin" }.count, 1)
+    }
+
     func testResetChatSessionStartsFreshCoachThread() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("CodexAppServerClientTests-\(UUID().uuidString)", isDirectory: true)
@@ -151,20 +173,76 @@ final class CodexAppServerClientTests: XCTestCase {
         XCTAssertTrue(transcript.contains("start"))
     }
 
-    func testCoachInstructionsUseFutureRoutineArtifactContract() {
+    func testLoginStartupFailureClearsPendingAccountAndShowsCodexStderr() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CodexAppServerClientTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let fakeCodexURL = directory.appendingPathComponent("fake-codex")
+        let fakeCodexScript = #"""
+        #!/bin/sh
+        printf '%s\n' 'env: node: No such file or directory' >&2
+        sleep 0.1
+        exit 127
+        """#
+        try fakeCodexScript.write(to: fakeCodexURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: fakeCodexURL.path)
+
+        let client = CodexAppServerClient(
+            applicationSupportDirectory: directory,
+            codexURLResolver: { fakeCodexURL }
+        )
+        addTeardownBlock {
+            client.stop()
+            try? FileManager.default.removeItem(at: directory)
+        }
+
+        client.startLogin()
+
+        XCTAssertTrue(waitUntil(timeout: 3) {
+            if case .failed = client.state {
+                return client.account == .signedOut
+            }
+            return false
+        })
+        guard case let .failed(message) = client.state else {
+            return XCTFail("Expected failed Codex state")
+        }
+        XCTAssertTrue(message.contains("Node was not found"), message)
+        XCTAssertEqual(client.account, .signedOut)
+        XCTAssertTrue(client.accountDetail.contains("Node was not found"), client.accountDetail)
+    }
+
+    func testCoachInstructionsUseKGPlannerRoutineBoundary() {
         let instructions = CodexAppServerClient().coachBaseInstructionsForTesting
 
-        XCTAssertTrue(instructions.contains("Future Coach"))
-        XCTAssertTrue(instructions.contains("future-routine"))
+        XCTAssertTrue(instructions.contains("Momentum - Your Future Coach"))
+        XCTAssertTrue(instructions.contains("KGKit planner"))
         XCTAssertTrue(instructions.contains("future-coach-action"))
+        XCTAssertTrue(instructions.contains("future-workout-plan"))
+        XCTAssertTrue(instructions.contains("future-kg-fact-request"))
         XCTAssertTrue(instructions.contains("\"tool\":\"activate_exercise\""))
+        XCTAssertTrue(instructions.contains("\"tool\":\"generate_workout\""))
+        XCTAssertTrue(instructions.contains("\"tool\":\"lookup_member_fact\""))
         XCTAssertTrue(instructions.contains("mode \"match_form\""))
         XCTAssertTrue(instructions.contains("\"schemaVersion\":1"))
-        XCTAssertTrue(instructions.contains("\"artifactType\":\"routine\""))
+        XCTAssertFalse(instructions.contains("\"artifactType\":\"routine\""))
+        XCTAssertFalse(instructions.contains("```future-routine"))
         XCTAssertTrue(instructions.contains("Do not author brand-new future-exercise artifacts"))
         XCTAssertFalse(instructions.contains("camifit-routine"))
         XCTAssertFalse(instructions.contains("camifit-exercise"))
         XCTAssertFalse(instructions.contains("camifit-kg-operation"))
+    }
+
+    func testCoachSupportedExerciseInstructionsMatchGuideReadyGate() {
+        let instructions = CodexAppServerClient().coachBaseInstructionsForTesting
+
+        for presetID in AppExerciseTrackingGate.guideReadyPresetIDs {
+            XCTAssertTrue(instructions.contains(presetID), "\(presetID) should be chat-activatable")
+        }
+        for presetID in AppExerciseTrackingGate.referenceCaptureRequiredPresetIDs {
+            XCTAssertFalse(instructions.contains(presetID), "\(presetID) must stay out of chat activation")
+        }
     }
 
     private func waitUntil(timeout: TimeInterval, _ condition: @escaping () -> Bool) -> Bool {

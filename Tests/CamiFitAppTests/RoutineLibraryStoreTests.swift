@@ -63,6 +63,6 @@ final class RoutineLibraryStoreTests: XCTestCase {
         library.load()
 
         XCTAssertEqual(library.routines.first?.id, FutureRoutineCatalog.foundationRoutine.id)
-        XCTAssertEqual(library.routines.first?.blocks.count, 4)
+        XCTAssertEqual(library.routines.first?.blocks.count, 3)
     }
 }

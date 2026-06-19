@@ -1,9 +1,9 @@
 # Bodyweight Lunge Reference Pipeline
 
 **Date:** 2026-06-06  
-**Status:** Implementation scaffold for first trainer-reference motion trace  
-**Scope:** Replace the procedural Bodyweight Lunge avatar guide with inspectable,
-first-party motion data.
+**Status:** Golden-reference guardrail for the lunge motion trace
+**Scope:** Preserve the ideal Bodyweight Lunge avatar guide and use it to
+validate future extraction candidates.
 
 ## Decision
 
@@ -13,15 +13,12 @@ datasets are useful as validation and sanity checks, but they should not become
 the primary product demo source unless licensing, view, exercise variant, and
 retargeting quality are all reviewed.
 
-The current bundled trace is an interim reference-video replacement for the
-procedural fallback. It was extracted from the Wikimedia Commons forward-lunge
-clip named in `Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.manifest.json`,
-then converted into a stationary loop by using the clean descent and mirroring
-it back to the top. The raw image-space pose was then retargeted onto the
-canonical stationary lunge display rig because the source clip's side-view
-occlusion collapses the feet too close together for direct avatar playback.
-Replace it with a first-party stationary bodyweight lunge clip when one is
-captured.
+The current bundled trace is the protected canonical guide. Do not overwrite
+`Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl` or its
+manifest with raw-preserved extraction output by default. External or
+first-party lunge clips should be kept under `dist/motion-reference/` and
+compared against the protected guide before any explicit product decision to
+replace it.
 
 ## Why the Current Lunge Was Wrong
 
@@ -48,11 +45,15 @@ visual iteration. It does not make it authoritative motion data.
    - copy raw `left.*` and `right.*` landmarks for engine parity;
    - smooth non-contact landmarks;
    - pin front/support foot contact landmarks.
-4. Place the reviewed output at
-   `Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl`.
-5. Launch with
+4. Keep the reviewed candidate under `dist/motion-reference/` and compare it
+   against the protected guide:
+   `scripts/motion_reference/compare_trace_to_golden.py --golden Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl --candidate <candidate.jsonl> --output <comparison.json>`.
+5. If a human explicitly approves replacing the protected guide, regenerate with
+   `--allow-promote-bodyweight-lunge` so the manifest records a promotion
+   command instead of the default comparison command.
+6. Launch with
    `CAMIFIT_GUIDE_EXERCISE=bodyweight_lunge ./script/build_and_run.sh --verify`
-   and inspect the guide before accepting the trace.
+   and inspect the guide before accepting any replacement.
 
 ## Dataset Role
 

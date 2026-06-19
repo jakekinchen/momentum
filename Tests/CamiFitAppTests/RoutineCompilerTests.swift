@@ -81,8 +81,107 @@ final class RoutineCompilerTests: XCTestCase {
         XCTAssertEqual(executable.blocks.first?.target, .holdSeconds(1.0))
     }
 
+    func testCompilerRejectsCatalogOnlyRoutineBlock() throws {
+        let routine = WorkoutRoutine(
+            id: "catalog-only",
+            name: "Catalog Only",
+            blocks: [
+                RoutineBlock(
+                    exerciseRef: .catalog(
+                        id: "Exercise:bench_lying_single_arm_dumbbell_tricep_extension",
+                        name: "Bench-Lying Single-Arm Dumbbell Tricep Extension"
+                    ),
+                    sets: 3,
+                    reps: 10,
+                    guidance: RoutineBlockGuidance(
+                        status: "recommend_only",
+                        displayText: "No guide yet"
+                    )
+                )
+            ]
+        )
+
+        XCTAssertThrowsError(try Self.compiler.compile(routine)) { error in
+            XCTAssertEqual(
+                error as? RoutineValidationError,
+                .unguidedCatalogExercise(block: 0, name: "Bench-Lying Single-Arm Dumbbell Tricep Extension")
+            )
+        }
+        XCTAssertNil(routine.guidedOnly())
+    }
+
+    func testCompilerRejectsInlineRoutineBlockUntilMotionReferencePromotion() throws {
+        let program = try ProgramLoader.load(from: Self.presetsDirectory.appendingPathComponent("bodyweight_squat.json"))
+        let routine = WorkoutRoutine(
+            id: "inline-squat",
+            name: "Inline Squat",
+            blocks: [
+                RoutineBlock(exerciseRef: .inline(program), sets: 1, reps: 10)
+            ]
+        )
+
+        XCTAssertThrowsError(try Self.compiler.compile(routine)) { error in
+            XCTAssertEqual(
+                error as? RoutineValidationError,
+                .invalidInlineExercise(
+                    block: 0,
+                    message: "Inline exercises require accepted motion-reference promotion before guided execution"
+                )
+            )
+        }
+        XCTAssertNil(routine.guidedOnly())
+    }
+
+    func testCompilerRejectsMixedRoutineUntilGuidedSubsetIsUsed() throws {
+        let routine = WorkoutRoutine(
+            id: "mixed-guided-and-catalog",
+            name: "Mixed Guided And Catalog",
+            blocks: [
+                RoutineBlock(exerciseRef: .preset(id: "bodyweight_squat"), sets: 1, reps: 10),
+                RoutineBlock(
+                    exerciseRef: .catalog(
+                        id: "Exercise:bench_lying_single_arm_dumbbell_tricep_extension",
+                        name: "Bench-Lying Single-Arm Dumbbell Tricep Extension"
+                    ),
+                    sets: 3,
+                    reps: 10,
+                    guidance: RoutineBlockGuidance(
+                        status: "recommend_only",
+                        displayText: "No guide yet",
+                        note: "Reference capture is required before this exercise can run."
+                    )
+                )
+            ]
+        )
+
+        XCTAssertThrowsError(try Self.compiler.compile(routine)) { error in
+            XCTAssertEqual(
+                error as? RoutineValidationError,
+                .unguidedCatalogExercise(block: 1, name: "Bench-Lying Single-Arm Dumbbell Tricep Extension")
+            )
+        }
+
+        let guidedRoutine = try XCTUnwrap(routine.guidedOnly())
+        XCTAssertEqual(guidedRoutine.blocks.count, 1)
+        XCTAssertTrue(
+            AppExerciseTrackingGate.referenceCaptureRequiredPresetIDs.isDisjoint(
+                with: Self.presetIDs(in: guidedRoutine)
+            )
+        )
+
+        let executable = try Self.compiler.compile(guidedRoutine)
+        XCTAssertEqual(executable.blocks.map(\.program.id), ["bodyweight_squat"])
+    }
+
     private static let compiler = RoutineCompiler { presetID in
         try ProgramLoader.load(from: presetsDirectory.appendingPathComponent("\(presetID).json"))
+    }
+
+    private static func presetIDs(in routine: WorkoutRoutine) -> Set<String> {
+        Set(routine.blocks.compactMap { block in
+            guard case let .preset(id) = block.exerciseRef else { return nil }
+            return id
+        })
     }
 
     private static var packageRoot: URL {

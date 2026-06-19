@@ -1,0 +1,122 @@
+{
+  "acceptance_status": "accepted_source_preserving_reference",
+  "cycle": {
+    "end_ms": 3250,
+    "extend_ms": 2000,
+    "start_ms": 1250
+  },
+  "cycle_mode": "source_flexed-extended-flexed",
+  "exercise_id": "single_arm_cable_tricep_extension",
+  "normalizer": "scripts/motion_reference/normalize_single_arm_cable_tricep_extension_trace.py",
+  "output_trace": "dist/motion-reference/single_arm_cable_tricep_extension/source_candidates/wger_803_video59/extract_1250_3250/single_arm_cable_tricep_extension.external.jsonl",
+  "playable_trace_packaged": true,
+  "golden_comparison": {
+    "status": "not_applicable",
+    "reason": "No protected cable tricep extension golden comparator exists yet; Bodyweight Lunge remains the protected lunge-family extractor comparator."
+  },
+  "visual_review": {
+    "status": "passed",
+    "evidence": "App avatar review passed for the licensed external cable tricep extension guide trace before guide-ready promotion."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_final_reps": 1
+  },
+  "live_app_review": {
+    "status": "passed",
+    "evidence": "2026-06-09 visual regression follow-up kept this exercise guide-ready; the installed app inventory now contains exactly four playable JSONL traces after demoting visually failed plank, preacher curl, and suspension tricep press.",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 4,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension"
+    ]
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 4493262,
+      "sha256": "b3ebf056c652e6a66056d53f9b9b3b84520fa94594829e2d3b1ba787d011f472"
+    },
+    "raw_trace": {
+      "bytes": 859527,
+      "sha256": "694b5a1023c813f4b4619ce49de63f70e8390c5179809e962f189dfb3df7fbf2"
+    },
+    "normalizer": {
+      "bytes": 11841,
+      "sha256": "2a1b0676a589302ea408ad3b3490526ad34c9b1a478ec160c188609f4ea091ab"
+    },
+    "output_trace": {
+      "bytes": 61773,
+      "sha256": "65504df311e5639d5ce6256d24347db108272df0921c4d6a0b51828fd7b5e3dc"
+    }
+  },
+  "qa": {
+    "loop_closure": {
+      "max_endpoint_delta_after": 0.0
+    },
+    "source_visibility": {
+      "frames": 25,
+      "frames_at_or_above_0_65": 17,
+      "median_chain_confidence": 0.7826,
+      "min_chain_confidence": 0.0,
+      "source_side": "left"
+    },
+    "summary": {
+      "duration_ms": 2000,
+      "frames": 25,
+      "max_phase_factor": 1.0,
+      "max_primary_elbow_angle": 170.49,
+      "min_primary_elbow_angle": 76.53,
+      "peak_timestamp_ms": 750
+    }
+  },
+  "raw_trace": "dist/motion-reference/single_arm_cable_tricep_extension/source_candidates/wger_803_video59/extract_0_full/raw_mediapipe.jsonl",
+  "required_output_landmarks": [
+    "primary.shoulder",
+    "primary.elbow",
+    "primary.wrist",
+    "primary.hip",
+    "left.shoulder",
+    "left.elbow",
+    "left.wrist",
+    "left.hip"
+  ],
+  "retarget": "source_timed_side_view_single_arm_cable_tricep_extension",
+  "source_attribution": "Goulart / wger exercise 803 video 59",
+  "source_kind": "licensed_external_reference_trace",
+  "source_label": "wger exercise 803 video 59 One Arm Triceps Extensions on Cable",
+  "source_license": "CC-BY-SA 4",
+  "source_media_url": "https://wger.de/media/exercise-video/803/589d24e5-aaee-455d-93fd-f0f01da5d9c6.MOV",
+  "source_page": "https://wger.de/api/v2/exerciseinfo/803/",
+  "source_video": "dist/motion-reference/single_arm_cable_tricep_extension/source_candidates/wger_803_video59/wger_803_video59.MOV",
+  "rejected_candidates": [
+    {
+      "source_page": "https://www.pexels.com/video/a-man-working-out-inside-the-gym-5319433/",
+      "source_license": "Pexels License",
+      "source_attribution": "Tima Miroshnichenko / Pexels video 5319433",
+      "reviewed_segments": [
+        "0.0s-12.64s"
+      ],
+      "evidence": [
+        "dist/motion-reference/single_arm_cable_tricep_extension/pexels_5319432/source_fps2_sheet.jpg",
+        "dist/motion-reference/single_arm_cable_tricep_extension/pexels_5319432/extract_0_12640/raw_review_sheet.jpg"
+      ],
+      "decision": "rejected",
+      "reason": "Semantically in-family, but raw MediaPipe does not reliably satisfy the left-arm contract: the left shoulder/elbow/wrist/hip chain meets visibility >=0.65 in only 25/126 frames, the opposite arm is also unstable, and local provenance is ambiguous between folder 5319432 and public page 5319433."
+    },
+    {
+      "source_page": "https://wger.de/api/v2/exerciseinfo/?limit=1000&language=2",
+      "source_media_url": "https://wger.de/media/exercise-video/95/ab770931-47d3-44fd-aef0-ac7a64c3b794.MOV",
+      "source_license": "CC-BY-SA 4",
+      "source_attribution": "Goulart / wger exercise 95 video 50",
+      "evidence": [
+        "dist/motion-reference/single_arm_cable_tricep_extension/source_candidates/wger_95_video50/source_fps2_sheet.jpg"
+      ],
+      "decision": "rejected",
+      "reason": "Openly licensed cable-machine clip, but the movement is a cable biceps curl rather than a cable triceps extension."
+    }
+  ]
+}

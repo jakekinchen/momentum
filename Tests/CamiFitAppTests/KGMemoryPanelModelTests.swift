@@ -21,15 +21,17 @@ final class KGMemoryPanelModelTests: XCTestCase {
         XCTAssertFalse(state.isPresented)
         XCTAssertEqual(state.mode, .coach)
 
-        state.showMemory()
+        state.showMemory(focusedOperationID: "op-shoulder")
         XCTAssertTrue(state.isPresented)
         XCTAssertEqual(state.mode, .memory)
         XCTAssertTrue(state.isActive(.memory))
+        XCTAssertEqual(state.focusedMemoryOperationID, "op-shoulder")
 
         state.toggleCoach()
         XCTAssertTrue(state.isPresented)
         XCTAssertEqual(state.mode, .coach)
         XCTAssertTrue(state.isActive(.coach))
+        XCTAssertNil(state.focusedMemoryOperationID)
 
         print("kg-memory-inspector-mode hidden_to_memory=true memory_to_coach=true state_is_value_only=true")
     }

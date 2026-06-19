@@ -3,8 +3,11 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from pathlib import Path
 
-from kg.workout_generator import generate_workout
+from kg.assessment_import import write_assessment_import_artifacts
+from kg.graph_store import GraphEdge, GraphNode, LocalGraph, load_local_graph
+from kg.workout_generator import QUARANTINED_EXERCISE_IDS, _candidate_ids, generate_workout
 
 
 LOWER_BODY_DB_KB_PROMPT = "Build a 50-minute lower-body session. Exclude deadlifts. Only DB and KB."
@@ -20,6 +23,27 @@ def _reason_codes(result: dict[str, object]) -> set[str]:
         for receipt in result["filtered_exercises"]
         for code in receipt["reason_codes"]
     }
+
+
+def _member_graph_with_equipment(equipment_ids: list[str]) -> LocalGraph:
+    return LocalGraph(
+        nodes={
+            "Member:jordan": GraphNode(id="Member:jordan", type="Member", label="Jordan Rivera"),
+            "EquipmentAvailability:test": GraphNode(
+                id="EquipmentAvailability:test",
+                type="EquipmentAvailability",
+                label="Test equipment",
+                properties={"equipment_ids": equipment_ids},
+            ),
+        },
+        edges=(
+            GraphEdge(
+                source="Member:jordan",
+                predicate="HAS_EQUIPMENT_AVAILABILITY",
+                target="EquipmentAvailability:test",
+            ),
+        ),
+    )
 
 
 def test_assessment_workout_generator_preserves_graph_safety_contract() -> None:
@@ -108,7 +132,7 @@ def test_lower_body_db_kb_prompt_pins_filtered_categories_and_deadlift_constrain
         1
         for receipt in result["filtered_exercises"]
         if any(code.startswith("ACTIVE_KNEE") for code in receipt["reason_codes"])
-    ) == 13
+    ) == 12
 
 
 def test_alternatives_point_to_selected_ids_and_never_self_reference() -> None:
@@ -148,6 +172,8 @@ def test_unresolved_prompt_concepts_are_surfaced_without_blocking_safe_pool() ->
             "laterality": None,
             "resolution_status": "needs_review",
             "safety_behavior": "ask_clarification",
+            "confidence": 0.0,
+            "resolution_method": "unresolved",
         }
     ]
     assert result["selected_exercises"]
@@ -197,6 +223,53 @@ def test_chest_and_default_prompt_branches_are_reachable() -> None:
         "Exercise:alternating_dumbbell_overhead_press"
     )
     assert default_result["unresolved_concepts"][0]["value"] == "build a workout"
+
+
+def test_candidate_ids_use_word_aware_row_and_lat_filters() -> None:
+    paths = write_assessment_import_artifacts()
+    graph = load_local_graph(Path(paths["exercise_graph"]))
+    all_ids = sorted(
+        node.id
+        for node in graph.nodes_by_type("Exercise")
+        if node.id not in QUARANTINED_EXERCISE_IDS
+    )
+    row_ids = _candidate_ids("upper-back row routine", graph)
+
+    assert "Exercise:single_arm_chest_supported_incline_row" in row_ids
+    assert all(
+        any(edge.target == "ExerciseFamily:row_family" for edge in graph.outgoing(exercise_id, "VARIANT_OF"))
+        or any(
+            edge.target in {"MuscleGroup:upper_back", "MuscleGroup:lats"}
+            for edge in graph.outgoing(exercise_id, "TARGETS")
+        )
+        for exercise_id in row_ids
+    )
+    assert _candidate_ids("arms tricep extension with flat bench", graph) == all_ids
+
+
+def test_exact_exercise_prompts_select_every_assessment_exercise() -> None:
+    paths = write_assessment_import_artifacts()
+    graph = load_local_graph(Path(paths["exercise_graph"]))
+    all_equipment = sorted(node.id for node in graph.nodes_by_type("Equipment"))
+    member_graph = _member_graph_with_equipment(all_equipment)
+
+    for exercise in sorted(graph.nodes_by_type("Exercise"), key=lambda node: node.id):
+        prompt = f"Build a routine focused on {exercise.label}."
+
+        if exercise.id in QUARANTINED_EXERCISE_IDS:
+            assert _candidate_ids(prompt, graph) == [], exercise.id
+            continue
+
+        assert _candidate_ids(prompt, graph) == [exercise.id], exercise.id
+        result = generate_workout(prompt=prompt, minutes=20, graph=graph, member_graph=member_graph)
+        section_ids = [
+            item["exercise_id"]
+            for section in ("warmup", "main", "cooldown")
+            for item in result["workout"][section]
+        ]
+
+        assert [receipt["exercise_id"] for receipt in result["selected_exercises"]] == [exercise.id], exercise.id
+        assert exercise.id in section_ids, exercise.id
 
 
 def test_workout_generator_command_outputs_json() -> None:

@@ -71,12 +71,13 @@
     {
       "id": "depth",
       "when": "phase == 'bottom'",
-      "expect": "front_knee <= 100",
-      "min_violation_ms": 0,
+      "expect": "front_knee <= 103",
+      "min_violation_ms": 250,
       "cue": "Lower into the lunge",
       "severity": "warn",
       "score_weight": 10,
-      "cooldown_ms": 1500
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
     },
     {
       "id": "torso",

@@ -34,6 +34,10 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
     /// (imagePath, timestampMS, sourceSize)
     var onFrame: ((String, Int64, CGSize) -> Void)?
 
+    var authorizationStatus: AVAuthorizationStatus {
+        AVCaptureDevice.authorizationStatus(for: .video)
+    }
+
     override init() {
         frameDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("camifit-live-frames", isDirectory: true)
         try? FileManager.default.createDirectory(at: frameDir, withIntermediateDirectories: true)
@@ -59,6 +63,39 @@ final class LiveCameraController: NSObject, ObservableObject, AVCaptureVideoData
             }
         case .denied, .restricted:
             DispatchQueue.main.async { self.setReadiness(.denied) }
+        @unknown default:
+            DispatchQueue.main.async { self.setReadiness(.failed("Camera unavailable")) }
+        }
+    }
+
+    func requestPermissionIfNeeded() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            break
+        case .notDetermined:
+            DispatchQueue.main.async { self.setReadiness(.requestingPermission) }
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.setReadiness(granted ? .idle : .denied)
+                }
+            }
+        case .denied, .restricted:
+            DispatchQueue.main.async { self.setReadiness(.denied) }
+        @unknown default:
+            DispatchQueue.main.async { self.setReadiness(.failed("Camera unavailable")) }
+        }
+    }
+
+    func refreshAuthorizationStatus() {
+        switch authorizationStatus {
+        case .authorized:
+            if readiness == .denied || readiness == .requestingPermission {
+                DispatchQueue.main.async { self.setReadiness(.idle) }
+            }
+        case .denied, .restricted:
+            DispatchQueue.main.async { self.setReadiness(.denied) }
+        case .notDetermined:
+            break
         @unknown default:
             DispatchQueue.main.async { self.setReadiness(.failed("Camera unavailable")) }
         }
@@ -176,12 +213,14 @@ import ImageIO
 /// Live `AVCaptureVideoPreviewLayer` host.
 struct CameraPreview: NSViewRepresentable {
     let session: AVCaptureSession
+    var mirrored = true
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         view.wantsLayer = true
         let preview = AVCaptureVideoPreviewLayer(session: session)
         preview.videoGravity = .resizeAspectFill
+        configureMirroring(on: preview)
         preview.frame = view.bounds
         preview.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         view.layer = preview
@@ -191,6 +230,16 @@ struct CameraPreview: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {
         if let preview = nsView.layer as? AVCaptureVideoPreviewLayer {
             preview.frame = nsView.bounds
+            configureMirroring(on: preview)
         }
+    }
+
+    private func configureMirroring(on preview: AVCaptureVideoPreviewLayer) {
+        if let connection = preview.connection,
+           connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = false
+        }
+        preview.setAffineTransform(mirrored ? CGAffineTransform(scaleX: -1, y: 1) : .identity)
     }
 }

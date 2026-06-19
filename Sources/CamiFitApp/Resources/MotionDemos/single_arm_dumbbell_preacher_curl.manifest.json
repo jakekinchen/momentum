@@ -1,0 +1,144 @@
+{
+  "acceptance_status": "blocked_visual_rig_review_failed",
+  "exercise_id": "single_arm_dumbbell_preacher_curl",
+  "golden_comparison": {
+    "status": "not_applicable",
+    "reason": "No protected preacher-curl golden comparator exists yet; Bodyweight Lunge remains the protected lunge-family extractor comparator."
+  },
+  "visual_review": {
+    "status": "failed",
+    "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_final_reps": 1
+  },
+  "live_app_review": {
+    "status": "failed",
+    "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review.",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 4,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension"
+    ]
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 8681671,
+      "sha256": "7a6448ebb31bf3dcb57183063ef4a51a8adc6e306122d932ba52f07f4afc5173"
+    },
+    "raw_trace": {
+      "bytes": 1764280,
+      "sha256": "256d426966d2e4a311ed684276713a9bc5961d79bd54efcfaf7e87de8251f01a"
+    },
+    "normalizer": {
+      "bytes": 23651,
+      "sha256": "260984d96715444369629284345ac4cf78164ff34cb30042578d7944c7fb7c54"
+    },
+    "output_trace": {
+      "bytes": 83612,
+      "sha256": "ff23a465cec5d47a9a2c824e74d8da38d9b07910e9ed406486696bc515f2d630"
+    }
+  },
+  "loop_closure": "source_timed_anatomical_closed_loop",
+  "normalizer": "scripts/motion_reference/normalize_single_arm_dumbbell_preacher_curl_trace.py",
+  "output_trace": "dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/extract_0_24916/single_arm_dumbbell_preacher_curl.external.jsonl",
+  "primary_side": "right",
+  "playable_trace_packaged": false,
+  "qa_gates": [
+    "licensed_source_recorded",
+    "raw_pose_reviewed",
+    "single_subject_side_view_preacher_curl",
+    "real_extended_flexed_extended_source_cycle",
+    "source_timed_anatomical_retarget",
+    "upper_arm_stable",
+    "constant_forearm_length",
+    "loop_boundary_stable",
+    "engine_counts_one_rep",
+    "agent_visual_reviewed"
+  ],
+  "raw_trace": "dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/extract_0_24916/raw_mediapipe.jsonl",
+  "required_output_landmarks": [
+    "primary.shoulder",
+    "primary.elbow",
+    "primary.wrist",
+    "primary.hip"
+  ],
+  "retarget": "source_timed_anatomical_side_view_avatar_rig",
+  "source_attribution": "tixonov_valentin / Pixabay",
+  "source_kind": "licensed_external_reference_trace",
+  "source_label": "Pixabay 66991 Crossfit Gym Workout Training",
+  "source_license": "Pixabay Content License",
+  "source_media_url": "https://pixabay.com/videos/crossfit-gym-workout-training-66991/",
+  "source_page": "https://pixabay.com/videos/crossfit-gym-workout-training-66991/",
+  "source_video": "dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/crossfit_gym_workout_training_66991.mp4",
+  "rejected_sources": {
+    "status": "none_retained_for_promotion_review",
+    "review_scope": "Promotion review retained the Pixabay 66991 source and no alternate rejected source-candidate records were preserved in this slice.",
+    "reason": "The accepted source is pinned by source page, license, attribution, raw trace, normalizer, visual review, engine replay, and artifact integrity. Future source changes must add rejected_candidates before promotion."
+  },
+  "summary": {
+    "cycle_end_index": 64,
+    "cycle_flex_index": 56,
+    "cycle_start_index": 41,
+    "extended_settle_frames": 3,
+    "extended_settle_interval_ms": 100,
+    "frames": 27,
+    "max_endpoint_delta": 0.0,
+    "max_forearm_length_ratio": 1.0,
+    "max_primary_elbow_angle": 177.38,
+    "max_torso_tilt": 5.91,
+    "max_upper_arm_length_ratio": 1.0,
+    "max_upper_arm_tilt": 22.62,
+    "min_primary_elbow_angle": 47.38,
+    "primary_elbow_angle_end": 177.38,
+    "primary_elbow_angle_flex": 47.38,
+    "primary_elbow_angle_start": 177.38,
+    "raw_end_elbow_angle": 152.24,
+    "raw_endpoint_drift": {
+      "right.elbow": 0.0027,
+      "right.shoulder": 0.0023,
+      "right.wrist": 0.0145
+    },
+    "raw_flex_elbow_angle": 24.12,
+    "raw_min_confidence": 0.9255,
+    "raw_rom_degrees": 121.14,
+    "raw_start_elbow_angle": 145.26,
+    "retarget_mode": "source_timed_anatomical_side_view_avatar_rig",
+    "source_end_timestamp_ms": 6400,
+    "source_flex_timestamp_ms": 5600,
+    "source_indices": [
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64
+    ],
+    "source_start_timestamp_ms": 4100
+  },
+  "viewer_command": "cp dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/extract_0_24916/single_arm_dumbbell_preacher_curl.external.jsonl Sources/CamiFitApp/Resources/MotionDemos/single_arm_dumbbell_preacher_curl.jsonl && cp dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/extract_0_24916/single_arm_dumbbell_preacher_curl.external.manifest.json Sources/CamiFitApp/Resources/MotionDemos/single_arm_dumbbell_preacher_curl.manifest.json && CAMIFIT_GUIDE_EXERCISE=single_arm_dumbbell_preacher_curl ./script/build_and_run.sh --verify # DEMOTED 2026-06-09: review-only until fixed-frame installed-app avatar visual review passes.",
+  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review."
+}

@@ -13,6 +13,14 @@ final class OnboardingFlowTests: XCTestCase {
         print("onboarding-steps order=movement,engine,coach,memory,privacy count=\(steps.count)")
     }
 
+    func testOnboardingCompletionIsVersionedForFirstLaunchFlow() {
+        XCTAssertEqual(OnboardingCoordinator.completedStorageKey, "camifit.onboarding.completed")
+        XCTAssertEqual(OnboardingCoordinator.completedVersionStorageKey, "camifit.onboarding.completedVersion")
+        XCTAssertGreaterThanOrEqual(OnboardingCoordinator.currentVersion, 2)
+
+        print("onboarding-versioned-completion version=\(OnboardingCoordinator.currentVersion)")
+    }
+
     @MainActor
     func testOnboardingCoordinatorShowsAndDismissesTour() {
         let coordinator = OnboardingCoordinator()

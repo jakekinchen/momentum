@@ -1,7 +1,5 @@
 # GOAL
 
-<stop-orchestrator/>
-
 ## Active Mission
 
 Finish the broader candidate-assessment dashboard submission on top of the
@@ -11,11 +9,11 @@ receipts, and Coach Copilot fact cards.
 
 ## Current Milestone
 
-Test quality hardening complete
+Assignment conformance closeout
 
 ## Current Slice
 
-docs/briefs/016-test-quality-hardening.md
+docs/briefs/017-assignment-conformance-closeout.md
 
 ## Stop Conditions
 

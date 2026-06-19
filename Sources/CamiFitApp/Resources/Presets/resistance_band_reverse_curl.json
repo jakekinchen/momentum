@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "resistance_band_reverse_curl",
+  "name": "Resistance Band Reverse Curl",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "primary.shoulder",
+      "primary.elbow",
+      "primary.wrist",
+      "primary.hip"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "auto_lock",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Stand side-on with your arm extended and the band anchored under your feet",
+        "capture_seconds": 1.0,
+        "signals": [
+          "curl_elbow",
+          "upper_arm_tilt",
+          "torso_tilt"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "primary.shoulder",
+    "elbow": "primary.elbow",
+    "wrist": "primary.wrist",
+    "hip": "primary.hip"
+  },
+  "signals": {
+    "curl_elbow_raw": "angle(primary.shoulder, primary.elbow, primary.wrist)",
+    "upper_arm_tilt_raw": "angle_to_vertical(primary.shoulder, primary.elbow)",
+    "torso_raw": "angle_to_vertical(primary.shoulder, primary.hip)"
+  },
+  "filters": {
+    "curl_elbow": {
+      "source": "curl_elbow_raw",
+      "type": "ema",
+      "alpha": 0.45
+    },
+    "upper_arm_tilt": {
+      "source": "upper_arm_tilt_raw",
+      "type": "median",
+      "window_ms": 200
+    },
+    "torso_tilt": {
+      "source": "torso_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "phase_signal": "curl_elbow",
+    "down_when": "curl_elbow < 85",
+    "down_min_ms": 100,
+    "bottom_min_ms": 80,
+    "up_when": "curl_elbow > 150",
+    "up_min_ms": 100,
+    "min_rom_deg": 60,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "curl_height",
+      "when": "phase == 'bottom'",
+      "expect": "curl_elbow <= 80",
+      "min_violation_ms": 250,
+      "cue": "Curl until your forearm is near the top",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
+    },
+    {
+      "id": "upper_arm",
+      "when": "phase in ['descending','bottom']",
+      "expect": "upper_arm_tilt <= 25",
+      "min_violation_ms": 250,
+      "cue": "Keep your upper arm still",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "torso",
+      "when": "phase in ['descending','bottom']",
+      "expect": "torso_tilt <= 15",
+      "min_violation_ms": 250,
+      "cue": "Stand tall while you curl",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000
+    }
+  ],
+  "set": {
+    "target_reps": 12
+  }
+}

@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+:root {
+  --background: #efede5;
+  --foreground: #171713;
+  --muted: #5d594f;
+  --panel: rgba(245, 247, 239, 0.075);
+  --panel-strong: rgba(245, 247, 239, 0.13);
+  --line: rgba(245, 247, 239, 0.16);
+  --lime: #d7ff5f;
+  --mint: #65ffd2;
+  --ember: #ff8a4c;
+  --ink: #0c1512;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Inter", "SF Pro Display", "SF Pro Text", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", ui-monospace, "Roboto Mono",
+    monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+@layer base {
+  a {
+    text-decoration: none;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+  }
+}
+
+::selection {
+  background: rgba(23, 23, 19, 0.18);
+  color: #171713;
+}
+
+@utility brand-bg-lime {
+  background-color: #d7ff5f;
+}
+
+@utility brand-text-ink {
+  color: #0c1512;
+}
+
+@utility brand-text-lime {
+  color: #d7ff5f;
+}
+
+@utility brand-text-mint {
+  color: #65ffd2;
+}
+
+@utility brand-border-mint {
+  border-color: #65ffd2;
+}
+
+@utility brand-hover-border-lime {
+  &:hover {
+    border-color: #d7ff5f;
+  }
+}

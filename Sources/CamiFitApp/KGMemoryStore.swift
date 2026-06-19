@@ -12,7 +12,7 @@ final class KGMemoryStore: ObservableObject {
 
     init(applicationSupportDirectory: URL? = nil,
          fileManager: FileManager = .default,
-         baseArtifactData: @escaping () throws -> Data = { try ArtifactLoader.bundledData() }) {
+         baseArtifactData: @escaping () throws -> Data = { try ArtifactLoader.assessmentBundledData() }) {
         self.applicationSupportDirectory = applicationSupportDirectory ?? (try? KGWorkspace.applicationSupportDirectory()) ?? fileManager.temporaryDirectory
         self.fileManager = fileManager
         self.baseArtifactData = baseArtifactData

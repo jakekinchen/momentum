@@ -49,6 +49,12 @@ public final class AppPoseProviderSession {
 
         do {
             try viewModel.selectPreset(id: selectedPresetID)
+        } catch AppExerciseSessionError.presetRequiresReferenceCapture(_) {
+            return summary(
+                frameCount: 0,
+                state: viewModel.state,
+                diagnosticText: "Preset needs reference clip: \(selectedPresetID)"
+            )
         } catch {
             return summary(
                 frameCount: 0,

@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "bench_lying_single_arm_dumbbell_tricep_extension",
+  "name": "Bench-Lying Single-Arm Dumbbell Tricep Extension",
+  "coordinate_space": "image2d",
+  "setup": {
+    "required_view": "side",
+    "required_landmarks": [
+      "left.shoulder",
+      "left.elbow",
+      "left.wrist",
+      "left.hip"
+    ],
+    "min_visibility": 0.65,
+    "primary_side": "left",
+    "mirror_handling": "detect",
+    "calibration": {
+      "top_pose": {
+        "instruction": "Lie side-on on a flat bench with the working elbow extended",
+        "capture_seconds": 1.0,
+        "signals": [
+          "elbow_angle",
+          "upper_arm_tilt",
+          "torso_tilt"
+        ]
+      }
+    }
+  },
+  "landmark_aliases": {
+    "shoulder": "left.shoulder",
+    "elbow": "left.elbow",
+    "wrist": "left.wrist",
+    "hip": "left.hip"
+  },
+  "signals": {
+    "elbow_angle_raw": "angle(left.shoulder, left.elbow, left.wrist)",
+    "upper_arm_tilt_raw": "angle_to_vertical(left.elbow, left.shoulder)",
+    "torso_raw": "angle_to_horizontal(left.hip, left.shoulder)"
+  },
+  "filters": {
+    "elbow_angle": {
+      "source": "elbow_angle_raw",
+      "type": "ema",
+      "alpha": 0.45
+    },
+    "upper_arm_tilt": {
+      "source": "upper_arm_tilt_raw",
+      "type": "median",
+      "window_ms": 200
+    },
+    "torso_tilt": {
+      "source": "torso_raw",
+      "type": "median",
+      "window_ms": 200
+    }
+  },
+  "validity": {
+    "min_signal_confidence": 0.65,
+    "phase_signal_invalid_policy": "freeze_then_reset",
+    "freeze_ms": 500,
+    "reset_after_ms": 1500
+  },
+  "rep": {
+    "phase_signal": "elbow_angle",
+    "down_when": "elbow_angle < 90",
+    "down_min_ms": 100,
+    "bottom_min_ms": 80,
+    "up_when": "elbow_angle > 150",
+    "up_min_ms": 100,
+    "min_rom_deg": 55,
+    "cooldown_ms": 250
+  },
+  "hold": null,
+  "form_rules": [
+    {
+      "id": "extension_depth",
+      "when": "phase == 'bottom'",
+      "expect": "elbow_angle <= 88",
+      "min_violation_ms": 250,
+      "cue": "Lower with control before extending",
+      "severity": "warn",
+      "score_weight": 10,
+      "cooldown_ms": 1500,
+      "evaluation": "extreme"
+    },
+    {
+      "id": "upper_arm",
+      "when": "phase in ['descending','bottom']",
+      "expect": "upper_arm_tilt <= 55",
+      "min_violation_ms": 250,
+      "cue": "Keep your upper arm steady",
+      "severity": "warn",
+      "score_weight": 8,
+      "cooldown_ms": 1500
+    },
+    {
+      "id": "bench_line",
+      "when": "phase in ['descending','bottom']",
+      "expect": "torso_tilt <= 20",
+      "min_violation_ms": 250,
+      "cue": "Stay flat on the bench",
+      "severity": "info",
+      "score_weight": 4,
+      "cooldown_ms": 2000
+    }
+  ],
+  "set": {
+    "target_reps": 12
+  }
+}

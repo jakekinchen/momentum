@@ -1,5 +1,4 @@
 import CamiFitEngine
-import Combine
 import Foundation
 import SwiftUI
 
@@ -11,37 +10,32 @@ private enum CamiFitLaunchEnvironment {
         }
         return id
     }
-
-    static var startsInGuideMode: Bool {
-        guideExerciseID != nil
-    }
-}
-
-final class SidebarSettingsPrompt: ObservableObject {
-    @Published var generation = 0
-
-    func showCameraSettings() {
-        generation += 1
-    }
 }
 
 struct ContentView: View {
     @EnvironmentObject private var onboarding: OnboardingCoordinator
+    @EnvironmentObject private var settingsSelection: AppSettingsSelection
+    @Environment(\.openSettings) private var openSettings
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var viewModel: AppExerciseSessionViewModel
+    @ObservedObject var liveSession: LiveSession
     @ObservedObject var codex: CodexAppServerClient
-    @AppStorage("camifit.onboarding.completed") private var didCompleteOnboarding = false
+    @AppStorage(OnboardingCoordinator.completedStorageKey) private var didCompleteOnboarding = false
+    @AppStorage(OnboardingCoordinator.completedVersionStorageKey) private var completedOnboardingVersion = 0
     @StateObject private var routineRunner: RoutineRunner
-    @StateObject private var liveSession = LiveSession()
     @StateObject private var chat = ChatViewModel()
     @StateObject private var exerciseMode = ExerciseModeController()
     @StateObject private var memoryStore = KGMemoryStore()
-    @StateObject private var settingsPrompt = SidebarSettingsPrompt()
     @StateObject private var routineLibrary = RoutineLibraryStore()
     @State private var inspectorState = AppInspectorState()
     @State private var lastDebriefedReport: WorkoutCompletionReport?
+    @State private var presentsInitialOnboarding = false
+    @State private var didBootstrapLaunch = false
+    @State private var didPresentInitialOnboarding = false
 
-    init(viewModel: AppExerciseSessionViewModel, codex: CodexAppServerClient) {
+    init(viewModel: AppExerciseSessionViewModel, liveSession: LiveSession, codex: CodexAppServerClient) {
         self.viewModel = viewModel
+        self.liveSession = liveSession
         self.codex = codex
         _routineRunner = StateObject(wrappedValue: RoutineRunner(viewModel: viewModel))
     }
@@ -56,19 +50,12 @@ struct ContentView: View {
                     ToolbarSpacer(.flexible)
 
                     ToolbarItemGroup {
-                        Button("Reset", systemImage: "arrow.counterclockwise") {
-                            viewModel.resetLiveSession()
-                            chat.resetSession()
-                        }
-                        .keyboardShortcut("r", modifiers: [.command])
-                        .help("Reset exercise and chat session")
-
                         Button {
                             onboarding.showTour()
                         } label: {
                             Label("Tour", systemImage: "questionmark.circle")
                         }
-                        .help("Show the Future Coach feature tour")
+                        .help("Show the Momentum feature tour")
                     }
 
                     ToolbarItem {
@@ -93,19 +80,27 @@ struct ContentView: View {
                     Group {
                         switch inspectorState.mode {
                         case .coach:
-                            ChatPanel()
+                            ChatPanel { operationID in
+                                withAnimation(.smooth) {
+                                    inspectorState.showMemory(focusedOperationID: operationID)
+                                }
+                            }
                         case .memory:
-                            KGMemoryPanel(store: memoryStore)
+                            KGMemoryPanel(
+                                store: memoryStore,
+                                focusedOperationID: inspectorState.focusedMemoryOperationID
+                            )
                         }
                     }
                     .inspectorColumnWidth(min: 260, ideal: 320, max: 380)
                 }
         }
-        .navigationTitle("Momentum")
-        .navigationSubtitle("A Future Coach")
-        .sheet(isPresented: $onboarding.isPresented, onDismiss: completeOnboardingIfNeeded) {
+        .navigationTitle(ProductBrand.shortName)
+        .navigationSubtitle("Your Future Coach")
+        .sheet(isPresented: onboardingSheetBinding, onDismiss: completeOnboardingIfNeeded) {
             OnboardingFlowView(onFinish: {
-                didCompleteOnboarding = true
+                markOnboardingCompleted()
+                presentsInitialOnboarding = false
                 onboarding.dismiss()
             })
         }
@@ -115,36 +110,12 @@ struct ContentView: View {
         .environmentObject(codex)
         .environmentObject(routineLibrary)
         .environmentObject(routineRunner)
-        .environmentObject(settingsPrompt)
         .environmentObject(exerciseMode)
         .onAppear {
-            viewModel.loadAvailablePresets()
-            if let guideExerciseID = CamiFitLaunchEnvironment.guideExerciseID {
-                try? viewModel.selectPreset(id: guideExerciseID)
-                try? routineRunner.startExercise(exerciseID: guideExerciseID, mode: .guide)
-                didCompleteOnboarding = true
-                onboarding.dismiss()
-            }
-            viewModel.loadRecordedRuns()
-            routineLibrary.load()
-            liveSession.refreshCameras()
-            liveSession.requestCameraSettingsIfNoCameras()
-            chat.codex = codex
-            chat.memoryStore = memoryStore
-            chat.coachActionDispatcher = CoachActionDispatcher(
-                viewModel: viewModel,
-                routineRunner: routineRunner,
-                modeController: exerciseMode
-            )
-            codex.start()
-            memoryStore.load()
-            routineRunner.updateCameraReadiness(liveSession.camera.readiness)
-            routineRunner.updatePoseReadiness(liveSession.poseReadiness)
-            if !didCompleteOnboarding {
-                DispatchQueue.main.async {
-                    onboarding.showTour()
-                }
-            }
+            bootstrapLaunchIfNeeded()
+        }
+        .task {
+            bootstrapLaunchIfNeeded()
         }
         .onDisappear {
             routineRunner.cancel()
@@ -157,14 +128,106 @@ struct ContentView: View {
             chat.requestWorkoutDebrief(for: report)
         }
         .onReceive(liveSession.$cameraSettingsPromptID.compactMap { $0 }) { _ in
-            settingsPrompt.showCameraSettings()
+            presentCameraSettings()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, liveSession.shouldRefreshCameraAccessAfterSettings else { return }
+            liveSession.refreshCameraAccessAfterSettings()
+            routineRunner.updateCameraReadiness(liveSession.camera.readiness)
         }
     }
 
-    private func completeOnboardingIfNeeded() {
-        if !didCompleteOnboarding {
-            didCompleteOnboarding = true
+    private var hasCompletedCurrentOnboarding: Bool {
+        didCompleteOnboarding && completedOnboardingVersion >= OnboardingCoordinator.currentVersion
+    }
+
+    private var onboardingSheetBinding: Binding<Bool> {
+        Binding {
+            onboarding.isPresented || presentsInitialOnboarding
+        } set: { isPresented in
+            if isPresented {
+                presentsInitialOnboarding = true
+            } else {
+                presentsInitialOnboarding = false
+                onboarding.dismiss()
+            }
         }
+    }
+
+    private func bootstrapLaunchIfNeeded() {
+        guard !didBootstrapLaunch else { return }
+        didBootstrapLaunch = true
+
+        viewModel.loadAvailablePresets()
+        if let guideExerciseID = CamiFitLaunchEnvironment.guideExerciseID {
+            try? viewModel.selectPreset(id: guideExerciseID)
+            try? routineRunner.startExercise(exerciseID: guideExerciseID, mode: .guide)
+            markOnboardingCompleted()
+            presentsInitialOnboarding = false
+            onboarding.dismiss()
+        }
+        viewModel.loadRecordedRuns()
+        routineLibrary.load()
+        presentInitialOnboardingIfNeeded()
+        liveSession.refreshCameras()
+        if CamiFitLaunchEnvironment.guideExerciseID == nil {
+            if liveSession.availableCameras.isEmpty {
+                liveSession.requestCameraSettingsIfNoCameras()
+            } else {
+                let permissionDelay: TimeInterval = hasCompletedCurrentOnboarding ? 0.1 : 0.35
+                DispatchQueue.main.asyncAfter(deadline: .now() + permissionDelay) {
+                    liveSession.requestCameraPermissionOnLaunch()
+                }
+            }
+        }
+        chat.codex = codex
+        chat.memoryStore = memoryStore
+        chat.assignmentWorkoutPlanner = AssignmentWorkoutPlanner()
+        chat.assignmentCopilotProvider = AssignmentCopilotProvider()
+        let settingsSelection = settingsSelection
+        let openSettings = openSettings
+        let codex = codex
+        chat.onOpenAIAccountRequired = {
+            settingsSelection.promptForOpenAIChatSignIn()
+            codex.refreshAccount()
+            openSettings()
+        }
+        chat.coachActionDispatcher = CoachActionDispatcher(
+            viewModel: viewModel,
+            routineRunner: routineRunner,
+            modeController: exerciseMode
+        )
+        codex.start()
+        memoryStore.load()
+        routineRunner.updateCameraReadiness(liveSession.camera.readiness)
+        routineRunner.updatePoseReadiness(liveSession.poseReadiness)
+    }
+
+    private func presentInitialOnboardingIfNeeded() {
+        guard !didPresentInitialOnboarding,
+              CamiFitLaunchEnvironment.guideExerciseID == nil,
+              !hasCompletedCurrentOnboarding
+        else { return }
+
+        didPresentInitialOnboarding = true
+        presentsInitialOnboarding = true
+    }
+
+    private func markOnboardingCompleted() {
+        didCompleteOnboarding = true
+        completedOnboardingVersion = OnboardingCoordinator.currentVersion
+    }
+
+    private func completeOnboardingIfNeeded() {
+        if !hasCompletedCurrentOnboarding {
+            markOnboardingCompleted()
+        }
+    }
+
+    private func presentCameraSettings() {
+        liveSession.refreshCameras()
+        settingsSelection.selectedTab = .camera
+        openSettings()
     }
 }
 
@@ -176,6 +239,7 @@ enum AppInspectorMode: Equatable {
 struct AppInspectorState: Equatable {
     var isPresented = true
     var mode: AppInspectorMode = .coach
+    var focusedMemoryOperationID: String?
 
     mutating func toggleCoach() {
         if isPresented && mode == .coach {
@@ -188,11 +252,13 @@ struct AppInspectorState: Equatable {
     mutating func showCoach() {
         mode = .coach
         isPresented = true
+        focusedMemoryOperationID = nil
     }
 
-    mutating func showMemory() {
+    mutating func showMemory(focusedOperationID: String? = nil) {
         mode = .memory
         isPresented = true
+        focusedMemoryOperationID = focusedOperationID
     }
 
     func isActive(_ candidate: AppInspectorMode) -> Bool {
@@ -266,8 +332,14 @@ private struct HeroPreviewCard: View {
     @EnvironmentObject private var exerciseMode: ExerciseModeController
     @ObservedObject var liveSession: LiveSession
     @ObservedObject var formCheck: FormCheckController
-    @State private var feedMode: HeroFeedMode = CamiFitLaunchEnvironment.startsInGuideMode ? .avatarGuide : .tracking
+    @StateObject private var feedbackSpeaker = WorkoutFeedbackSpeaker()
+    @AppStorage(WorkoutFeedbackSpeaker.audioModeStorageKey) private var feedbackAudioModeRaw = WorkoutFeedbackAudioMode.spoken.rawValue
+    @State private var feedMode: HeroFeedMode = .avatarGuide
     @State private var showsSkeletonOverlay = true
+    @State private var feedbackEvent: WorkoutFeedbackEvent?
+    @State private var feedbackPresentation: CGFloat = 0
+    @State private var feedbackHaloExpansion: CGFloat = 0
+    @State private var feedbackDismissGeneration = 0
     @State private var repPulseStrength: CGFloat = 0
     @State private var repPulseGeneration = 0
 
@@ -323,11 +395,9 @@ private struct HeroPreviewCard: View {
                         Button {
                             withAnimation(.smooth) {
                                 if displayedFeedMode == .avatarGuide {
-                                    feedMode = .tracking
+                                    enterCameraMode()
                                 } else {
-                                    liveSession.stop()
-                                    model.resetLiveSession()
-                                    feedMode = .avatarGuide
+                                    exitCameraMode()
                                 }
                             }
                         } label: {
@@ -353,6 +423,17 @@ private struct HeroPreviewCard: View {
                 },
                 onRestart: { routineRunner.restartCurrentSet() }
             )
+
+            if let feedbackEvent {
+                HeroWorkoutFeedbackOverlay(
+                    event: feedbackEvent,
+                    presentation: feedbackPresentation,
+                    haloExpansion: feedbackHaloExpansion
+                )
+                    .id(feedbackEvent.id)
+                    .transition(.opacity)
+                    .zIndex(4)
+            }
 
             if let cueText = model.state.cueText {
                 VStack {
@@ -391,9 +472,12 @@ private struct HeroPreviewCard: View {
         .onChange(of: routineRunner.phase) { _, phase in
             syncLivePipeline(for: phase)
         }
-        .onChange(of: model.state.repCount) { oldValue, newValue in
-            guard newValue > oldValue else { return }
-            triggerRepPulse()
+        .onChange(of: feedMode) { _, _ in
+            syncLivePipeline(for: routineRunner.phase)
+        }
+        .onReceive(model.$lastFeedbackEvent) { event in
+            guard let event else { return }
+            presentFeedback(event)
         }
         .onReceive(liveSession.camera.$readiness) { readiness in
             routineRunner.updateCameraReadiness(readiness)
@@ -406,6 +490,14 @@ private struct HeroPreviewCard: View {
         }
         .onChange(of: model.state.selectedExerciseID) { _, _ in
             formCheck.cancel()
+            guard !routineRunner.phase.needsCamera else { return }
+            if feedMode == .tracking {
+                ensureStandaloneLiveCamera()
+            } else {
+                withAnimation(.smooth) {
+                    feedMode = .avatarGuide
+                }
+            }
         }
         .onChange(of: routineRunner.phase) { _, phase in
             if case .idle = phase {
@@ -500,19 +592,27 @@ private struct HeroPreviewCard: View {
     }
 
     private func syncLivePipeline(for phase: RoutineRunPhase) {
-        if phase.usesGuide {
+        switch HeroCameraPipelinePolicy.action(
+            feedMode: feedMode,
+            phase: phase,
+            liveRunning: liveSession.running,
+            isLiveCamera: liveSession.isLiveCamera,
+            routesPoseFramesExternally: liveSession.routesPoseFramesExternally
+        ) {
+        case .none:
+            break
+        case .stop:
             liveSession.stop()
-            feedMode = .avatarGuide
-            return
-        }
-
-        if phase.needsCamera {
-            feedMode = .tracking
+            if phase.usesGuide || feedMode == .avatarGuide {
+                feedMode = .avatarGuide
+            }
+        case .startRoutine:
+            if feedMode != .tracking {
+                feedMode = .tracking
+            }
             ensureRoutineLiveCamera()
-        } else if case .complete = phase {
-            liveSession.stop()
-        } else if case .failed = phase {
-            liveSession.stop()
+        case .startStandalone:
+            ensureStandaloneLiveCamera()
         }
     }
 
@@ -526,18 +626,69 @@ private struct HeroPreviewCard: View {
         }
     }
 
+    private func ensureStandaloneLiveCamera() {
+        if liveSession.running, liveSession.isLiveCamera, !liveSession.routesPoseFramesExternally {
+            return
+        }
+        liveSession.stop()
+        liveSession.start(viewModel: model)
+    }
+
+    private func enterCameraMode() {
+        feedMode = .tracking
+        syncLivePipeline(for: routineRunner.phase)
+    }
+
+    private func exitCameraMode() {
+        feedMode = .avatarGuide
+        if !routineRunner.phase.needsCamera {
+            liveSession.stop()
+        }
+        model.resetLiveSession()
+    }
+
+    private func presentFeedback(_ event: WorkoutFeedbackEvent) {
+        feedbackDismissGeneration += 1
+        let generation = feedbackDismissGeneration
+
+        triggerRepPulse()
+        feedbackSpeaker.play(event, modeRawValue: feedbackAudioModeRaw)
+        feedbackPresentation = 0
+        feedbackHaloExpansion = 0
+        feedbackEvent = event
+
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.84, blendDuration: 0.08)) {
+            feedbackPresentation = 1
+        }
+        withAnimation(.easeOut(duration: 1.45)) {
+            feedbackHaloExpansion = 1
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_450_000_000)
+            guard generation == feedbackDismissGeneration else { return }
+            withAnimation(.easeInOut(duration: 0.62)) {
+                feedbackPresentation = 0
+            }
+            try? await Task.sleep(nanoseconds: 640_000_000)
+            guard generation == feedbackDismissGeneration else { return }
+            feedbackHaloExpansion = 0
+            feedbackEvent = nil
+        }
+    }
+
     private func triggerRepPulse() {
         repPulseGeneration += 1
         let generation = repPulseGeneration
 
-        withAnimation(.easeOut(duration: 0.16)) {
+        withAnimation(.easeOut(duration: 0.28)) {
             repPulseStrength = 1
         }
 
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 520_000_000)
+            try? await Task.sleep(nanoseconds: 700_000_000)
             guard generation == repPulseGeneration else { return }
-            withAnimation(.easeOut(duration: 0.55)) {
+            withAnimation(.easeOut(duration: 1.15)) {
                 repPulseStrength = 0
             }
         }
@@ -548,27 +699,14 @@ private struct HeroPreviewCard: View {
 
         switch request.mode {
         case .guide:
-            liveSession.stop()
             formCheck.cancel()
-            feedMode = .avatarGuide
+            exitCameraMode()
         case .camera:
             formCheck.cancel()
-            if routineRunner.phase.needsCamera {
-                feedMode = .tracking
-                ensureRoutineLiveCamera()
-            } else {
-                liveSession.stop()
-                feedMode = .avatarGuide
-            }
+            enterCameraMode()
         case .matchForm:
             formCheck.begin(current: model.state)
-            if routineRunner.phase.needsCamera {
-                feedMode = .tracking
-                ensureRoutineLiveCamera()
-            } else {
-                liveSession.stop()
-                feedMode = .avatarGuide
-            }
+            enterCameraMode()
         }
     }
 }
@@ -576,6 +714,40 @@ private struct HeroPreviewCard: View {
 enum HeroFeedMode: Equatable {
     case tracking
     case avatarGuide
+}
+
+enum HeroCameraPipelineAction: Equatable {
+    case none
+    case stop
+    case startStandalone
+    case startRoutine
+}
+
+enum HeroCameraPipelinePolicy {
+    static func action(
+        feedMode: HeroFeedMode,
+        phase: RoutineRunPhase,
+        liveRunning: Bool,
+        isLiveCamera: Bool,
+        routesPoseFramesExternally: Bool
+    ) -> HeroCameraPipelineAction {
+        if phase.usesGuide {
+            return liveRunning ? .stop : .none
+        }
+        if phase.needsCamera {
+            return liveRunning && isLiveCamera && routesPoseFramesExternally ? .none : .startRoutine
+        }
+        if case .complete = phase {
+            return liveRunning ? .stop : .none
+        }
+        if case .failed = phase {
+            return liveRunning ? .stop : .none
+        }
+        if feedMode == .tracking {
+            return liveRunning && isLiveCamera && !routesPoseFramesExternally ? .none : .startStandalone
+        }
+        return liveRunning ? .stop : .none
+    }
 }
 
 struct PoseStageDisplayState: Equatable {
@@ -613,12 +785,19 @@ private struct PoseStage: View {
             if feedMode == .avatarGuide {
                 AvatarDemoStage()
             } else if liveSession.running && liveSession.isLiveCamera {
-                CameraPreview(session: liveSession.camera.session)
-                    .background(Color.black)
-                if showsSkeletonOverlay {
-                    LivePoseOverlay(state: model.latestPoseOverlayState, sourceSize: liveSession.sourceSize)
-                        .allowsHitTesting(false)
+                ZStack {
+                    CameraPreview(session: liveSession.camera.session, mirrored: false)
+                        .background(Color.black)
+                    if showsSkeletonOverlay {
+                        LivePoseOverlay(
+                            state: model.latestPoseOverlayState,
+                            sourceSize: liveSession.sourceSize,
+                            mirrored: false
+                        )
+                            .allowsHitTesting(false)
+                    }
                 }
+                .scaleEffect(x: -1, y: 1)
             } else {
                 LinearGradient(
                     colors: [Color(red: 0.05, green: 0.07, blue: 0.10), Color(red: 0.02, green: 0.03, blue: 0.05)],
@@ -640,7 +819,8 @@ private struct PoseStage: View {
                 FormTargetOverlay(
                     program: program,
                     progress: formMatchProgress,
-                    sourceSize: liveSession.sourceSize
+                    sourceSize: liveSession.sourceSize,
+                    mirrored: liveSession.running && liveSession.isLiveCamera
                 )
                 .allowsHitTesting(false)
                 .transition(.opacity.combined(with: .scale(scale: 0.98)))
@@ -670,7 +850,7 @@ private struct PoseStage: View {
                 .font(.system(size: 36, weight: .regular))
             Text("No pose data yet")
                 .font(.title3.weight(.semibold))
-            Text("Press Live Camera for webcam tracking.")
+            Text("Camera mode starts tracking automatically when it is active.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -716,6 +896,112 @@ private struct HeroRepPulseOverlay: View {
         }
         .opacity(Double(strength))
         .allowsHitTesting(false)
+    }
+}
+
+private struct HeroWorkoutFeedbackOverlay: View {
+    let event: WorkoutFeedbackEvent
+    let presentation: CGFloat
+    let haloExpansion: CGFloat
+
+    private var clampedPresentation: CGFloat {
+        min(max(presentation, 0), 1)
+    }
+
+    private var clampedHaloExpansion: CGFloat {
+        min(max(haloExpansion, 0), 1)
+    }
+
+    private var tint: Color {
+        switch event.emphasis {
+        case .counted:
+            return .yellow
+        case .clean:
+            return .green
+        case .complete:
+            return .cyan
+        }
+    }
+
+    private var symbolName: String {
+        event.emphasis == .complete ? "checkmark.circle.fill" : "checkmark"
+    }
+
+    private var confirmationDiameter: CGFloat {
+        event.kind == .holdComplete ? 336 : 320
+    }
+
+    private var contentWidth: CGFloat {
+        confirmationDiameter - 72
+    }
+
+    private var primaryFontSize: CGFloat {
+        event.kind == .holdComplete ? 82 : 118
+    }
+
+    var body: some View {
+        let presentation = clampedPresentation
+        let haloExpansion = clampedHaloExpansion
+        let haloOpacity = Double(presentation) * Double(1 - (haloExpansion * 0.48))
+        let contentScale = 0.94 + (0.06 * presentation)
+        let contentLift = 16 * (1 - presentation)
+
+        ZStack {
+            tint.opacity(0.12 * Double(presentation))
+                .blendMode(.screen)
+
+            Circle()
+                .fill(tint.opacity(0.10 * Double(presentation)))
+                .frame(width: confirmationDiameter, height: confirmationDiameter)
+                .scaleEffect(0.96 + (0.04 * presentation))
+                .blur(radius: 14)
+
+            Circle()
+                .fill(.black.opacity(0.20 * Double(presentation)))
+                .frame(width: confirmationDiameter, height: confirmationDiameter)
+
+            Circle()
+                .stroke(tint.opacity(0.46 * haloOpacity), lineWidth: 3)
+                .frame(width: confirmationDiameter, height: confirmationDiameter)
+                .scaleEffect(0.96 + (0.14 * haloExpansion))
+                .blur(radius: 0.4)
+
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(.black.opacity(0.28 * Double(presentation)))
+                        .frame(width: 64, height: 64)
+
+                    Image(systemName: symbolName)
+                        .font(.system(size: 38, weight: .bold))
+                        .foregroundStyle(tint)
+                        .shadow(color: tint.opacity(0.72), radius: 16)
+                }
+
+                Text(event.primaryText)
+                    .font(.system(size: primaryFontSize, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .contentTransition(.numericText())
+
+                Text(event.detailText)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+            .frame(width: contentWidth)
+            .frame(width: confirmationDiameter, height: confirmationDiameter)
+            .offset(y: contentLift)
+            .scaleEffect(contentScale)
+            .opacity(Double(presentation))
+            .shadow(color: .black.opacity(0.6), radius: 20, y: 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(event.primaryText), \(event.detailText)")
     }
 }
 
@@ -825,6 +1111,9 @@ private struct ActionControlBar: View {
     private var liveActive: Bool { liveSession.running && liveSession.isLiveCamera }
     private var guideActive: Bool { routineRunner.phase.usesGuide }
     private var routineOwnsCamera: Bool { routineRunner.phase.needsCamera }
+    private var showsRecordingControls: Bool {
+        ProcessInfo.processInfo.environment["CAMIFIT_SHOW_RECORDING_CONTROLS"] == "1"
+    }
     private var guideSecondsRemaining: Int? {
         if case let .guide(secondsRemaining) = routineRunner.phase {
             return secondsRemaining
@@ -884,6 +1173,7 @@ private struct ActionControlBar: View {
                     Button {
                         if liveActive {
                             liveSession.stop()
+                            feedMode = .avatarGuide
                         } else if routineRunner.isGuideOnlyExerciseRun {
                             liveSession.stop()
                             feedMode = .tracking
@@ -914,7 +1204,7 @@ private struct ActionControlBar: View {
                           ? "The skeleton overlay is only available during live camera tracking"
                           : "Show or hide the skeleton overlay while using the live camera")
 
-                    if liveActive {
+                    if liveActive && showsRecordingControls {
                         Button {
                             liveSession.toggleRecording()
                         } label: {
@@ -1017,13 +1307,11 @@ private struct ActionControlBar: View {
 // MARK: - Sidebar (session inputs)
 
 private enum SidebarTab: String, CaseIterable {
-    case settings
     case exercises
     case routines
 
     var title: String {
         switch self {
-        case .settings: "Settings"
         case .exercises: "Exercises"
         case .routines: "Routines"
         }
@@ -1031,7 +1319,6 @@ private enum SidebarTab: String, CaseIterable {
 
     var systemImage: String {
         switch self {
-        case .settings: "slider.horizontal.3"
         case .exercises: "figure.strengthtraining.functional"
         case .routines: "list.bullet.rectangle"
         }
@@ -1039,11 +1326,10 @@ private enum SidebarTab: String, CaseIterable {
 }
 
 private struct SessionSidebar: View {
-    @EnvironmentObject private var settingsPrompt: SidebarSettingsPrompt
-    @SceneStorage("camifit.sidebar.tab") private var selectedTabRaw = SidebarTab.settings.rawValue
+    @SceneStorage("camifit.sidebar.tab") private var selectedTabRaw = SidebarTab.exercises.rawValue
 
     private var selectedTab: SidebarTab {
-        SidebarTab(rawValue: selectedTabRaw) ?? .settings
+        SidebarTab(rawValue: selectedTabRaw) ?? .exercises
     }
 
     var body: some View {
@@ -1063,8 +1349,6 @@ private struct SessionSidebar: View {
 
             Group {
                 switch selectedTab {
-                case .settings:
-                    SessionSettingsSidebar()
                 case .exercises:
                     ExerciseLibrarySidebar()
                 case .routines:
@@ -1073,9 +1357,6 @@ private struct SessionSidebar: View {
             }
         }
         .navigationTitle(selectedTab.title)
-        .onReceive(settingsPrompt.$generation.dropFirst()) { _ in
-            selectedTabRaw = SidebarTab.settings.rawValue
-        }
     }
 
     private var selectedTabBinding: Binding<SidebarTab> {
@@ -1084,24 +1365,6 @@ private struct SessionSidebar: View {
         } set: { tab in
             selectedTabRaw = tab.rawValue
         }
-    }
-}
-
-private struct SessionSettingsSidebar: View {
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                CameraSection()
-                #if DEBUG
-                DeveloperSection()
-                #endif
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-        .scrollIndicators(.automatic)
-        .controlSize(.small)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
@@ -1181,56 +1444,107 @@ private struct SidebarDrillInPane<ListContent: View, DetailContent: View>: View 
 private struct ExerciseLibrarySidebar: View {
     @EnvironmentObject private var model: AppExerciseSessionViewModel
     @EnvironmentObject private var routineRunner: RoutineRunner
-    @State private var focusedPresetID: String?
+    @State private var focusedItem: ExerciseLibraryFocus?
+    @State private var assessmentExercises: [AssessmentExerciseSummary] = []
+    @State private var assessmentCatalogError: String?
 
     var body: some View {
         SidebarDrillInPane(
-            isShowingDetail: focusedPreset != nil,
+            isShowingDetail: focusedItem != nil,
             backTitle: "Exercises",
-            onBack: { focusedPresetID = nil }
+            onBack: { focusedItem = nil }
         ) {
             exerciseList
         } detail: {
             if let focusedPreset {
                 ExerciseDetailPanel(preset: focusedPreset)
+            } else if let focusedAssessmentExercise {
+                AssessmentExerciseDetailPanel(exercise: focusedAssessmentExercise)
             } else {
                 Text("Exercise unavailable")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
-        .onAppear { model.loadAvailablePresets() }
+        .onAppear {
+            model.loadAvailablePresets()
+            loadAssessmentExercises()
+        }
     }
 
     private var focusedPreset: AppPresetSummary? {
-        guard let focusedPresetID else { return nil }
-        return model.availablePresets.first { $0.id == focusedPresetID }
+        guard case let .preset(id)? = focusedItem else { return nil }
+        return model.availablePresets.first { $0.id == id }
+    }
+
+    private var focusedAssessmentExercise: AssessmentExerciseSummary? {
+        guard case let .assessment(id)? = focusedItem else { return nil }
+        return assessmentExercises.first { $0.id == id }
     }
 
     private var exerciseList: some View {
         List {
-            if model.availablePresets.isEmpty {
-                Text("No exercises available")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(model.availablePresets) { preset in
+            Section("Trackable presets") {
+                if guideReadyPresets.isEmpty {
+                    Text("No trackable presets")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(guideReadyPresets) { preset in
                     Button {
                         open(preset)
                     } label: {
                         ExerciseSidebarRow(preset: preset, isSelected: preset.id == model.state.selectedExerciseID)
                     }
                     .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets(top: 3, leading: 10, bottom: 3, trailing: 10))
+                }
+            }
+
+            Section("Assessment catalog") {
+                if let assessmentCatalogError {
+                    Text(assessmentCatalogError)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                } else if assessmentExercises.isEmpty {
+                    Text("No assessment exercises")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(assessmentExercises) { exercise in
+                    Button {
+                        open(exercise)
+                    } label: {
+                        AssessmentExerciseSidebarRow(
+                            exercise: exercise,
+                            isFocused: focusedItem == .assessment(exercise.id)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets(top: 3, leading: 10, bottom: 3, trailing: 10))
                 }
             }
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
+        .padding(.top, 8)
+    }
+
+    private var guideReadyPresets: [AppPresetSummary] {
+        model.availablePresets.filter { $0.trackingReadiness == .guideReady }
     }
 
     private func open(_ preset: AppPresetSummary) {
-        select(preset)
-        focusedPresetID = preset.id
+        if preset.trackingReadiness == .guideReady {
+            select(preset)
+        }
+        focusedItem = .preset(preset.id)
+    }
+
+    private func open(_ exercise: AssessmentExerciseSummary) {
+        focusedItem = .assessment(exercise.id)
     }
 
     private func select(_ preset: AppPresetSummary) {
@@ -1239,6 +1553,21 @@ private struct ExerciseLibrarySidebar: View {
             try? model.selectPreset(id: preset.id)
         }
     }
+
+    private func loadAssessmentExercises() {
+        guard assessmentExercises.isEmpty else { return }
+        do {
+            assessmentExercises = try AssignmentExerciseCatalog.loadAssessmentExercises()
+            assessmentCatalogError = nil
+        } catch {
+            assessmentCatalogError = "Assessment catalog unavailable"
+        }
+    }
+}
+
+private enum ExerciseLibraryFocus: Equatable {
+    case preset(String)
+    case assessment(String)
 }
 
 private struct ExerciseSidebarRow: View {
@@ -1246,20 +1575,22 @@ private struct ExerciseSidebarRow: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 9) {
-            Image(systemName: preset.kind == .reps ? "repeat" : "timer")
-                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                .frame(width: 18)
+        HStack(spacing: 10) {
+            SidebarRowGlyph(
+                systemImage: preset.kind == .reps ? "repeat" : "timer",
+                tint: preset.trackingReadiness == .guideReady ? (preset.kind == .reps ? .cyan : .blue) : .orange,
+                isSelected: isSelected
+            )
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(preset.name)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
-                Text(preset.kind == .reps ? "Counts reps" : "Timed hold")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(preset.trackingReadiness == .guideReady ? (preset.kind == .reps ? "Counts reps" : "Timed hold") : preset.trackingReadiness.displayText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(preset.trackingReadiness == .guideReady ? Color.secondary : Color.orange)
                     .lineLimit(1)
             }
 
@@ -1267,12 +1598,163 @@ private struct ExerciseSidebarRow: View {
 
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.caption.weight(.semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.green)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
         }
         .contentShape(Rectangle())
-        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? Color.accentColor.opacity(0.10) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isSelected ? Color.accentColor.opacity(0.18) : Color.clear, lineWidth: 1)
+        )
+    }
+}
+
+private struct AssessmentExerciseSidebarRow: View {
+    let exercise: AssessmentExerciseSummary
+    let isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            SidebarRowGlyph(
+                systemImage: "point.3.connected.trianglepath.dotted",
+                tint: .orange,
+                isSelected: isFocused
+            )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(exercise.name)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(exercise.statusText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        .padding(.horizontal, 6)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isFocused ? Color.orange.opacity(0.10) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isFocused ? Color.orange.opacity(0.18) : Color.clear, lineWidth: 1)
+        )
+    }
+}
+
+private struct SidebarRowGlyph: View {
+    let systemImage: String
+    let tint: Color
+    let isSelected: Bool
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(isSelected ? tint : Color.secondary)
+            .frame(width: 28, height: 28)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(tint.opacity(isSelected ? 0.18 : 0.10))
+            )
+    }
+}
+
+private struct AssessmentExerciseDetailPanel: View {
+    let exercise: AssessmentExerciseSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            header
+
+            SidebarMetricGrid(metrics: [
+                SidebarMetric(label: "Tracking", value: exercise.statusText, systemImage: "checklist.unchecked"),
+                SidebarMetric(label: "Measures", value: exercise.trackingCoverage.status.measurementSupportText, systemImage: "ruler"),
+                SidebarMetric(label: "Maps To", value: exercise.mappedPresetText, systemImage: "figure.walk.motion"),
+                SidebarMetric(label: "Mode", value: exercise.modeText, systemImage: "slider.horizontal.3"),
+                SidebarMetric(label: "Source", value: sourceText, systemImage: "number"),
+                SidebarMetric(label: "Catalog", value: "Assessment KG", systemImage: "point.3.connected.trianglepath.dotted")
+            ])
+
+            AssessmentExerciseTagSection(title: "Tracking Notes", systemImage: "info.circle", items: exercise.trackingCoverage.reasons)
+            AssessmentExerciseTagSection(title: "Equipment", systemImage: "dumbbell", items: exercise.equipmentNames)
+            AssessmentExerciseTagSection(title: "Movement", systemImage: "figure.run", items: exercise.movementPatternNames)
+            AssessmentExerciseTagSection(title: "Muscles", systemImage: "figure.strengthtraining.functional", items: exercise.muscleGroupNames)
+            AssessmentExerciseTagSection(title: "Stress Regions", systemImage: "waveform.path.ecg", items: exercise.bodyRegionNames)
+            AssessmentExerciseTagSection(title: "Family", systemImage: "square.stack.3d.up", items: exercise.familyNames)
+        }
+        .padding(14)
+    }
+
+    private var sourceText: String {
+        guard let sourceExerciseID = exercise.sourceExerciseID else { return "Synthetic" }
+        return String(sourceExerciseID.prefix(8))
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "point.3.connected.trianglepath.dotted")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.orange)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(exercise.name)
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(3)
+                Text(exercise.statusText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+        }
+    }
+}
+
+private struct AssessmentExerciseTagSection: View {
+    let title: String
+    let systemImage: String
+    let items: [String]
+
+    var body: some View {
+        SidebarDetailSection(title: title) {
+            if items.isEmpty {
+                Text("None recorded")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 7) {
+                    ForEach(items, id: \.self) { item in
+                        Label(item, systemImage: systemImage)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1333,9 +1815,9 @@ private struct ExerciseDetailPanel: View {
                 Text(preset.name)
                     .font(.title3.weight(.semibold))
                     .lineLimit(2)
-                Text(preset.kind == .reps ? "Counts reps" : "Timed hold")
+                Text(preset.trackingReadiness == .guideReady ? (preset.kind == .reps ? "Counts reps" : "Timed hold") : preset.trackingReadiness.displayText)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(preset.trackingReadiness == .guideReady ? Color.secondary : Color.orange)
             }
 
             Spacer(minLength: 8)
@@ -1466,14 +1948,20 @@ private struct RoutineLibrarySidebar: View {
                     Button {
                         open(routine)
                     } label: {
-                        RoutineSidebarRow(routine: routine, summary: summary(for: routine))
+                        RoutineSidebarRow(
+                            routine: routine,
+                            summary: summary(for: routine),
+                            isSelected: routine.id == routineLibrary.selectedRoutineID
+                        )
                     }
                     .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets(top: 3, leading: 10, bottom: 3, trailing: 10))
                 }
             }
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
+        .padding(.top, 8)
     }
 
     private func open(_ routine: WorkoutRoutine) {
@@ -1495,33 +1983,51 @@ private struct RoutineLibrarySidebar: View {
 private struct RoutineSidebarRow: View {
     let routine: WorkoutRoutine
     let summary: RoutinePresentationSummary
+    let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 9) {
-            Image(systemName: "list.bullet.rectangle")
-                .foregroundStyle(summary.isRunnable ? Color.accentColor : Color.orange)
-                .frame(width: 18)
+        HStack(spacing: 10) {
+            SidebarRowGlyph(
+                systemImage: "list.bullet.rectangle",
+                tint: summary.isRunnable ? .green : .orange,
+                isSelected: isSelected
+            )
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(routine.name)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 Text(summary.compactDetailText)
-                    .font(.caption)
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
 
             Spacer(minLength: 0)
 
-            Image(systemName: "chevron.right")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.tertiary)
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.green)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
         .contentShape(Rectangle())
-        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? Color.accentColor.opacity(0.10) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isSelected ? Color.accentColor.opacity(0.18) : Color.clear, lineWidth: 1)
+        )
     }
 }
 
@@ -1624,19 +2130,19 @@ private struct RoutineDetailPanel: View {
                 SidebarMetric(label: "Exercises", value: "\(summary.exerciseCount)", systemImage: "figure.strengthtraining.functional"),
                 SidebarMetric(label: "Sets", value: "\(summary.setCount)", systemImage: "repeat"),
                 SidebarMetric(label: "Time", value: summary.durationText, systemImage: "clock"),
-                SidebarMetric(label: "Status", value: summary.isRunnable ? "Ready" : "Unavailable", systemImage: summary.isRunnable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                SidebarMetric(label: "Status", value: statusText(for: summary), systemImage: summary.isRunnable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
             ])
 
             Button {
-                startFrom(0)
+                startGuidedRoutine()
             } label: {
-                Label("Start Routine", systemImage: "play.fill")
+                Label(summary.availabilityText == nil ? "Start Routine" : "Start Guided Blocks", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
             .disabled(!isRunnable)
 
-            if !summary.isRunnable, let availabilityText = summary.availabilityText {
+            if let availabilityText = summary.availabilityText {
                 Text(availabilityText)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.orange)
@@ -1646,10 +2152,20 @@ private struct RoutineDetailPanel: View {
     }
 
     private var isRunnable: Bool {
-        (try? compiler().compile(routine)) != nil
+        guard let guidedRoutine = guidedRoutine(startingAt: 0) else { return false }
+        return (try? compiler().compile(guidedRoutine)) != nil
+    }
+
+    private func statusText(for summary: RoutinePresentationSummary) -> String {
+        guard summary.isRunnable else { return "Unavailable" }
+        return summary.availabilityText == nil ? "Ready" : "Guided subset"
     }
 
     private func display(for block: RoutineBlock) -> RoutineExerciseDisplay {
+        if let unavailableText = block.guidanceUnavailableText {
+            return unavailableDisplay(for: block, message: unavailableText)
+        }
+
         let single = WorkoutRoutine(
             id: "\(routine.id)-block",
             name: routine.name,
@@ -1694,11 +2210,19 @@ private struct RoutineDetailPanel: View {
 
     private func startFrom(_ index: Int) {
         do {
-            try routineRunner.start(routine, atBlock: index)
+            guard let guidedRoutine = guidedRoutine(startingAt: index) else {
+                actionError = "No guided exercise is available from here yet."
+                return
+            }
+            try routineRunner.start(guidedRoutine)
             actionError = nil
         } catch {
             actionError = String(describing: error)
         }
+    }
+
+    private func startGuidedRoutine() {
+        startFrom(0)
     }
 
     private func practice(_ index: Int) {
@@ -1722,7 +2246,43 @@ private struct RoutineDetailPanel: View {
             return model.availablePresets.first { $0.id == id }?.name ?? id.replacingOccurrences(of: "_", with: " ")
         case let .inline(program):
             return program.name
+        case let .catalog(_, name):
+            return name
         }
+    }
+
+    private func guidedRoutine(startingAt index: Int) -> WorkoutRoutine? {
+        let routineCompiler = compiler()
+        let guidedBlocks = routine.blocks.enumerated()
+            .filter { pair in
+                pair.offset >= index && isCompilerGatedGuideAvailable(
+                    for: pair.element,
+                    compiler: routineCompiler
+                )
+            }
+            .map { $0.element }
+        guard !guidedBlocks.isEmpty else { return nil }
+        return WorkoutRoutine(
+            schemaVersion: routine.schemaVersion,
+            artifactType: routine.artifactType,
+            id: "\(routine.id)-guided-from-\(index + 1)",
+            name: routine.name,
+            description: routine.description,
+            blocks: guidedBlocks
+        )
+    }
+
+    private func isCompilerGatedGuideAvailable(
+        for block: RoutineBlock,
+        compiler routineCompiler: RoutineCompiler
+    ) -> Bool {
+        guard block.isGuideAvailable else { return false }
+        let single = WorkoutRoutine(
+            id: "\(routine.id)-block-check",
+            name: routine.name,
+            blocks: [block]
+        )
+        return (try? routineCompiler.compile(single)) != nil
     }
 }
 
@@ -1805,99 +2365,54 @@ private struct RoutineDetailBlockRow: View {
     }
 }
 
-private struct CameraSection: View {
+// MARK: - Settings (Cmd+,)
+
+struct CamiFitSettingsView: View {
+    @EnvironmentObject private var model: AppExerciseSessionViewModel
     @EnvironmentObject private var liveSession: LiveSession
+    @EnvironmentObject private var codex: CodexAppServerClient
+    @EnvironmentObject private var settingsSelection: AppSettingsSelection
+    @AppStorage(WorkoutFeedbackSpeaker.audioModeStorageKey) private var feedbackAudioModeRaw = WorkoutFeedbackAudioMode.spoken.rawValue
 
     var body: some View {
-        SidebarSettingsSection(title: "Camera") {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Input")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+        TabView(selection: $settingsSelection.selectedTab) {
+            accountPane
+                .tabItem { Label("Account", systemImage: "person.crop.circle") }
+                .tag(AppSettingsTab.account)
 
-                Picker("Input", selection: $liveSession.selectedCameraID) {
-                    Text("Automatic").tag(String?.none)
-                    ForEach(liveSession.availableCameras) { camera in
-                        Text(camera.name).tag(Optional(camera.id))
-                    }
-                }
-                .labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .onChange(of: liveSession.selectedCameraID) { _, newID in
-                    liveSession.camera.setDevice(newID)
-                }
+            feedbackPane
+                .tabItem { Label("Feedback", systemImage: "speaker.wave.2") }
+                .tag(AppSettingsTab.feedback)
 
-                Text(cameraPromptText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            cameraPane
+                .tabItem { Label("Camera", systemImage: "video") }
+                .tag(AppSettingsTab.camera)
 
-                if liveSession.availableCameras.isEmpty {
-                    Text("Connect a camera, then refresh this list.")
-                        .font(.caption.weight(.semibold))
-                } else {
-                    Text("Select the connected camera you want CamiFit to use.")
-                        .font(.caption.weight(.semibold))
-                }
-
-                Button {
-                    liveSession.refreshCameras()
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.glass)
+            #if DEBUG
+            developerPane
+                .tabItem { Label("Developer", systemImage: "hammer") }
+                .tag(AppSettingsTab.developer)
+            #endif
+        }
+        .frame(width: 520, height: 360)
+        .scenePadding()
+        .onAppear {
+            codex.refreshAccount()
+            liveSession.refreshCameras()
+            model.loadRecordedRuns()
+        }
+        .onChange(of: codex.account) { _, account in
+            if account == .signedIn {
+                settingsSelection.clearAccountPrompt()
             }
         }
     }
 
-    private var cameraPromptText: String {
-        if liveSession.availableCameras.isEmpty {
-            return "No cameras detected."
-        }
-
-        return "Choose the webcam used by Live Camera."
-    }
-}
-
-private struct SidebarSettingsSection<Content: View>: View {
-    let title: String
-    let content: Content
-
-    init(title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            content
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.primary.opacity(0.035))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.primary.opacity(0.055), lineWidth: 1)
-        )
-    }
-}
-
-// MARK: - Settings (Cmd+,)
-
-struct CamiFitSettingsView: View {
-    @EnvironmentObject private var codex: CodexAppServerClient
-
-    var body: some View {
+    private var accountPane: some View {
         Form {
             Section {
+                accountPrompt
+
                 LabeledContent("Status") {
                     HStack(spacing: 6) {
                         Image(systemName: statusIcon)
@@ -1912,15 +2427,132 @@ struct CamiFitSettingsView: View {
             } header: {
                 Text("OpenAI Account")
             } footer: {
-                Text("Future Coach signs in with your ChatGPT account through Codex. The coach uses this account for every reply.")
+                Text("\(ProductBrand.fullName) signs in with your ChatGPT account through Codex. The coach uses this account for every reply.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460, height: 240)
-        .onAppear { codex.refreshAccount() }
     }
+
+    private var feedbackPane: some View {
+        Form {
+            Section {
+                Picker("Audio", selection: feedbackAudioModeBinding) {
+                    Text("Spoken").tag(WorkoutFeedbackAudioMode.spoken)
+                    Text("Tone").tag(WorkoutFeedbackAudioMode.tone)
+                    Text("Off").tag(WorkoutFeedbackAudioMode.off)
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Rep Feedback")
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private var accountPrompt: some View {
+        if let prompt = settingsSelection.accountPrompt, codex.account != .signedIn {
+            Label {
+                Text(prompt)
+                    .font(.callout.weight(.semibold))
+            } icon: {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .foregroundStyle(.orange)
+            }
+            .foregroundStyle(.primary)
+        }
+    }
+
+    private var cameraPane: some View {
+        Form {
+            Section {
+                cameraSelectionPrompt
+            }
+
+            Section {
+                Picker("Input", selection: $liveSession.selectedCameraID) {
+                    Text("Automatic").tag(String?.none)
+                    ForEach(liveSession.availableCameras) { camera in
+                        Text(camera.name).tag(Optional(camera.id))
+                    }
+                }
+                .onChange(of: liveSession.selectedCameraID) { _, newID in
+                    liveSession.camera.setDevice(newID)
+                }
+
+                LabeledContent("Status") {
+                    Text(liveSession.camera.readiness.displayText)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    liveSession.refreshCameras()
+                } label: {
+                    Label("Refresh Cameras", systemImage: "arrow.clockwise")
+                }
+            } header: {
+                Text("Camera")
+            } footer: {
+                if liveSession.availableCameras.isEmpty {
+                    Text("No cameras detected. The app will keep trying automatic camera selection when live tracking starts.")
+                } else {
+                    Text("Choose the webcam used by Live Camera in the workout view. Automatic lets CamiFit pick the default camera.")
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private var cameraSelectionPrompt: some View {
+        if liveSession.availableCameras.isEmpty {
+            Label("Connect a camera, then refresh this list.", systemImage: "video.slash")
+                .foregroundStyle(.secondary)
+        } else {
+            Label("Select the connected camera you want CamiFit to use.", systemImage: "video.badge.checkmark")
+        }
+    }
+
+    #if DEBUG
+    private var developerPane: some View {
+        Form {
+            Section {
+                Picker("Recorded Run", selection: selectedRecordedRunBinding) {
+                    ForEach(model.availableRecordedRuns) { run in
+                        Text(run.displayName).tag(Optional(run.id))
+                    }
+                }
+
+                Button {
+                    guard let id = model.selectedRecordedRunID else { return }
+                    _ = model.runRecordedRun(id: id)
+                } label: {
+                    Label("Run Recorded Sample", systemImage: "play.rectangle")
+                }
+                .disabled(model.selectedRecordedRunID == nil)
+
+                Button {
+                    model.runMockWorkerProvider()
+                } label: {
+                    Label("Run Mock Worker", systemImage: "cpu")
+                }
+
+                Button {
+                    model.preflightMockWorker()
+                } label: {
+                    Label("Check Mock Worker", systemImage: "stethoscope")
+                }
+            } header: {
+                Text("Developer")
+            } footer: {
+                Text("QA-only inputs for recorded trace replay and mock pose worker checks. These controls are hidden from release builds.")
+            }
+        }
+        .formStyle(.grouped)
+    }
+    #endif
 
     @ViewBuilder
     private var accountActions: some View {
@@ -1967,57 +2599,16 @@ struct CamiFitSettingsView: View {
         case .signedOut, .unknown: .secondary
         }
     }
-}
 
-#if DEBUG
-/// QA-only inputs: recorded-trace replay and the mock pose worker. Hidden from release builds.
-private struct DeveloperSection: View {
-    @EnvironmentObject private var model: AppExerciseSessionViewModel
-
-    var body: some View {
-        SidebarSettingsSection(title: "Developer") {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Recorded run")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                Picker("Recorded run", selection: selectedRecordedRunBinding) {
-                    ForEach(model.availableRecordedRuns) { run in
-                        Text(run.displayName).tag(Optional(run.id))
-                    }
-                }
-                .labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Button {
-                    guard let id = model.selectedRecordedRunID else { return }
-                    _ = model.runRecordedRun(id: id)
-                } label: {
-                    Label("Run recorded sample", systemImage: "play.rectangle")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.glass)
-                .disabled(model.selectedRecordedRunID == nil)
-
-                Button {
-                    model.runMockWorkerProvider()
-                } label: {
-                    Label("Run mock worker", systemImage: "cpu")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.glass)
-
-                Button {
-                    model.preflightMockWorker()
-                } label: {
-                    Label("Check mock worker", systemImage: "stethoscope")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.glass)
-            }
+    private var feedbackAudioModeBinding: Binding<WorkoutFeedbackAudioMode> {
+        Binding {
+            WorkoutFeedbackAudioMode(rawValue: feedbackAudioModeRaw) ?? .spoken
+        } set: { mode in
+            feedbackAudioModeRaw = mode.rawValue
         }
     }
 
+#if DEBUG
     private var selectedRecordedRunBinding: Binding<String?> {
         Binding {
             model.selectedRecordedRunID
@@ -2026,8 +2617,8 @@ private struct DeveloperSection: View {
             _ = model.runRecordedRun(id: selectedID)
         }
     }
-}
 #endif
+}
 
 // MARK: - Chat (right panel)
 
@@ -2040,6 +2631,8 @@ struct ChatMessage: Identifiable, Equatable {
     var regimen: [RegimenResult] = []
     var memoryArtifacts: [KGMemoryChatArtifact] = []
     var coachActionArtifacts: [CoachActionResult] = []
+    var kgWorkoutArtifacts: [KGWorkoutChatArtifact] = []
+    var copilotArtifacts: [AssignmentCopilotFactCard] = []
 
     init(
         id: UUID = UUID(),
@@ -2048,7 +2641,9 @@ struct ChatMessage: Identifiable, Equatable {
         rawText: String? = nil,
         regimen: [RegimenResult] = [],
         memoryArtifacts: [KGMemoryChatArtifact] = [],
-        coachActionArtifacts: [CoachActionResult] = []
+        coachActionArtifacts: [CoachActionResult] = [],
+        kgWorkoutArtifacts: [KGWorkoutChatArtifact] = [],
+        copilotArtifacts: [AssignmentCopilotFactCard] = []
     ) {
         self.id = id
         self.role = role
@@ -2057,6 +2652,8 @@ struct ChatMessage: Identifiable, Equatable {
         self.regimen = regimen
         self.memoryArtifacts = memoryArtifacts
         self.coachActionArtifacts = coachActionArtifacts
+        self.kgWorkoutArtifacts = kgWorkoutArtifacts
+        self.copilotArtifacts = copilotArtifacts
     }
 }
 
@@ -2070,7 +2667,10 @@ final class ChatViewModel: ObservableObject {
 
     weak var codex: CodexAppServerClient?
     weak var memoryStore: KGMemoryStore?
+    var assignmentWorkoutPlanner: AssignmentWorkoutPlanning?
+    var assignmentCopilotProvider: AssignmentCopilotProviding?
     var coachActionDispatcher: CoachActionDispatcher?
+    var onOpenAIAccountRequired: (() -> Void)?
 
     var canSend: Bool {
         !isResponding && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -2083,8 +2683,11 @@ final class ChatViewModel: ObservableObject {
         draft = ""
 
         guard let codex else {
-            messages.append(ChatMessage(role: .assistant,
-                text: "The coach isn't connected. Make sure Codex is available and you're signed in under Settings → OpenAI."))
+            appendOpenAIAccountRequiredMessage()
+            return
+        }
+        if Self.shouldPromptForOpenAIAccount(codex.account) {
+            appendOpenAIAccountRequiredMessage()
             return
         }
 
@@ -2126,7 +2729,7 @@ final class ChatViewModel: ObservableObject {
         guard let codex else {
             messages.append(ChatMessage(
                 role: .assistant,
-                text: "Workout complete: \(report.finalProgressText). Connect Future Coach for a coaching debrief."
+                text: "Workout complete: \(report.finalProgressText). Connect \(ProductBrand.fullName) for a coaching debrief."
             ))
             return
         }
@@ -2163,7 +2766,6 @@ final class ChatViewModel: ObservableObject {
         guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
         let rawAssistantText = messages[idx].rawText
         if rawAssistantText.isEmpty { messages[idx].rawText = "(No response.)" }
-        messages[idx].regimen = RegimenBlockParser.parse(message: rawAssistantText)
         messages[idx].coachActionArtifacts = CoachActionParser.parse(message: rawAssistantText).map { action in
             if let coachActionDispatcher {
                 return coachActionDispatcher.apply(action)
@@ -2175,14 +2777,65 @@ final class ChatViewModel: ObservableObject {
                 action: action
             )
         }
-        messages[idx].memoryArtifacts = KGMemoryChatBridge.applyProposals(
+        let memoryArtifacts = KGMemoryChatBridge.applyProposals(
             in: rawAssistantText,
             sourceUserText: sourceUserText,
             store: memoryStore
         )
+        messages[idx].memoryArtifacts = memoryArtifacts
+        let copilotResult = applyCopilotRequests(in: rawAssistantText)
+        messages[idx].copilotArtifacts = copilotResult.artifacts
+        let workoutResult = applyWorkoutRequests(in: rawAssistantText)
+        messages[idx].kgWorkoutArtifacts = workoutResult.artifacts
+        messages[idx].regimen = RegimenBlockParser.parse(message: rawAssistantText)
+            + workoutResult.artifacts.map { .routine($0.routine) }
         let visibleText = ChatStreamingDisplayFilter.displayText(for: rawAssistantText)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        messages[idx].text = visibleText.isEmpty ? fallbackAssistantText(for: messages[idx]) : visibleText
+        let visibleWithErrors = [visibleText, copilotResult.errorText, workoutResult.errorText]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        messages[idx].text = visibleWithErrors.isEmpty ? fallbackAssistantText(for: messages[idx]) : visibleWithErrors
+    }
+
+    private func applyCopilotRequests(in assistantText: String) -> (artifacts: [AssignmentCopilotFactCard], errorText: String?) {
+        let requests = AssignmentCopilotRequestParser.parse(message: assistantText)
+        guard !requests.isEmpty else { return ([], nil) }
+        guard let assignmentCopilotProvider else {
+            return ([], "I understood the member-fact request, but the local graph reader is not available.")
+        }
+
+        var artifacts: [AssignmentCopilotFactCard] = []
+        var failures: [String] = []
+        for request in requests {
+            do {
+                artifacts.append(try assignmentCopilotProvider.factCard(for: request))
+            } catch {
+                failures.append("I couldn't read the member facts for that request: \(error).")
+            }
+        }
+
+        return (artifacts, failures.isEmpty ? nil : failures.joined(separator: "\n"))
+    }
+
+    private func applyWorkoutRequests(in assistantText: String) -> (artifacts: [KGWorkoutChatArtifact], errorText: String?) {
+        let requests = KGWorkoutRequestParser.parse(message: assistantText)
+        guard !requests.isEmpty else { return ([], nil) }
+        guard let assignmentWorkoutPlanner else {
+            return ([], "I understood the routine request, but the local workout planner is not available.")
+        }
+
+        var artifacts: [KGWorkoutChatArtifact] = []
+        var failures: [String] = []
+        for request in requests {
+            do {
+                artifacts.append(try assignmentWorkoutPlanner.makeArtifact(request: request))
+            } catch {
+                failures.append("I couldn't generate that routine from your saved context: \(error).")
+            }
+        }
+
+        return (artifacts, failures.isEmpty ? nil : failures.joined(separator: "\n"))
     }
 
     private func setError(_ message: String, on id: UUID) {
@@ -2190,10 +2843,41 @@ final class ChatViewModel: ObservableObject {
         guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
         let prefix = messages[idx].text.isEmpty ? "" : "\n\n"
         messages[idx].text += "\(prefix)⚠️ \(message)"
+        if Self.isOpenAIAccountError(message) {
+            onOpenAIAccountRequired?()
+        }
+    }
+
+    private func appendOpenAIAccountRequiredMessage() {
+        messages.append(ChatMessage(
+            role: .assistant,
+            text: "Sign in to OpenAI in Settings to use chat."
+        ))
+        onOpenAIAccountRequired?()
+    }
+
+    private static func isOpenAIAccountError(_ message: String) -> Bool {
+        let lowercased = message.lowercased()
+        return lowercased.contains("401")
+            || lowercased.contains("unauthorized")
+            || lowercased.contains("not signed in")
+            || lowercased.contains("sign in")
+            || lowercased.contains("login")
+    }
+
+    private static func shouldPromptForOpenAIAccount(_ account: CodexAppServerClient.AccountState) -> Bool {
+        switch account {
+        case .signedIn, .unknown:
+            return false
+        case .signedOut, .pending:
+            return true
+        }
     }
 
     private func fallbackAssistantText(for message: ChatMessage) -> String {
         if !message.regimen.isEmpty { return "Added a routine card." }
+        if !message.kgWorkoutArtifacts.isEmpty { return "Generated a routine." }
+        if !message.copilotArtifacts.isEmpty { return "Found graph-backed member facts." }
         if !message.coachActionArtifacts.isEmpty { return "Updated the exercise view." }
         if !message.memoryArtifacts.isEmpty { return "Updated your memories." }
         return "(No response.)"
@@ -2213,6 +2897,7 @@ final class ChatViewModel: ObservableObject {
 
 private struct ChatPanel: View {
     @EnvironmentObject private var chat: ChatViewModel
+    let onShowMemory: (String?) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -2267,6 +2952,15 @@ private struct ChatPanel: View {
                                 }
                                 ForEach(message.coachActionArtifacts) { artifact in
                                     ChatCoachActionCard(artifact: artifact)
+                                }
+                                ForEach(message.kgWorkoutArtifacts) { artifact in
+                                    KGWorkoutPlanCard(
+                                        artifact: artifact,
+                                        onShowMemory: onShowMemory
+                                    )
+                                }
+                                ForEach(message.copilotArtifacts) { artifact in
+                                    AssignmentCopilotFactCardView(card: artifact)
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
@@ -2383,7 +3077,7 @@ private struct ChatHeader: View {
             .shadow(color: .teal.opacity(0.18), radius: 8, y: 3)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Future Coach")
+                Text(ProductBrand.fullName)
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                 Text(statusText)
                     .font(.caption)
@@ -2412,7 +3106,7 @@ private struct ChatHeader: View {
     }
 
     private var statusText: String {
-        if codex.account != .signedIn { return "Sign in via Future Coach ▸ Settings" }
+        if codex.account != .signedIn { return "Sign in via Momentum ▸ Settings" }
         switch codex.state {
         case .idle: return "Idle"
         case .starting: return "Connecting to Codex…"

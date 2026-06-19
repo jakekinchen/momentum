@@ -104,7 +104,7 @@ extension RegimenBlockParser {
     }
 
     static func sampleFrame() -> PoseFrame? {
-        guard let url = Bundle.module.url(forResource: "synthetic_squat_demo", withExtension: "jsonl", subdirectory: "Demo"),
+        guard let url = AppResourceBundle.url(forResource: "synthetic_squat_demo", withExtension: "jsonl", subdirectory: "Demo"),
               let frames = try? MediaPipePoseJSONLDecoder.decode(contentsOf: url) else { return nil }
         return frames.first
     }
@@ -130,8 +130,31 @@ extension RegimenBlockParser {
                       let routine = try? JSONDecoder().decode(WorkoutRoutine.self, from: data) else {
                     return .invalid(kind: .routine, message: "Could not parse routine JSON.")
                 }
+                if let policyFailure = legacyRoutinePolicyFailure(routine) {
+                    return .invalid(kind: .routine, message: policyFailure)
+                }
                 return .routine(routine)
             }
         }
+    }
+
+    private static func legacyRoutinePolicyFailure(_ routine: WorkoutRoutine) -> String? {
+        var unsupportedRefs: [String] = []
+        for block in routine.blocks {
+            switch block.exerciseRef {
+            case let .preset(id):
+                if !AppExerciseTrackingGate.guideReadyPresetIDs.contains(id) {
+                    unsupportedRefs.append(id)
+                }
+            case let .catalog(id, _):
+                unsupportedRefs.append(id)
+            case let .inline(program):
+                unsupportedRefs.append(program.id)
+            }
+        }
+        guard !unsupportedRefs.isEmpty else { return nil }
+        let refs = Array(Set(unsupportedRefs)).sorted().joined(separator: ", ")
+        return "Routine contains exercise refs that are not guide-ready: \(refs). " +
+            "Use the KG workout planner so untrusted exercises stay recommendation-only."
     }
 }

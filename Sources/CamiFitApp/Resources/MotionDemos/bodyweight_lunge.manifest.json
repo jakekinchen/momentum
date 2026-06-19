@@ -1,12 +1,88 @@
 {
   "exercise_id": "bodyweight_lunge",
-  "source_kind": "trainer_reference_video",
+  "source_kind": "trainer_reference_trace",
   "source_label": "Wikimedia Commons Strength Training Circuit - Forward Lunge",
+  "validation_role": "protected_golden_comparator",
   "source_url": "https://commons.wikimedia.org/wiki/File:Strength_Training_Circuit-_Forward_Lunge.webm",
   "source_media_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Strength_Training_Circuit-_Forward_Lunge.webm",
-  "source_segment_ms": [30000, 36000],
+  "source_video": "dist/motion-reference/bodyweight_lunge/source/commons-forward-lunge.webm",
+  "source_license": "Public domain (U.S. Army / U.S. federal government work)",
+  "source_attribution": "Army Combat Fitness Test / U.S. Army via Wikimedia Commons",
+  "source_segment_ms": [
+    30000,
+    36000
+  ],
   "raw_trace": "dist/motion-reference/bodyweight_lunge/commons_forward_lunge_30_36/raw_mediapipe.jsonl",
   "output_trace": "dist/motion-reference/bodyweight_lunge/commons_forward_lunge_30_36/bodyweight_lunge.jsonl",
+  "candidate_trace": "dist/motion-reference/bodyweight_lunge/commons_forward_lunge_30_36/bodyweight_lunge.raw_preserved.jsonl",
+  "golden_trace": "Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl",
+  "golden_comparison": {
+    "status": "reviewed",
+    "golden_trace": "Sources/CamiFitApp/Resources/MotionDemos/bodyweight_lunge.jsonl",
+    "candidate_trace": "dist/motion-reference/bodyweight_lunge/commons_forward_lunge_30_36/bodyweight_lunge.raw_preserved.jsonl",
+    "comparison_report": "dist/motion-reference/bodyweight_lunge/commons_forward_lunge_30_36/golden_comparison.json",
+    "decision": "Keep the shipped app lunge as the protected golden comparator; retain the Commons source-preserving trace only as extractor-validation evidence."
+  },
+  "visual_review": {
+    "status": "passed",
+    "evidence": "Installed app screenshot /tmp/camifit_after_parity_relaunch.png shows the protected Bodyweight Lunge guide rendered as the Trackable selected exercise."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_final_reps": 1
+  },
+  "live_app_review": {
+    "status": "passed",
+    "evidence": "2026-06-09 visual regression follow-up kept this exercise guide-ready; the installed app inventory now contains exactly four playable JSONL traces after demoting visually failed plank, preacher curl, and suspension tricep press.",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 4,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension"
+    ]
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 6677033,
+      "sha256": "d3f4f3a49f71cf527d63e1f9a1d0de08eec5da5049ca1c22d80478031f3e16ef"
+    },
+    "raw_trace": {
+      "bytes": 638221,
+      "sha256": "b6b593ddc714ca4b35480f2da1c40b59f46411d7b61a836eb4d6f31323f9b11f"
+    },
+    "normalizer": {
+      "bytes": 24052,
+      "sha256": "a3a3de458b788c92e01becb1bca67432722bcf3df01623559e7afc70178127f3"
+    },
+    "output_trace": {
+      "bytes": 312553,
+      "sha256": "677503d58a900777654c7898dbb955dcd66f1073b82c2c95dcd5de2e3f31e25d"
+    },
+    "golden_trace": {
+      "bytes": 406520,
+      "sha256": "04920c88fe91d6bd1c0c218bc8ae04477006bc97a6a1111e458d134f9f3a8a65"
+    },
+    "candidate_trace": {
+      "bytes": 676272,
+      "sha256": "f1ca0bd325e4ab34566c7dcd4f106308d247d6fb7033f2c63dcd11f2ebe3387d"
+    },
+    "golden_comparison.golden_trace": {
+      "bytes": 406520,
+      "sha256": "04920c88fe91d6bd1c0c218bc8ae04477006bc97a6a1111e458d134f9f3a8a65"
+    },
+    "golden_comparison.candidate_trace": {
+      "bytes": 676272,
+      "sha256": "f1ca0bd325e4ab34566c7dcd4f106308d247d6fb7033f2c63dcd11f2ebe3387d"
+    },
+    "golden_comparison.comparison_report": {
+      "bytes": 2661,
+      "sha256": "edd02782209694fbb02b16c21cc8e8c5241f8bf524e9b15bdb3bc4a0c7fd6471"
+    }
+  },
+  "normalizer": "scripts/motion_reference/normalize_lunge_trace.py",
   "front_side": "right",
   "support_side": "left",
   "anchor_landmarks": [
@@ -16,12 +92,21 @@
     "secondary.foot.index"
   ],
   "cycle_mode": "descent-mirror",
-  "cycle_start_index": 40,
-  "cycle_bottom_index": 84,
+  "cycle_start_index": 30,
+  "cycle_bottom_index": 83,
   "retarget": "canonical-lunge",
   "summary": {
-    "frames": 89,
-    "min_primary_knee_angle": 98.15,
-    "max_primary_knee_angle": 180.0
+    "frames": 108,
+    "min_primary_knee_angle": 100.07,
+    "max_primary_knee_angle": 179.35
+  },
+  "acceptance_status": "protected_golden_loop_closed",
+  "playable_trace_packaged": true,
+  "protected_golden_source_commit": "ce65f61",
+  "loop_closure_repair": {
+    "status": "applied",
+    "reason": "Preserve the previously approved 107-frame lunge guide while satisfying the current packaged motion loop-boundary gate.",
+    "method": "append_duplicate_frame_0_as_final_frame",
+    "base_trace_sha256": "ad0b40c0730f7b75880ab2e7d726cdfed4565e0b7e2e71d13f1c07957250597f"
   }
 }

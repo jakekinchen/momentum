@@ -53,8 +53,18 @@ final class LivePoseWorkerClient {
         try queue.sync {
             let process = Process()
             process.executableURL = python.executableURL
-            process.arguments = python.argumentsPrefix + [scriptURL.path, "--mode", "mediapipe", "--model", modelURL.path]
-            process.currentDirectoryURL = scriptURL.deletingLastPathComponent().deletingLastPathComponent()
+            var arguments = python.argumentsPrefix
+            if python.invokesScript {
+                arguments.append(scriptURL.path)
+            }
+            arguments += ["--mode", "mediapipe", "--model", modelURL.path]
+            process.arguments = arguments
+            process.currentDirectoryURL = python.invokesScript
+                ? scriptURL.deletingLastPathComponent().deletingLastPathComponent()
+                : python.executableURL.deletingLastPathComponent()
+            var environment = ProcessInfo.processInfo.environment
+            environment["PYTHONUNBUFFERED"] = "1"
+            process.environment = environment
             let stdin = Pipe()
             let stdout = Pipe()
             let stderr = Pipe()
@@ -75,7 +85,8 @@ final class LivePoseWorkerClient {
             self.stderrBuffer.removeAll()
 
             // Health handshake.
-            let health = try self.requestLocked(["type": "health"], timeout: 12)
+            let healthTimeout: TimeInterval = python.invokesScript ? 12 : 45
+            let health = try self.requestLocked(["type": "health"], timeout: healthTimeout)
             let ok = (health["ok"] as? Bool) ?? false
             let ready = (health["pose_ready"] as? Bool) ?? false
             guard ok, ready else {
@@ -195,5 +206,17 @@ final class LivePoseWorkerClient {
         stderrFD = -1
         buffer.removeAll()
         stderrBuffer.removeAll()
+    }
+}
+
+extension LivePoseWorkerClient: LivePoseBackend {
+    var displayName: String { "MediaPipe pose worker subprocess" }
+
+    var startFailureDiagnostics: [String] {
+        [
+            "Python: \(python.displayName)",
+            "Worker: \(scriptURL.path)",
+            "Model: \(modelURL.path)"
+        ]
     }
 }

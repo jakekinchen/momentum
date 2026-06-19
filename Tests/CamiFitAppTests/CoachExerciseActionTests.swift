@@ -97,6 +97,40 @@ final class CoachExerciseActionTests: XCTestCase {
         XCTAssertEqual(harness.viewModel.state.selectedExerciseID, "bodyweight_squat")
         XCTAssertNil(harness.modeController.current)
     }
+
+    func testReferenceCaptureRequiredActionFailsClosedWithoutChangingSelectedExercise() throws {
+        let harness = try CoachActionHarness()
+        try harness.viewModel.selectPreset(id: "bodyweight_squat")
+        let action = CoachExerciseAction(
+            exerciseID: "resistance_band_reverse_curl",
+            mode: .guide,
+            reason: "Show me a reverse curl"
+        )
+
+        let result = harness.dispatcher.apply(action)
+
+        XCTAssertEqual(result.status, .failed)
+        XCTAssertTrue(result.detail.contains("licensed reference clip"))
+        XCTAssertEqual(harness.viewModel.state.selectedExerciseID, "bodyweight_squat")
+        XCTAssertNil(harness.modeController.current)
+    }
+
+    func testRejectedJumpingJackActionFailsClosedWithoutChangingSelectedExercise() throws {
+        let harness = try CoachActionHarness()
+        try harness.viewModel.selectPreset(id: "bodyweight_squat")
+        let action = CoachExerciseAction(
+            exerciseID: "bodyweight_jumping_jack",
+            mode: .guide,
+            reason: "Show me a jumping jack"
+        )
+
+        let result = harness.dispatcher.apply(action)
+
+        XCTAssertEqual(result.status, .failed)
+        XCTAssertTrue(result.detail.contains("licensed reference clip"))
+        XCTAssertEqual(harness.viewModel.state.selectedExerciseID, "bodyweight_squat")
+        XCTAssertNil(harness.modeController.current)
+    }
 }
 
 @MainActor

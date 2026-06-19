@@ -19,3 +19,5 @@ class ResolvedConstraint:
     laterality: str | None = None
     resolution_status: str = "resolved"
     safety_behavior: str | None = None
+    confidence: float = 1.0
+    resolution_method: str = "exact"

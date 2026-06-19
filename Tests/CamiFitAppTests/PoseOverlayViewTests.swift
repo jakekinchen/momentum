@@ -92,6 +92,56 @@ final class PoseOverlayViewTests: XCTestCase {
         print("pose-stage-live-camera hides_cached_overlay=true shows_placeholder=false")
     }
 
+    func testCameraModeStartsStandaloneCameraWhenNoRoutineNeedsIt() {
+        let action = HeroCameraPipelinePolicy.action(
+            feedMode: .tracking,
+            phase: .idle,
+            liveRunning: false,
+            isLiveCamera: false,
+            routesPoseFramesExternally: false
+        )
+
+        XCTAssertEqual(action, .startStandalone)
+
+        print("hero-camera-policy camera_mode_idle action=startStandalone")
+    }
+
+    func testGuideModeStopsLiveCamera() {
+        let action = HeroCameraPipelinePolicy.action(
+            feedMode: .tracking,
+            phase: .guide(secondsRemaining: 6),
+            liveRunning: true,
+            isLiveCamera: true,
+            routesPoseFramesExternally: false
+        )
+
+        XCTAssertEqual(action, .stop)
+
+        print("hero-camera-policy guide action=stop")
+    }
+
+    func testRoutineCameraPhaseRequiresExternalRoutineRoute() {
+        let existingRoutineRoute = HeroCameraPipelinePolicy.action(
+            feedMode: .tracking,
+            phase: .awaitingCamera(.idle),
+            liveRunning: true,
+            isLiveCamera: true,
+            routesPoseFramesExternally: true
+        )
+        let standaloneRoute = HeroCameraPipelinePolicy.action(
+            feedMode: .tracking,
+            phase: .awaitingCamera(.idle),
+            liveRunning: true,
+            isLiveCamera: true,
+            routesPoseFramesExternally: false
+        )
+
+        XCTAssertEqual(existingRoutineRoute, .none)
+        XCTAssertEqual(standaloneRoute, .startRoutine)
+
+        print("hero-camera-policy routine_route existing=none standalone=startRoutine")
+    }
+
     func testCleanRecordedRunOverlayStateFeedsGeometryMapper() throws {
         let viewModel = AppExerciseSessionViewModel()
 

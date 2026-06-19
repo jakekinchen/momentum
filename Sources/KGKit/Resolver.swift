@@ -2,9 +2,31 @@ import Foundation
 
 /// Deterministic local resolver: free text -> typed constraints, never prose
 /// decisions. Faithful port of kg/resolver.py (exact/alias + hardcoded canonical
-/// cases + "only ..." subset; NO fuzzy/embedding — out of scope in the source).
+/// cases + "only ..." subset + high-confidence local typo aliases; no embedding.
 public enum Resolver {
     private static let boundaryPunctuation = CharacterSet(charactersIn: ".,;:!?\"'()[]{}")
+    private static let localFuzzyAliases = [
+        "kne": "knee",
+        "bad low back": "bad lower back",
+        "low back": "bad lower back",
+        "lowerback": "bad lower back",
+        "barbel": "barbell",
+        "no barbel": "no barbell",
+        "dumbell": "dumbbell",
+        "dumbells": "dumbbell",
+        "dbs": "dumbbell",
+        "kettle bell": "kettlebell",
+        "kettle bells": "kettlebell",
+        "kbell": "kettlebell",
+        "loop band": "resistance band - loop",
+        "resistance band loop": "resistance band - loop",
+        "dead lift": "exclude deadlifts",
+        "dead lifts": "exclude deadlifts",
+        "exclude dead lifts": "exclude deadlifts",
+        "pec": "pecs",
+        "pectorals": "pecs",
+        "chest intent": "pecs",
+    ]
 
     /// Port of _normalize: trim, lowercase, collapse internal whitespace, strip boundary punctuation.
     public static func normalize(_ text: String) -> String {
@@ -30,18 +52,44 @@ public enum Resolver {
     private static func resolvedNode(graph: LocalGraph, sourceText: String, constraintType: String,
                                      nodeID: String, hard: Bool = false, negated: Bool = false,
                                      laterality: String? = nil, safetyBehavior: String? = nil,
-                                     graphPaths: [String] = []) throws -> ResolvedConstraint {
+                                     graphPaths: [String] = [],
+                                     confidence: Double = 1.0,
+                                     resolutionMethod: String = "exact") throws -> ResolvedConstraint {
         _ = try graph.requireNode(nodeID)
         return ResolvedConstraint(constraintType: constraintType, value: nodeValue(nodeID), hard: hard,
                                   sourceText: sourceText, graphPaths: graphPaths, verified: false,
                                   negated: negated, laterality: laterality,
-                                  resolutionStatus: "resolved", safetyBehavior: safetyBehavior)
+                                  resolutionStatus: "resolved", safetyBehavior: safetyBehavior,
+                                  confidence: confidence, resolutionMethod: resolutionMethod)
     }
 
     private static func unresolved(sourceText: String, normalizedText: String) -> ResolvedConstraint {
         ResolvedConstraint(constraintType: "UnresolvedConcept", value: normalizedText, hard: true,
                            sourceText: sourceText, resolutionStatus: "needs_review",
-                           safetyBehavior: "ask_clarification")
+                           safetyBehavior: "ask_clarification",
+                           confidence: 0.0, resolutionMethod: "unresolved")
+    }
+
+    private static func withResolutionMetadata(_ constraints: [ResolvedConstraint],
+                                               sourceText: String,
+                                               confidence: Double,
+                                               resolutionMethod: String) -> [ResolvedConstraint] {
+        constraints.map { constraint in
+            ResolvedConstraint(
+                constraintType: constraint.constraintType,
+                value: constraint.value,
+                hard: constraint.hard,
+                sourceText: sourceText,
+                graphPaths: constraint.graphPaths,
+                verified: constraint.verified,
+                negated: constraint.negated,
+                laterality: constraint.laterality,
+                resolutionStatus: constraint.resolutionStatus,
+                safetyBehavior: constraint.safetyBehavior,
+                confidence: confidence,
+                resolutionMethod: resolutionMethod
+            )
+        }
     }
 
     private static func splitEquipmentTerms(_ s: String) -> [String] {
@@ -62,13 +110,29 @@ public enum Resolver {
         if terms.isEmpty { return nil }
         var constraints: [ResolvedConstraint] = []
         var seen: Set<String> = []
+        var usedLocalAlias = false
         for term in terms {
-            guard let node = exactLabelOrAliasMatch(term, graph), node.type == "Equipment" else { return nil }
+            let lookupTerm: String
+            if let canonical = localFuzzyAliases[term] {
+                lookupTerm = normalize(canonical)
+                usedLocalAlias = true
+            } else {
+                lookupTerm = term
+            }
+            guard let node = exactLabelOrAliasMatch(lookupTerm, graph), node.type == "Equipment" else { return nil }
             if seen.contains(node.id) { continue }
             seen.insert(node.id)
             constraints.append(try resolvedNode(graph: graph, sourceText: text, constraintType: "Equipment",
                                                  nodeID: node.id, hard: true,
                                                  safetyBehavior: "allowed_equipment_only"))
+        }
+        if usedLocalAlias {
+            return withResolutionMetadata(
+                constraints,
+                sourceText: text,
+                confidence: 0.92,
+                resolutionMethod: "local_fuzzy_alias"
+            )
         }
         return constraints
     }
@@ -77,6 +141,18 @@ public enum Resolver {
     public static func resolveSingleClause(_ text: String, graph: LocalGraph) throws -> [ResolvedConstraint] {
         let normalized = normalize(text)
         if let eq = try allowedEquipmentSubset(text: text, normalized: normalized, graph: graph) { return eq }
+
+        if let canonical = localFuzzyAliases[normalized] {
+            let constraints = try resolveSingleClause(canonical, graph: graph)
+            if !(constraints.count == 1 && constraints[0].constraintType == "UnresolvedConcept") {
+                return withResolutionMetadata(
+                    constraints,
+                    sourceText: text,
+                    confidence: 0.92,
+                    resolutionMethod: "local_fuzzy_alias"
+                )
+            }
+        }
 
         switch normalized {
         case "knee":

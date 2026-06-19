@@ -324,6 +324,7 @@ public final class RoutineRunner: ObservableObject {
     ) throws {
         stopTimer()
         viewModel.loadAvailablePresets()
+        try Self.ensureGuideReadyPresets(in: routine, viewModel: viewModel)
 
         let compiler = RoutineCompiler { [viewModel] presetID in
             try viewModel.programForPreset(id: presetID)
@@ -354,6 +355,7 @@ public final class RoutineRunner: ObservableObject {
     ) throws {
         stopTimer()
         viewModel.loadAvailablePresets()
+        try viewModel.ensureGuideReadyPreset(id: exerciseID)
 
         let block: RoutineBlock
         switch target {
@@ -393,6 +395,24 @@ public final class RoutineRunner: ObservableObject {
             transition(to: .guide(secondsRemaining: 6), schedulesTimer: false)
         } else {
             transition(to: .preparing)
+        }
+    }
+
+    private static func ensureGuideReadyPresets(
+        in routine: WorkoutRoutine,
+        viewModel: AppExerciseSessionViewModel
+    ) throws {
+        for block in routine.blocks {
+            switch block.exerciseRef {
+            case let .preset(id):
+                try viewModel.ensureGuideReadyPreset(id: id)
+            case .inline:
+                throw AppExerciseSessionError.invalidInlineExercise(
+                    "Inline exercises require accepted motion-reference promotion before guided routine execution."
+                )
+            case let .catalog(_, name):
+                throw AppExerciseSessionError.unguidedCatalogExercise(name)
+            }
         }
     }
 
@@ -530,8 +550,9 @@ public final class RoutineRunner: ObservableObject {
             guard var session = executionSession else { return }
             let result = session.ingest(frame)
             executionSession = session
-            viewModel.applyExerciseFrameResult(result, program: session.program)
+            viewModel.applyTrustedExerciseFrameResult(result, program: session.program)
             progressText = result.progressText
+            publishFeedback(for: result)
             if result.completedThisFrame {
                 completedSets += 1
                 completeCurrentSet()
@@ -571,10 +592,26 @@ public final class RoutineRunner: ObservableObject {
 
     private func prepareCurrentSet() throws {
         guard let currentSet else { return }
-        viewModel.activateProgram(currentSet.program)
+        try viewModel.activateProgram(currentSet.program)
         viewModel.resetLiveSession()
         executionSession = try ExerciseExecutionSession(program: currentSet.program, target: currentSet.target)
         progressText = initialProgressText(for: currentSet.target)
+    }
+
+    private func publishFeedback(for result: ExerciseFrameResult) {
+        switch result.target {
+        case let .reps(targetReps):
+            guard result.countedThisFrame else { return }
+            viewModel.publishFeedbackEvent(.repCounted(
+                repsCompleted: result.repsCompleted,
+                targetReps: targetReps,
+                cueText: result.cueText,
+                isSetComplete: result.completedThisFrame
+            ))
+        case .holdSeconds:
+            guard result.completedThisFrame else { return }
+            viewModel.publishFeedbackEvent(.holdComplete(heldSeconds: result.holdSeconds))
+        }
     }
 
     private func enterCameraGate() {
@@ -767,6 +804,8 @@ public final class RoutineRunner: ObservableObject {
             return viewModel.availablePresets.first { $0.id == id }?.name ?? fallback
         case let .inline(program):
             return program.name
+        case let .catalog(_, name):
+            return name
         }
     }
 }

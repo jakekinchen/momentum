@@ -7,12 +7,12 @@ traversal decides workout eligibility, injury safety, equipment filtering,
 alternatives, decision receipts, and Coach Copilot fact cards.
 
 The imported assessment snapshot lives under
-`docs/external/candidate-assessment/` and is treated as read-only source input.
+`../data/golden/candidate-assessment/` and is treated as read-only source input.
 Its synthetic fixtures define the target product surface: a Workout Generator
 and a Coach AI Copilot for Jordan Rivera. This repo provides the runnable
 deterministic KG package, generated assessment-conformance graph artifacts,
-API-shaped Python contracts, and a static coach dashboard demo. No live LLM
-service is required for local operation.
+API-shaped Python contracts, CamiFit app integration artifacts, and a static
+coach dashboard demo. No live LLM service is required for local operation.
 
 ## Architecture
 
@@ -28,7 +28,7 @@ flowchart LR
     H --> I["Decision receipts<br/>selected, filtered, graph paths, versions"]
     I --> J["Alternative selector<br/>selected safe pool only"]
     D --> K["Member retrieval<br/>deterministic fact cards"]
-    I --> L["Dashboard/API integration target"]
+    I --> L["CamiFit app plan cards<br/>and static dashboard demo"]
     J --> L
     K --> L
     L --> M["Optional LLM prose layer<br/>summarize receipts and fact cards only"]
@@ -39,6 +39,33 @@ artifacts are the behavior source of truth. `MAPS_TO` and SKOS-style ontology
 mappings are preserved as audit metadata, not as safety edges. The ontology
 lockfile is explicitly unverified, so the README does not claim pinned SNOMED,
 OPE, COPPER, release, access-date, or license values.
+
+## Ontology And Provenance
+
+Current runtime safety uses only local curated graph predicates such as
+`PART_OF`, `STRESSES`, `REQUIRES`, `VARIANT_OF`, and generated source-span
+provenance. `MAPS_TO` is audit metadata only; it is not a traversal edge for
+safety decisions and must not relax medical, equipment, or prompt exclusions.
+
+Ontology status is intentionally scoped:
+
+- **OPE** remains a future exercise-ontology alignment target. Current local
+  exercise-family and movement-pattern nodes are deterministic CamiFit/FitGraph
+  concepts, not verified OPE identifiers.
+- **COPPER** remains a future coaching/programming vocabulary target. Current
+  workout prescriptions and alternatives use local typed dataclasses, not
+  verified COPPER terms.
+- **SNOMED CT** remains deferred for clinical concept identifiers. The graph can
+  represent `BodyRegion` and injury constraints, but no SNOMED concept ID,
+  release, access date, or license status is claimed as verified.
+- **SKOS** is represented only by local label/alias/mapping shape today. A
+  production graph should export reviewed concepts as SKOS with pinned releases.
+- **PROV-O** is approximated through `SourceSpan`, source hashes, graph version
+  stamps, decision receipts, and generated artifact metadata. A production graph
+  should emit formal PROV-O/RDF artifacts.
+- **RDF/SHACL** are production-path validation formats, not current runtime
+  dependencies. The local JSON graph stays the assessment submission runtime
+  until a verified ontology lock and SHACL validation lane is completed.
 
 ## Stack Choices
 
@@ -71,7 +98,7 @@ uv sync --dev
 Run the test suite:
 
 ```bash
-uv run pytest
+uv run python -m pytest
 ```
 
 Run the graph health and ontology-sidecar validation command:
@@ -112,7 +139,7 @@ Then open `http://127.0.0.1:4173/`.
 One-command local smoke check:
 
 ```bash
-uv run pytest && uv run python -m kg.validation && uv run python -m kg.assessment_import
+uv run python -m pytest && uv run python -m kg.validation && uv run python -m kg.assessment_import
 ```
 
 Minimal interactive example:
@@ -173,6 +200,9 @@ Implemented in the current repo:
 - CLI contracts for `kg.workout_generator` and `kg.copilot`.
 - Static dashboard under `dashboard/` with member context, workout generator,
   provenance trace, alternatives, Copilot quick prompts, charts, and evidence.
+- CamiFit app assignment artifacts consumed by Swift KGKit for the current
+  release closeout path: 50-exercise workout recommendation coverage, app plan
+  cards, and graph-backed Copilot fact cards.
 - Audit checks that prevent `MAPS_TO` from becoming a safety edge and prevent
   verified ontology claims without pinned lockfile values.
 
@@ -180,8 +210,10 @@ Pending production integration:
 
 - Swap the static dashboard fixture to live HTTP endpoints if a service boundary
   is needed.
-- Expand the generated 50-exercise graph from conformance artifact into the
-  default runtime graph once curation review is complete.
+- Decide whether the generated 50-exercise graph should become the default
+  developer seed. The Swift assignment-mode artifact already exists for the app
+  closeout path; the smaller hand-curated seed remains useful as a compact
+  developer fixture.
 - Add a live agent workflow or LLM prose layer if desired. The safe boundary is
   defined, but no external model integration is active in this repo.
 
@@ -431,7 +463,7 @@ or `bash scripts/audit_autonomous_workflow.sh`, then run the
 ## Safe Checks
 
 ```bash
-uv run pytest
+uv run python -m pytest
 uv run python -m kg.validation
 bash scripts/audit_autonomous_workflow.sh
 node scripts/audit_codex_pair_state.mjs

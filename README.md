@@ -32,7 +32,8 @@ direct download outside the Mac App Store.
 
 - Tracks bodyweight movement locally through the webcam.
 - Counts reps, holds, sets, tempo, and simple form signals.
-- Supports runnable movement demos for squat, lunge, pushup, and plank.
+- Supports runnable movement demos for squat, lunge, pushup, plank, pike,
+  jumping jack, and suspension tricep press.
 - Builds workout plans from goals, schedule, equipment, safety constraints, and
   training context.
 - Shows reason codes, graph paths, filtered candidates, and alternatives so the

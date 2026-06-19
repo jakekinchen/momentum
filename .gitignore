@@ -26,5 +26,12 @@ models/
 # Built app bundle (includes the ~189MB bundled codex binary)
 dist/
 
+# Local verification / generated review artifacts
+tmp/
+output/
+.playwright-cli/
+build/pose-worker-pyinstaller/
+build/pose-worker-pyinstaller-lite/
+
 # Generated Codex app-server protocol schema (regenerate: codex app-server generate-json-schema)
 docs/research/codex-app-server/

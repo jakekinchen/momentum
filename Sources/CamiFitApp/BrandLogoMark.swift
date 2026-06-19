@@ -3,7 +3,7 @@ import SwiftUI
 
 enum CamiFitBrandLogo {
     static let markImage: NSImage? = {
-        guard let url = Bundle.module.url(forResource: "future", withExtension: "svg", subdirectory: "Brand") else {
+        guard let url = AppResourceBundle.url(forResource: "future", withExtension: "svg", subdirectory: "Brand") else {
             return nil
         }
         return NSImage(contentsOf: url)
@@ -57,12 +57,12 @@ struct BrandLogoMark: View {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
-                    .accessibilityLabel("Future Coach logo")
+                    .accessibilityLabel("\(ProductBrand.fullName) logo")
             } else {
                 Image(systemName: "figure.strengthtraining.functional")
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.primary)
-                    .accessibilityLabel("Future Coach")
+                    .accessibilityLabel(ProductBrand.fullName)
             }
         }
     }

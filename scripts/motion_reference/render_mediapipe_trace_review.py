@@ -37,24 +37,15 @@ POSE_CONNECTIONS = [
 ]
 
 KEY_LANDMARKS = {11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 31, 32}
-DEMO_CONNECTIONS = [
-    ("nose", "primary.shoulder"),
-    ("primary.shoulder", "primary.elbow"),
-    ("primary.elbow", "primary.wrist"),
-    ("primary.shoulder", "primary.hip"),
-    ("primary.hip", "primary.knee"),
-    ("primary.knee", "primary.ankle"),
-    ("primary.ankle", "primary.heel"),
-    ("primary.ankle", "primary.foot.index"),
-    ("primary.heel", "primary.foot.index"),
-    ("secondary.shoulder", "secondary.elbow"),
-    ("secondary.elbow", "secondary.wrist"),
-    ("secondary.shoulder", "secondary.hip"),
-    ("secondary.hip", "secondary.knee"),
-    ("secondary.knee", "secondary.ankle"),
-    ("secondary.ankle", "secondary.heel"),
-    ("secondary.ankle", "secondary.foot.index"),
-    ("secondary.heel", "secondary.foot.index"),
+DEMO_SIDE_CONNECTIONS = [
+    ("shoulder", "elbow"),
+    ("elbow", "wrist"),
+    ("shoulder", "hip"),
+    ("hip", "knee"),
+    ("knee", "ankle"),
+    ("ankle", "heel"),
+    ("ankle", "foot.index"),
+    ("heel", "foot.index"),
 ]
 
 
@@ -164,28 +155,87 @@ def draw_raw_pose(canvas: Canvas, landmarks: list[dict[str, Any]], width: int, h
 
 def draw_motion_demo_pose(canvas: Canvas, landmarks: dict[str, dict[str, Any]], width: int, height: int) -> None:
     canvas.rect(0, height - 4, width, height, (255, 220, 122), 0.45)
-    for a_name, b_name in DEMO_CONNECTIONS:
+    for a_name, b_name in demo_connections(landmarks):
         if a_name not in landmarks or b_name not in landmarks:
             continue
         a = landmarks[a_name]
         b = landmarks[b_name]
-        is_secondary = a_name.startswith("secondary.") or b_name.startswith("secondary.")
-        color = (126, 160, 162) if is_secondary else (222, 255, 250)
-        radius = 4 if is_secondary else 6
-        alpha = 0.50 if is_secondary else 0.96
+        role = semantic_role(a_name, b_name)
+        color = demo_color(role)
+        radius = 4 if role in {"secondary", "left"} else 6
+        alpha = 0.48 if role == "secondary" else 0.86
         canvas.line(point(a, width, height), point(b, width, height), radius, color, alpha)
 
-    for name, landmark in landmarks.items():
+    for name in demo_point_names(landmarks):
+        landmark = landmarks[name]
         if not (
             name == "nose"
             or name.startswith("primary.")
             or name.startswith("secondary.")
+            or name.startswith("left.")
+            or name.startswith("right.")
         ):
             continue
-        is_secondary = name.startswith("secondary.")
-        color = (91, 246, 236) if not is_secondary else (255, 233, 142)
-        radius = 7 if not is_secondary else 5
+        role = semantic_role(name)
+        color = demo_color(role)
+        radius = 7 if role in {"primary", "right"} else 5
         canvas.circle(*point(landmark, width, height), radius, color, 0.94)
+
+
+def demo_connections(landmarks: dict[str, dict[str, Any]]) -> list[tuple[str, str]]:
+    if all(f"{side}.shoulder" in landmarks for side in ("left", "right")):
+        return [
+            ("left.shoulder", "right.shoulder"),
+            ("left.hip", "right.hip"),
+        ] + [
+            (f"{prefix}.{a}", f"{prefix}.{b}")
+            for prefix in ("left", "right")
+            for a, b in DEMO_SIDE_CONNECTIONS
+        ]
+
+    return [
+        ("primary.shoulder", "secondary.shoulder"),
+        ("primary.hip", "secondary.hip"),
+    ] + [
+        (f"{prefix}.{a}", f"{prefix}.{b}")
+        for prefix in ("primary", "secondary")
+        for a, b in DEMO_SIDE_CONNECTIONS
+    ]
+
+
+def demo_point_names(landmarks: dict[str, dict[str, Any]]) -> list[str]:
+    if any(name.startswith("left.") or name.startswith("right.") for name in landmarks):
+        prefixes = ("left.", "right.")
+    else:
+        prefixes = ("primary.", "secondary.")
+    names = ["nose"] if "nose" in landmarks else []
+    names.extend(
+        name
+        for name in landmarks
+        if name.startswith(prefixes)
+    )
+    return names
+
+
+def semantic_role(*names: str) -> str:
+    joined = " ".join(names)
+    if "secondary." in joined:
+        return "secondary"
+    if "left." in joined and "right." not in joined:
+        return "left"
+    if "right." in joined and "left." not in joined:
+        return "right"
+    return "primary"
+
+
+def demo_color(role: str) -> tuple[int, int, int]:
+    if role == "secondary":
+        return (126, 160, 162)
+    if role == "left":
+        return (255, 233, 142)
+    if role == "right":
+        return (91, 246, 236)
+    return (222, 255, 250)
 
 
 def render_skeleton_frames(rows: list[dict[str, Any]], frame_dir: Path, width: int, height: int) -> None:

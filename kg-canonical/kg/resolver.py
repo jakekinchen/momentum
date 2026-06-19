@@ -11,6 +11,28 @@ _BOUNDARY_PUNCTUATION = ".,;:!?\"'()[]{}"
 _CLAUSE_RE = re.compile(r"[^.;!?]+[.;!?]*")
 _REQUEST_VERBS = ("build ", "create ", "make ", "plan ", "program ")
 _REQUEST_NOUNS = ("session", "workout", "routine", "plan")
+_LOCAL_FUZZY_ALIASES = {
+    "kne": "knee",
+    "bad low back": "bad lower back",
+    "low back": "bad lower back",
+    "lowerback": "bad lower back",
+    "barbel": "barbell",
+    "no barbel": "no barbell",
+    "dumbell": "dumbbell",
+    "dumbells": "dumbbell",
+    "dbs": "dumbbell",
+    "kettle bell": "kettlebell",
+    "kettle bells": "kettlebell",
+    "kbell": "kettlebell",
+    "loop band": "resistance band - loop",
+    "resistance band loop": "resistance band - loop",
+    "dead lift": "exclude deadlifts",
+    "dead lifts": "exclude deadlifts",
+    "exclude dead lifts": "exclude deadlifts",
+    "pec": "pecs",
+    "pectorals": "pecs",
+    "chest intent": "pecs",
+}
 
 
 def _normalize(text: str) -> str:
@@ -43,6 +65,8 @@ def _resolved_node(
     laterality: str | None = None,
     safety_behavior: str | None = None,
     graph_paths: tuple[str, ...] = (),
+    confidence: float = 1.0,
+    resolution_method: str = "exact",
 ) -> ResolvedConstraint:
     graph.node(node_id)
     return ResolvedConstraint(
@@ -55,6 +79,8 @@ def _resolved_node(
         negated=negated,
         laterality=laterality,
         safety_behavior=safety_behavior,
+        confidence=confidence,
+        resolution_method=resolution_method,
     )
 
 
@@ -67,7 +93,35 @@ def _unresolved(source_text: str, normalized_text: str) -> ResolvedConstraint:
         verified=False,
         resolution_status="needs_review",
         safety_behavior="ask_clarification",
+        confidence=0.0,
+        resolution_method="unresolved",
     )
+
+
+def _with_resolution_metadata(
+    constraints: list[ResolvedConstraint],
+    *,
+    source_text: str,
+    confidence: float,
+    resolution_method: str,
+) -> list[ResolvedConstraint]:
+    return [
+        ResolvedConstraint(
+            constraint_type=constraint.constraint_type,
+            value=constraint.value,
+            hard=constraint.hard,
+            source_text=source_text,
+            graph_paths=constraint.graph_paths,
+            verified=constraint.verified,
+            negated=constraint.negated,
+            laterality=constraint.laterality,
+            resolution_status=constraint.resolution_status,
+            safety_behavior=constraint.safety_behavior,
+            confidence=confidence,
+            resolution_method=resolution_method,
+        )
+        for constraint in constraints
+    ]
 
 
 def _prompt_clauses(text: str) -> list[str]:
@@ -101,8 +155,13 @@ def _allowed_equipment_subset(
 
     constraints: list[ResolvedConstraint] = []
     seen: set[str] = set()
+    used_local_alias = False
     for term in terms:
-        matched_node = _exact_label_or_alias_match(term, graph)
+        lookup_term = _LOCAL_FUZZY_ALIASES.get(term, term)
+        if lookup_term != term:
+            lookup_term = _normalize(lookup_term)
+            used_local_alias = True
+        matched_node = _exact_label_or_alias_match(lookup_term, graph)
         if matched_node is None or matched_node.type != "Equipment":
             return None
         if matched_node.id in seen:
@@ -117,6 +176,13 @@ def _allowed_equipment_subset(
                 hard=True,
                 safety_behavior="allowed_equipment_only",
             )
+        )
+    if used_local_alias:
+        return _with_resolution_metadata(
+            constraints,
+            source_text=source_text,
+            confidence=0.92,
+            resolution_method="local_fuzzy_alias",
         )
     return constraints
 
@@ -133,6 +199,19 @@ def _resolve_single_clause(
         normalized=normalized,
     ):
         return allowed_equipment
+
+    if canonical := _LOCAL_FUZZY_ALIASES.get(normalized):
+        constraints = _resolve_single_clause(canonical, graph=graph)
+        if not (
+            len(constraints) == 1
+            and constraints[0].constraint_type == "UnresolvedConcept"
+        ):
+            return _with_resolution_metadata(
+                constraints,
+                source_text=text,
+                confidence=0.92,
+                resolution_method="local_fuzzy_alias",
+            )
 
     if normalized == "knee":
         return [

@@ -183,6 +183,14 @@ final class CoachActionDispatcher {
         }
 
         do {
+            try viewModel.ensureGuideReadyPreset(id: action.exerciseID)
+        } catch AppExerciseSessionError.presetRequiresReferenceCapture(_) {
+            return failure("\(action.exerciseID) needs a licensed reference clip before the coach can activate it.", action: action)
+        } catch {
+            return failure("Could not activate \(action.exerciseID): \(error)", action: action)
+        }
+
+        do {
             try routineRunner.startExercise(
                 exerciseID: action.exerciseID,
                 mode: action.mode,

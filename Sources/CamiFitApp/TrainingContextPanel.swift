@@ -661,25 +661,39 @@ struct FormTargetOverlay: View {
     let program: ExerciseProgram
     let progress: Double
     let sourceSize: CGSize
+    let mirrored: Bool
 
-    private let timeline: MotionDemoTimeline
+    private let timeline: MotionDemoTimeline?
+    private let normalizationContext: AvatarSceneNormalizationContext?
 
-    init(program: ExerciseProgram, progress: Double, sourceSize: CGSize) {
+    init(program: ExerciseProgram, progress: Double, sourceSize: CGSize, mirrored: Bool = false) {
         self.program = program
         self.progress = progress
         self.sourceSize = sourceSize
-        timeline = MotionDemoBundleStore.timeline(for: program) ?? MotionDemoCompiler.compile(program: program)
+        self.mirrored = mirrored
+        let resolvedTimeline = MotionDemoBundleStore.guideTimeline(for: program)
+        timeline = resolvedTimeline
+        normalizationContext = resolvedTimeline.flatMap {
+            AvatarSceneNormalizationContext(frames: $0.frames, mirrored: mirrored)
+        }
     }
 
     var body: some View {
-        TimelineView(.animation) { context in
-            let frame = timeline.frame(atElapsedMS: elapsedMilliseconds(from: context.date))
-            FormTargetAvatar(frame: frame, progress: progress)
+        if let timeline {
+            TimelineView(.animation) { context in
+                let frame = timeline.frame(atElapsedMS: elapsedMilliseconds(from: context.date, timeline: timeline))
+                FormTargetAvatar(
+                    frame: frame,
+                    progress: progress,
+                    mirrored: mirrored,
+                    normalizationContext: normalizationContext
+                )
+            }
+            .animation(.smooth(duration: 0.42), value: progress)
         }
-        .animation(.smooth(duration: 0.42), value: progress)
     }
 
-    private func elapsedMilliseconds(from date: Date) -> Int64 {
+    private func elapsedMilliseconds(from date: Date, timeline: MotionDemoTimeline) -> Int64 {
         let raw = date.timeIntervalSinceReferenceDate * 1000
         return Int64(raw.truncatingRemainder(dividingBy: Double(timeline.durationMS)))
     }
@@ -688,13 +702,17 @@ struct FormTargetOverlay: View {
 private struct FormTargetAvatar: View {
     let frame: PoseFrame
     let progress: Double
+    let mirrored: Bool
+    let normalizationContext: AvatarSceneNormalizationContext?
 
     var body: some View {
         ZStack {
             AvatarReferencePoseView(
                 frame: frame,
                 opacity: 0.38,
-                matchProgress: progress
+                matchProgress: progress,
+                mirrored: mirrored,
+                normalizationContext: normalizationContext
             )
 
             if progress >= 1 {

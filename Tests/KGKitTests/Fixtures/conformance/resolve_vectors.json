@@ -17,7 +17,9 @@
           ],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": null
+          "safety_behavior": null,
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -35,7 +37,9 @@
           ],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": null
+          "safety_behavior": null,
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -53,7 +57,9 @@
           ],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": "block_if_safety_critical"
+          "safety_behavior": "block_if_safety_critical",
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -69,7 +75,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": null
+          "safety_behavior": null,
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -85,7 +93,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": null
+          "safety_behavior": null,
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -101,7 +111,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": null
+          "safety_behavior": null,
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -117,7 +129,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": "allowed_equipment_only"
+          "safety_behavior": "allowed_equipment_only",
+          "confidence": 1.0,
+          "resolution_method": "exact"
         },
         {
           "constraint_type": "Equipment",
@@ -128,7 +142,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": "allowed_equipment_only"
+          "safety_behavior": "allowed_equipment_only",
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -144,7 +160,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": null
+          "safety_behavior": null,
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -160,7 +178,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "needs_review",
-          "safety_behavior": "ask_clarification"
+          "safety_behavior": "ask_clarification",
+          "confidence": 0.0,
+          "resolution_method": "unresolved"
         }
       ]
     },
@@ -176,7 +196,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": null
+          "safety_behavior": null,
+          "confidence": 1.0,
+          "resolution_method": "exact"
         },
         {
           "constraint_type": "ExerciseFamily",
@@ -187,7 +209,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "resolved",
-          "safety_behavior": null
+          "safety_behavior": null,
+          "confidence": 1.0,
+          "resolution_method": "exact"
         }
       ]
     },
@@ -203,7 +227,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "needs_review",
-          "safety_behavior": "ask_clarification"
+          "safety_behavior": "ask_clarification",
+          "confidence": 0.0,
+          "resolution_method": "unresolved"
         },
         {
           "constraint_type": "UnresolvedConcept",
@@ -214,7 +240,9 @@
           "graph_paths": [],
           "verified": false,
           "resolution_status": "needs_review",
-          "safety_behavior": "ask_clarification"
+          "safety_behavior": "ask_clarification",
+          "confidence": 0.0,
+          "resolution_method": "unresolved"
         }
       ]
     }

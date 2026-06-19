@@ -75,4 +75,36 @@ final class ChatStreamingDisplayFilterTests: XCTestCase {
             "I can remember that and show the guide."
         )
     }
+
+    func testHidesWorkoutPlanRequestBlocks() {
+        let text = """
+        I will build that from your saved context.
+
+        ```future-workout-plan
+        {"schemaVersion":1,"tool":"generate_workout","prompt":"lower body routine","minutes":50}
+        ```
+        """
+
+        XCTAssertEqual(
+            ChatStreamingDisplayFilter.displayText(for: text)
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            "I will build that from your saved context."
+        )
+    }
+
+    func testHidesMemberFactRequestBlocks() {
+        let text = """
+        I will check the member graph.
+
+        ```future-kg-fact-request
+        {"schemaVersion":1,"tool":"lookup_member_fact","query":"sleep","prompt":"Sleep this week"}
+        ```
+        """
+
+        XCTAssertEqual(
+            ChatStreamingDisplayFilter.displayText(for: text)
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            "I will check the member graph."
+        )
+    }
 }

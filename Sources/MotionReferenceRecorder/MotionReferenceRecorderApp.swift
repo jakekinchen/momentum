@@ -513,6 +513,149 @@ private struct CaptureExercise {
                 "Side-view webcam capture for MediaPipe pose extraction.",
                 "Hold a stable body line with contact points visible."
             ]
+        ),
+        "bodyweight_jumping_jack": CaptureExercise(
+            id: "bodyweight_jumping_jack",
+            label: "Bodyweight Jumping Jack Reference",
+            shortName: "jumping jack",
+            recordingSeconds: 8,
+            countdownTitle: "Stand front-facing for jumping jacks",
+            setupInstruction: "Front view works best: full body visible, with wrists, shoulders, hips, knees, and ankles in frame.",
+            actionInstruction: "Do one or two controlled jumping jacks, finishing with arms by your sides and feet together.",
+            captureNotes: [
+                "Front-view webcam capture for MediaPipe pose extraction.",
+                "Wrists, shoulders, hips, knees, and ankles should remain visible through the full closed-open-closed cycle."
+            ]
+        ),
+        "standing_miniband_hip_flexion": CaptureExercise(
+            id: "standing_miniband_hip_flexion",
+            label: "Standing Miniband Hip Flexion Reference",
+            shortName: "hip flexion",
+            recordingSeconds: 8,
+            countdownTitle: "Stand side-on for hip flexion",
+            setupInstruction: "Side view works best: shoulders, hips, knees, ankles, and the planted stance foot visible.",
+            actionInstruction: "Do one or two controlled knee drives, returning to tall standing each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The stance foot should stay planted while the working knee drives forward and up; miniband tension is not pose-visible."
+            ]
+        ),
+        "resistance_band_reverse_curl": CaptureExercise(
+            id: "resistance_band_reverse_curl",
+            label: "Resistance Band Reverse Curl Reference",
+            shortName: "reverse curl",
+            recordingSeconds: 8,
+            countdownTitle: "Stand side-on for reverse curls",
+            setupInstruction: "Side view works best: shoulder, elbow, wrist, hip, and the full curling arm visible.",
+            actionInstruction: "Do one or two controlled reverse curls, returning to a straight arm each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The elbow flexion cycle and upper-arm stability are pose-visible; band tension and pronated grip are not."
+            ]
+        ),
+        "bodyweight_pike": CaptureExercise(
+            id: "bodyweight_pike",
+            label: "Bodyweight Pike Reference",
+            shortName: "pike",
+            recordingSeconds: 8,
+            countdownTitle: "Set up a side-view high plank",
+            setupInstruction: "Side view works best: shoulders, elbows, wrists, hips, knees, ankles, hands, and toes visible.",
+            actionInstruction: "Do one or two controlled high-plank to pike reps, returning to a long plank each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "Hands and toes should stay planted while hips lift into the pike; knees and elbows should remain long."
+            ]
+        ),
+        "single_arm_dumbbell_preacher_curl": CaptureExercise(
+            id: "single_arm_dumbbell_preacher_curl",
+            label: "Single-Arm Dumbbell Preacher Curl Reference",
+            shortName: "preacher curl",
+            recordingSeconds: 8,
+            countdownTitle: "Set up side-on for preacher curls",
+            setupInstruction: "Side view works best: shoulder, elbow, wrist, hip, and the full working arm visible.",
+            actionInstruction: "Do one or two controlled single-arm preacher curls, returning to a straight elbow each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The elbow flexion cycle and upper-arm stability are pose-visible; dumbbell load and bench support are setup/equipment requirements."
+            ]
+        ),
+        "wide_grip_preacher_curl_with_ez_bar": CaptureExercise(
+            id: "wide_grip_preacher_curl_with_ez_bar",
+            label: "Wide-Grip Preacher Curl with EZ Bar Reference",
+            shortName: "EZ-bar preacher curl",
+            recordingSeconds: 8,
+            countdownTitle: "Set up side-on for EZ-bar preacher curls",
+            setupInstruction: "Side view works best: shoulder, elbow, wrist, hip, and the camera-side arm visible.",
+            actionInstruction: "Do one or two controlled EZ-bar preacher curls, returning to straight elbows each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The camera-side elbow flexion cycle and upper-arm stability are pose-visible; EZ-bar presence, load, grip width, both-arm symmetry, and bench contact are setup/equipment requirements."
+            ]
+        ),
+        "single_arm_chest_supported_incline_row": CaptureExercise(
+            id: "single_arm_chest_supported_incline_row",
+            label: "Single-Arm Chest-Supported Incline Row Reference",
+            shortName: "incline row",
+            recordingSeconds: 8,
+            countdownTitle: "Set up side-on for the incline row",
+            setupInstruction: "Side view works best: left shoulder, elbow, wrist, hip, and the full rowing arm visible.",
+            actionInstruction: "Do one or two controlled left-arm rows, returning to a long arm each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The left elbow row cycle and shoulder path are pose-visible; dumbbell load, bench incline, chest contact, and grip path are setup/equipment requirements."
+            ]
+        ),
+        "machine_chest_supported_row": CaptureExercise(
+            id: "machine_chest_supported_row",
+            label: "Machine - Chest-Supported Row Reference",
+            shortName: "machine row",
+            recordingSeconds: 8,
+            countdownTitle: "Set up side-on for the machine row",
+            setupInstruction: "Side view works best: visible shoulder, elbow, wrist, hip, and the full rowing arm visible.",
+            actionInstruction: "Do one or two controlled chest-supported machine rows, returning to a long arm each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The visible elbow row cycle and shoulder path are pose-visible; machine load, handle style, chest-pad contact, and both-arm symmetry are setup/equipment requirements."
+            ]
+        ),
+        "bench_lying_single_arm_dumbbell_tricep_extension": CaptureExercise(
+            id: "bench_lying_single_arm_dumbbell_tricep_extension",
+            label: "Bench-Lying Single-Arm Dumbbell Tricep Extension Reference",
+            shortName: "lying tricep extension",
+            recordingSeconds: 8,
+            countdownTitle: "Lie side-on for tricep extensions",
+            setupInstruction: "Side view works best: shoulder, elbow, wrist, hip, and the full working arm visible.",
+            actionInstruction: "Do one or two controlled single-arm tricep extensions, returning to a straight elbow each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The elbow flexion-extension cycle and upper-arm stability are pose-visible; dumbbell load and flat-bench support are setup/equipment requirements."
+            ]
+        ),
+        "single_arm_cable_tricep_extension": CaptureExercise(
+            id: "single_arm_cable_tricep_extension",
+            label: "Single-Arm Cable Tricep Extension Reference",
+            shortName: "cable tricep extension",
+            recordingSeconds: 8,
+            countdownTitle: "Stand side-on for cable tricep extensions",
+            setupInstruction: "Side view works best: shoulder, elbow, wrist, hip, and the full working arm visible.",
+            actionInstruction: "Do one or two controlled cable tricep extensions, pressing down and returning to a bent elbow each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The elbow extension-return cycle and upper-arm stability are pose-visible; cable load and handle attachment are setup/equipment requirements."
+            ]
+        ),
+        "suspension_tricep_press": CaptureExercise(
+            id: "suspension_tricep_press",
+            label: "Suspension Tricep Press Reference",
+            shortName: "suspension tricep press",
+            recordingSeconds: 8,
+            countdownTitle: "Lean side-on into the suspension trainer",
+            setupInstruction: "Side view works best: shoulder, elbow, wrist, hip, knee, ankle, and the full pressing arm visible.",
+            actionInstruction: "Do one or two controlled suspension tricep presses, pressing out and returning to bent elbows each time.",
+            captureNotes: [
+                "Side-view webcam capture for MediaPipe pose extraction.",
+                "The elbow press-out cycle and body-line posture are pose-visible; strap anchor, handle grip, and suspension load are setup/equipment requirements."
+            ]
         )
     ]
 }

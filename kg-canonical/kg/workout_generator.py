@@ -6,6 +6,7 @@ from dataclasses import asdict
 import argparse
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 from kg.alternatives import AlternativeRecord, build_workout_candidates
@@ -25,6 +26,12 @@ LOWER_BODY_TARGETS = frozenset(
         "MuscleGroup:hip_flexors",
         "MuscleGroup:hip_adductors",
         "MuscleGroup:lower_back",
+    }
+)
+
+QUARANTINED_EXERCISE_IDS = frozenset(
+    {
+        "Exercise:jumping_jack",
     }
 )
 
@@ -85,11 +92,68 @@ def _is_lower_body_candidate(graph: LocalGraph, exercise_id: str) -> bool:
     return bool(targets & LOWER_BODY_TARGETS) or any("lower" in pattern for pattern in patterns)
 
 
+def _normalized_phrase(text: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", text.lower()).split())
+
+
+def _contains_phrase(haystack: str, needle: str) -> bool:
+    return bool(needle) and f" {needle} " in f" {haystack} "
+
+
+def _exercise_search_terms(graph: LocalGraph, exercise_id: str) -> tuple[str, ...]:
+    node = graph.node(exercise_id)
+    terms = [
+        node.label,
+        *node.aliases,
+        node.id,
+        _node_value(node.id).replace("_", " "),
+    ]
+    return tuple(term for term in (_normalized_phrase(term) for term in terms) if term)
+
+
+def _exact_exercise_candidate_ids(prompt: str, graph: LocalGraph, exercise_ids: list[str]) -> list[str]:
+    normalized_prompt = _normalized_phrase(prompt)
+    return [
+        exercise_id
+        for exercise_id in exercise_ids
+        if any(_contains_phrase(normalized_prompt, term) for term in _exercise_search_terms(graph, exercise_id))
+    ]
+
+
 def _candidate_ids(prompt: str, graph: LocalGraph) -> list[str]:
-    exercise_ids = sorted(node.id for node in graph.nodes_by_type("Exercise"))
+    all_exercise_ids = sorted(node.id for node in graph.nodes_by_type("Exercise"))
+    exercise_ids = [
+        exercise_id
+        for exercise_id in all_exercise_ids
+        if exercise_id not in QUARANTINED_EXERCISE_IDS
+    ]
     normalized = prompt.lower()
+    exact_matches_including_quarantine = _exact_exercise_candidate_ids(prompt, graph, all_exercise_ids)
+    exact_matches = [
+        exercise_id
+        for exercise_id in exact_matches_including_quarantine
+        if exercise_id not in QUARANTINED_EXERCISE_IDS
+    ]
+    if exact_matches_including_quarantine:
+        return exact_matches
     if "lower" in normalized or "leg" in normalized or "knee" in normalized:
         return [exercise_id for exercise_id in exercise_ids if _is_lower_body_candidate(graph, exercise_id)]
+    if "preacher" in normalized:
+        return [exercise_id for exercise_id in exercise_ids if "preacher" in graph.node(exercise_id).label.lower()]
+    if (
+        re.search(r"\b(rows?|rowing)\b", normalized)
+        or re.search(r"\bupper[- ]back\b", normalized)
+        or re.search(r"\b(lats?|latissimus)\b", normalized)
+    ):
+        return [
+            exercise_id
+            for exercise_id in exercise_ids
+            if any(edge.target == "ExerciseFamily:row_family" for edge in graph.outgoing(exercise_id, "VARIANT_OF"))
+            or any(
+                edge.target in {"MuscleGroup:upper_back", "MuscleGroup:lats"}
+                for edge in graph.outgoing(exercise_id, "TARGETS")
+            )
+        ]
     if "pec" in normalized or "chest" in normalized:
         return [
             exercise_id

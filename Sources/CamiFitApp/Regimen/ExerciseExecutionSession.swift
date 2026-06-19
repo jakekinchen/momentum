@@ -6,6 +6,7 @@ public struct ExerciseFrameResult: Equatable {
     public let target: SetTarget
     public let repsCompleted: Int
     public let holdSeconds: Double
+    public let countedThisFrame: Bool
     public let completedThisFrame: Bool
     public let isComplete: Bool
 
@@ -52,11 +53,13 @@ public struct ExerciseExecutionSession {
 
     public mutating func ingest(_ frame: PoseFrame) -> ExerciseFrameResult {
         let trace = recorder.record(frame: frame)
+        let countedThisFrame: Bool
         let completedThisFrame: Bool
 
         switch target {
         case let .reps(targetReps):
-            if !completed, trace.rep.countedThisFrame {
+            countedThisFrame = !completed && trace.rep.countedThisFrame
+            if countedThisFrame {
                 repsCompleted = min(targetReps, repsCompleted + 1)
             }
             completedThisFrame = !completed && repsCompleted >= targetReps
@@ -65,6 +68,7 @@ public struct ExerciseExecutionSession {
             }
 
         case let .holdSeconds(targetSeconds):
+            countedThisFrame = false
             let heldSeconds = trace.hold?.heldSeconds ?? 0
             completedThisFrame = !completed && heldSeconds >= targetSeconds
             if completedThisFrame {
@@ -77,9 +81,9 @@ public struct ExerciseExecutionSession {
             target: target,
             repsCompleted: repsCompleted,
             holdSeconds: trace.hold?.heldSeconds ?? 0,
+            countedThisFrame: countedThisFrame,
             completedThisFrame: completedThisFrame,
             isComplete: completed
         )
     }
 }
-
