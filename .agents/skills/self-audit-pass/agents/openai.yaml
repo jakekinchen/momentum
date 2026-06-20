@@ -1,0 +1,4 @@
+interface:
+  display_name: "Self Audit Pass"
+  short_description: "Audit agent work before handoff"
+  default_prompt: "Use $self-audit-pass to audit your own changes before handing them back."

@@ -68,8 +68,12 @@ echo "== motion-reference-coverage =="
   python3 -m py_compile \
     scripts/motion_reference/audit_motion_coverage.py \
     scripts/motion_reference/audit_kg_motion_readiness.py \
-    scripts/motion_reference/test_audit_motion_coverage.py
+    scripts/motion_reference/report_motion_pipeline_gaps.py \
+    scripts/motion_reference/test_audit_motion_coverage.py \
+    scripts/motion_reference/test_report_motion_pipeline_gaps.py
+  scripts/motion_reference/report_motion_pipeline_gaps.py
   python3 scripts/motion_reference/test_audit_motion_coverage.py
+  python3 scripts/motion_reference/test_report_motion_pipeline_gaps.py
   scripts/motion_reference/audit_motion_coverage.py --strict --require-trackable-reference-clips --require-guide-ready-inventory
 )
 

@@ -48,3 +48,11 @@ CamiFit app-owned runtime state belongs under Application Support, not `/tmp`:
 
 Codex may also maintain external audit/session logs under `~/.codex/sessions`.
 Those logs are not the CamiFit app-owned state.
+
+## Repo-Local Skills
+
+Prefer repo-local skills under `.agents/skills/` for these workflows:
+
+- `worktree-agent-thread`: use before creating parallel CamiFit workers. Confirm `git worktree list --porcelain` first and never delete or rename `/Users/kelly/Developer/camifit` or `/Users/kelly/Developer/camifit-pose` casually.
+- `self-audit-pass`: use before handoff when app, KG, motion, camera, or website behavior changes. Keep build/test proof separate from installed-app, live-camera, or hardware proof.
+- `goal-loop`: use for `GOAL.md`-driven Codex loops and autonomous workflow cycles. Prefer the existing scripts under `scripts/` when they cover the task.

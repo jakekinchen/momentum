@@ -1,0 +1,4 @@
+interface:
+  display_name: "Goal Loop"
+  short_description: "Run objective loops to completion"
+  default_prompt: "Use $goal-loop to keep working against this objective until it is complete or blocked."

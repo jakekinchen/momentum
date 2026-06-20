@@ -1,0 +1,4 @@
+interface:
+  display_name: "Worktree Agent Thread"
+  short_description: "Set up isolated agent worktrees"
+  default_prompt: "Use $worktree-agent-thread to create an isolated agent workspace before starting this task."

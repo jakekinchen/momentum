@@ -31,11 +31,35 @@ jobs:
       - name: Run tests
         run: swift test
 
-      - name: Motion coverage audit
-        run: python3 scripts/motion_reference/audit_motion_coverage.py --strict
+      - name: Motion reference tooling tests
+        run: |
+          python3 -m py_compile \
+            scripts/motion_reference/audit_motion_coverage.py \
+            scripts/motion_reference/audit_kg_motion_readiness.py \
+            scripts/motion_reference/report_motion_pipeline_gaps.py \
+            scripts/motion_reference/test_audit_motion_coverage.py \
+            scripts/motion_reference/test_report_motion_pipeline_gaps.py
+          python3 scripts/motion_reference/test_report_motion_pipeline_gaps.py
+
+      - name: Motion coverage inventory
+        run: python3 scripts/motion_reference/audit_motion_coverage.py
 
       - name: KG motion readiness audit
         run: python3 scripts/motion_reference/audit_kg_motion_readiness.py --summary-only
+
+      - name: Motion reference gap report
+        if: always()
+        run: python3 scripts/motion_reference/report_motion_pipeline_gaps.py
+
+      - name: Upload motion reference gap report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: motion-reference-gap-report
+          path: |
+            dist/motion-reference/gap-report.json
+            dist/motion-reference/gap-report.md
+          if-no-files-found: warn
 
       - name: Upload motion accuracy scorecard
         if: always()

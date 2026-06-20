@@ -121,6 +121,26 @@ preset has a valid motion profile plus bundled demo trace. Use
 `--require-all-kg-viewer-ready` only for a future milestone where every KG
 exercise must be displayable and measurable in the app.
 
+Generate the release/product gap report with:
+
+```bash
+scripts/motion_reference/report_motion_pipeline_gaps.py
+```
+
+This writes:
+
+- `dist/motion-reference/gap-report.json`
+- `dist/motion-reference/gap-report.md`
+
+The report is the planning surface for "what is missing" work. It lists the
+guide-ready app exercises, reference-capture-required exercises, blocked visual
+review candidates, KG recommendation-only coverage, and the next promotion
+actions. It also flags accepted guide traces whose source-chain artifacts live
+under ignored local-only `dist/` paths. Those traces may be locally provable
+while still being unreproducible from a clean CI/release checkout unless the
+artifacts are mirrored into a durable artifact store or otherwise restored
+before strict provenance gates run.
+
 For development experiments without accepted reference clips yet, compile a
 deterministic archetype candidate:
 
