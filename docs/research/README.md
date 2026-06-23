@@ -6,6 +6,7 @@ Research artifacts live here. They are evidence and input material, not automati
 
 | File | Purpose |
 |---|---|
+| [`2026-06-23-motion-data-pipeline-deep-dive.md`](2026-06-23-motion-data-pipeline-deep-dive.md) | Current recommendation for turning exercise source footage into trustworthy avatar motion, detector validation data, and promotion gates. |
 | [`2026-06-03-chatgpt-pro-pose-stack-research-prompt.md`](2026-06-03-chatgpt-pro-pose-stack-research-prompt.md) | Prompt used for the deep research pass. |
 
 The response and source-link export referenced in earlier workflow logs are not
