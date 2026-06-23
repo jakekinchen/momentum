@@ -49,6 +49,7 @@ export type MotionReviewExercise = {
   }>;
   missing: string[];
   nextReview: string;
+  factory: MotionFactoryReadiness;
 };
 
 export type MotionReviewData = {
@@ -56,12 +57,55 @@ export type MotionReviewData = {
   summary: {
     totalExercises: number;
     guideReady: number;
+    validationReady: number;
     referenceCaptureRequired: number;
     playableTraces: number;
     detectorReviews: number;
     contactSheets: number;
+    blockedFromGuideReady: number;
+    tierCounts: Record<MotionPromotionTier, number>;
   };
   exercises: MotionReviewExercise[];
+};
+
+export type MotionPromotionTier =
+  | "recommendation-only"
+  | "source-candidate"
+  | "detector-reviewable"
+  | "avatar-demo-candidate"
+  | "guide-ready"
+  | "validation-ready";
+
+export type FactoryConceptStatus = "missing" | "present" | "passed" | "invalid" | "failed";
+
+export type MotionFactoryConcept = {
+  key: string;
+  label: string;
+  status: FactoryConceptStatus;
+  decision: string;
+  reasons: string[];
+  requiredFor: string[];
+};
+
+export type MotionFactoryReadiness = {
+  promotionTier: MotionPromotionTier;
+  tierIndex: number;
+  guideReady: boolean;
+  validationReady: boolean;
+  guideReadyBlockers: string[];
+  validationReadyBlockers: string[];
+  warnings: string[];
+  nextAction: string;
+  currentSignals: {
+    appGate: string;
+    referenceStatus: string;
+    captureStatus: string;
+    normalizerStatus: string;
+    manifestStatus: string;
+    playableJsonl: boolean;
+    localOnlyArtifacts: string[];
+  };
+  concepts: MotionFactoryConcept[];
 };
 
 export type MotionMediaAsset = "contact-sheet" | "detector-video" | "source-video";
@@ -72,6 +116,46 @@ export type MotionMediaFile = {
 };
 
 type JsonRecord = Record<string, unknown>;
+
+const promotionTiers: MotionPromotionTier[] = [
+  "recommendation-only",
+  "source-candidate",
+  "detector-reviewable",
+  "avatar-demo-candidate",
+  "guide-ready",
+  "validation-ready",
+];
+
+const passedReviewStatuses = new Set(["passed", "reviewed"]);
+const passedScorecardStatuses = new Set(["passed", "reviewed"]);
+
+const captureSessionRequiredFields = [
+  "source_kind",
+  "camera_view",
+  "fps",
+  "resolution",
+  "equipment",
+  "license",
+  "reviewer_notes",
+];
+
+const detectorScorecardRequiredMetrics = [
+  "frame_coverage",
+  "mean_visibility",
+  "detector_disagreement",
+  "identity_flip_count",
+  "temporal_jitter",
+  "rejected_frame_windows",
+];
+
+const kinematicScorecardRequiredMetrics = [
+  "limb_length_stability",
+  "joint_angle_limits",
+  "smoothness_jerk",
+  "loop_boundary_delta",
+  "contact_lock_delta",
+  "phase_monotonicity",
+];
 
 const repoRoot = path.resolve(process.cwd(), "..");
 const presetsDir = path.join(repoRoot, "Sources/CamiFitApp/Resources/Presets");
@@ -109,6 +193,20 @@ function stringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+function lowerStatus(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function hasPresentValue(value: unknown): boolean {
+  if (typeof value === "string") {
+    return Boolean(value.trim());
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  return value !== null && value !== undefined;
+}
+
 function nestedRecord(source: JsonRecord | null, key: string): JsonRecord | null {
   if (!source) {
     return null;
@@ -125,6 +223,15 @@ function nestedString(source: JsonRecord | null, keys: string[], fallback = "mis
   }
 
   return current ? stringValue(current[keys[keys.length - 1]], fallback) : fallback;
+}
+
+function nestedValue(source: JsonRecord | null, keys: string[]): unknown {
+  let current: JsonRecord | null = source;
+  for (let index = 0; index < keys.length - 1; index += 1) {
+    current = nestedRecord(current, keys[index]);
+  }
+
+  return current ? current[keys[keys.length - 1]] : undefined;
 }
 
 function numberValue(value: unknown): number | null {
@@ -232,6 +339,31 @@ function manifestPath(exerciseId: string): string {
 
 function tracePath(exerciseId: string): string {
   return path.join(motionDemosDir, `${exerciseId}.jsonl`);
+}
+
+function localOnlyArtifactPaths(manifest: JsonRecord | null): string[] {
+  if (!manifest) {
+    return [];
+  }
+
+  const paths = new Set<string>();
+  [
+    manifest.source_video,
+    manifest.raw_trace,
+    manifest.output_trace,
+    manifest.candidate_trace,
+    manifest.golden_trace,
+    manifest.capture_session_path,
+    manifest.capture_session_file,
+    manifest.detector_agreement_scorecard_path,
+    manifest.kinematic_scorecard_path,
+  ].forEach((value) => {
+    if (typeof value === "string" && (value === "dist" || value.startsWith("dist/"))) {
+      paths.add(value);
+    }
+  });
+
+  return [...paths];
 }
 
 function reviewAssetPath(exerciseId: string, filename: string): string {
@@ -436,6 +568,493 @@ function collectMissing(
   return missing;
 }
 
+function concept(
+  key: string,
+  label: string,
+  status: FactoryConceptStatus,
+  reasons: string[],
+  requiredFor: string[],
+  decision: string = status,
+): MotionFactoryConcept {
+  return {
+    key,
+    label,
+    status,
+    decision,
+    reasons,
+    requiredFor,
+  };
+}
+
+function captureSessionConcept(manifest: JsonRecord | null): MotionFactoryConcept {
+  if (!manifest) {
+    return concept(
+      "capture_session_metadata",
+      "Capture session",
+      "missing",
+      ["missing_motion_manifest"],
+      ["validation-ready"],
+    );
+  }
+
+  const inline = nestedRecord(manifest, "capture_session");
+  if (!inline) {
+    return concept(
+      "capture_session_metadata",
+      "Capture session",
+      "missing",
+      ["missing_capture_session_metadata"],
+      ["validation-ready"],
+    );
+  }
+
+  const missingFields = captureSessionRequiredFields.filter((field) => !hasPresentValue(inline[field]));
+  return concept(
+    "capture_session_metadata",
+    "Capture session",
+    missingFields.length ? "invalid" : "present",
+    missingFields.map((field) => `missing_capture_session_field:${field}`),
+    ["validation-ready"],
+    stringValue(inline.source_kind, missingFields.length ? "invalid" : "present"),
+  );
+}
+
+function scorecardConcept(
+  manifest: JsonRecord | null,
+  key: string,
+  label: string,
+  requiredMetrics: string[],
+): MotionFactoryConcept {
+  if (!manifest) {
+    return concept(key, label, "missing", ["missing_motion_manifest"], ["validation-ready"]);
+  }
+
+  const inline = nestedRecord(manifest, key);
+  const nestedKey = key.replace(/_scorecard$/, "");
+  const fromScorecards = nestedRecord(nestedRecord(manifest, "scorecards"), nestedKey);
+  const payload = inline ?? fromScorecards;
+  if (!payload) {
+    return concept(key, label, "missing", [`missing_${key}`], ["validation-ready"]);
+  }
+
+  const status = lowerStatus(payload.status);
+  const metrics = nestedRecord(payload, "metrics");
+  const missingMetrics = requiredMetrics.filter((field) => !metrics || !(field in metrics));
+  const reasons = [
+    ...missingMetrics.map((field) => `missing_scorecard_metric:${field}`),
+    ...(passedScorecardStatuses.has(status) ? [] : [`scorecard_status_not_passed:${status || "missing"}`]),
+  ];
+
+  return concept(
+    key,
+    label,
+    reasons.length ? "invalid" : "passed",
+    reasons,
+    ["validation-ready"],
+    status || "missing",
+  );
+}
+
+function visualReviewConcept(manifest: JsonRecord | null): MotionFactoryConcept {
+  if (!manifest) {
+    return concept(
+      "human_visual_review_decision",
+      "Human visual review",
+      "missing",
+      ["missing_motion_manifest"],
+      ["guide-ready", "validation-ready"],
+      "missing",
+    );
+  }
+
+  const visualReview = nestedRecord(manifest, "visual_review");
+  if (!visualReview) {
+    return concept(
+      "human_visual_review_decision",
+      "Human visual review",
+      "missing",
+      ["missing_visual_review_decision"],
+      ["guide-ready", "validation-ready"],
+      "missing",
+    );
+  }
+
+  const decision = lowerStatus(visualReview.status);
+  const reasons = [
+    ...(passedReviewStatuses.has(decision)
+      ? []
+      : [`visual_review_status_not_passed:${decision || "missing"}`]),
+    ...(stringValue(visualReview.evidence, "") ? [] : ["missing_visual_review_evidence"]),
+  ];
+  const status = decision === "failed" ? "failed" : reasons.length ? "invalid" : "passed";
+  return concept(
+    "human_visual_review_decision",
+    "Human visual review",
+    status,
+    reasons,
+    ["guide-ready", "validation-ready"],
+    decision || "missing",
+  );
+}
+
+function runtimeValidationConcept(manifest: JsonRecord | null): MotionFactoryConcept {
+  if (!manifest) {
+    return concept(
+      "runtime_validation_set",
+      "Runtime validation",
+      "missing",
+      ["missing_motion_manifest"],
+      ["validation-ready"],
+    );
+  }
+
+  const payload = nestedRecord(manifest, "runtime_validation_set") ?? nestedRecord(manifest, "validation_set");
+  if (!payload) {
+    return concept(
+      "runtime_validation_set",
+      "Runtime validation",
+      "missing",
+      ["missing_runtime_validation_set"],
+      ["validation-ready"],
+    );
+  }
+
+  const status = lowerStatus(payload.status);
+  const clipCount = numberValue(payload.clip_count);
+  const reasons = [
+    ...(passedScorecardStatuses.has(status)
+      ? []
+      : [`runtime_validation_set_status_not_passed:${status || "missing"}`]),
+    ...(clipCount !== null && clipCount >= 5
+      ? []
+      : ["runtime_validation_set_requires_at_least_5_clips"]),
+  ];
+  return concept(
+    "runtime_validation_set",
+    "Runtime validation",
+    reasons.length ? "invalid" : "passed",
+    reasons,
+    ["validation-ready"],
+    status || "missing",
+  );
+}
+
+function factoryConcepts(manifest: JsonRecord | null): MotionFactoryConcept[] {
+  return [
+    captureSessionConcept(manifest),
+    scorecardConcept(
+      manifest,
+      "detector_agreement_scorecard",
+      "Detector agreement",
+      detectorScorecardRequiredMetrics,
+    ),
+    scorecardConcept(
+      manifest,
+      "kinematic_scorecard",
+      "Kinematic scorecard",
+      kinematicScorecardRequiredMetrics,
+    ),
+    visualReviewConcept(manifest),
+    runtimeValidationConcept(manifest),
+  ];
+}
+
+function manifestHasAny(manifest: JsonRecord | null, fields: string[]): boolean {
+  if (!manifest) {
+    return false;
+  }
+
+  return fields.some((field) => hasPresentValue(nestedValue(manifest, field.split("."))));
+}
+
+function profileHasSourceSearch(profile: JsonRecord | null): boolean {
+  if (!profile) {
+    return false;
+  }
+
+  const capture = nestedRecord(profile, "capture");
+  return [profile, capture].some((source) => {
+    if (!source) {
+      return false;
+    }
+
+    return (
+      Array.isArray(source.rejected_candidates) ||
+      isRecord(source.rejected_sources) ||
+      stringValue(source.source_page, "") !== "" ||
+      stringValue(source.source_media_url, "") !== "" ||
+      stringValue(source.clip, "") !== ""
+    );
+  });
+}
+
+function hasSourceCandidate(manifest: JsonRecord | null, profile: JsonRecord | null, hasProfile: boolean): boolean {
+  return (
+    manifestHasAny(manifest, [
+      "source_page",
+      "source_media_url",
+      "source_video",
+      "source_label",
+      "rejected_candidates",
+      "rejected_sources",
+    ]) ||
+    profileHasSourceSearch(profile) ||
+    hasProfile
+  );
+}
+
+function hasDetectorReviewableArtifact(manifest: JsonRecord | null): boolean {
+  return manifestHasAny(manifest, [
+    "raw_trace",
+    "raw_review",
+    "raw_review_sheet",
+    "detector_agreement_scorecard",
+    "detector_agreement_scorecard_path",
+    "scorecards.detector_agreement",
+  ]);
+}
+
+function hasAvatarCandidate(
+  trace: MotionFrame[],
+  manifest: JsonRecord | null,
+): boolean {
+  return (
+    trace.length > 0 ||
+    manifestHasAny(manifest, [
+      "output_trace",
+      "viewer_command",
+      "kinematic_scorecard",
+      "kinematic_scorecard_path",
+      "scorecards.kinematic",
+    ])
+  );
+}
+
+function guideReadyBlockers({
+  gateStatus,
+  trace,
+  demoStatus,
+  manifest,
+  hasProfile,
+  concepts,
+  captureStatus,
+  manifestStatus,
+}: {
+  gateStatus: MotionReviewExercise["gateStatus"];
+  trace: MotionFrame[];
+  demoStatus: string;
+  manifest: JsonRecord | null;
+  hasProfile: boolean;
+  concepts: MotionFactoryConcept[];
+  captureStatus: string;
+  manifestStatus: string;
+}): string[] {
+  const blockers = new Set<string>();
+  if (gateStatus === "reference_capture_required") {
+    blockers.add("reference_capture_required_gate");
+  }
+  if (!hasProfile) {
+    blockers.add("missing_motion_profile");
+  }
+  if (trace.length > 0 && demoStatus === "invalid") {
+    blockers.add("invalid_playable_jsonl");
+  }
+  if (gateStatus === "guide_ready" && !trace.length) {
+    blockers.add("guide_ready_missing_playable_jsonl");
+  }
+  if (!manifest && (trace.length > 0 || gateStatus === "guide_ready")) {
+    blockers.add("missing_motion_manifest");
+  }
+
+  const visual = concepts.find((item) => item.key === "human_visual_review_decision");
+  if (visual && (hasAvatarCandidate(trace, manifest) || gateStatus === "guide_ready")) {
+    if (visual.status === "failed") {
+      blockers.add("visual_review_failed");
+    } else if (visual.status !== "passed") {
+      visual.reasons.forEach((reason) => blockers.add(reason));
+    }
+  }
+
+  const normalizedManifestStatus = manifestStatus.toLowerCase();
+  if (normalizedManifestStatus.startsWith("blocked") || normalizedManifestStatus.startsWith("rejected")) {
+    blockers.add(`manifest_acceptance_not_promotable:${normalizedManifestStatus}`);
+  }
+  if (captureStatus === "pending_license_review") {
+    blockers.add("pending_source_license_review");
+  }
+  if (captureStatus === "pending_first_party_capture" || captureStatus === "pending_licensed_reference_clip") {
+    blockers.add(captureStatus);
+  }
+
+  return [...blockers].sort();
+}
+
+function validationReadyBlockers({
+  promotionTier,
+  guideBlockers,
+  concepts,
+  localOnlyArtifacts,
+}: {
+  promotionTier: MotionPromotionTier;
+  guideBlockers: string[];
+  concepts: MotionFactoryConcept[];
+  localOnlyArtifacts: string[];
+}): string[] {
+  const blockers = new Set<string>();
+  if (promotionTier !== "guide-ready" || guideBlockers.length > 0) {
+    blockers.add("not_guide_ready");
+  }
+
+  concepts.forEach((item) => {
+    const passes = item.status === "passed" || item.status === "present";
+    if (!passes) {
+      item.reasons.forEach((reason) => blockers.add(reason));
+    }
+  });
+
+  if (localOnlyArtifacts.length > 0) {
+    blockers.add("local_only_source_chain_artifacts");
+  }
+
+  return [...blockers].sort();
+}
+
+function promotionTier({
+  gateStatus,
+  trace,
+  manifest,
+  profile,
+  hasProfile,
+  guideBlockers,
+}: {
+  gateStatus: MotionReviewExercise["gateStatus"];
+  trace: MotionFrame[];
+  manifest: JsonRecord | null;
+  profile: JsonRecord | null;
+  hasProfile: boolean;
+  guideBlockers: string[];
+}): MotionPromotionTier {
+  if (gateStatus === "guide_ready" && guideBlockers.length === 0) {
+    return "guide-ready";
+  }
+  if (hasAvatarCandidate(trace, manifest)) {
+    return "avatar-demo-candidate";
+  }
+  if (hasDetectorReviewableArtifact(manifest)) {
+    return "detector-reviewable";
+  }
+  if (hasSourceCandidate(manifest, profile, hasProfile)) {
+    return "source-candidate";
+  }
+  return "recommendation-only";
+}
+
+function nextFactoryAction(
+  tier: MotionPromotionTier,
+  guideBlockers: string[],
+  validationBlockers: string[],
+  nextReview: string,
+): string {
+  if (tier === "validation-ready") {
+    return "Ready for app guide claims and validation claims. Keep monitoring runtime clips as the exercise ships.";
+  }
+  if (tier === "guide-ready") {
+    if (validationBlockers.includes("local_only_source_chain_artifacts")) {
+      return "Keep app guide-ready, then backfill durable artifact storage, capture-session metadata, detector agreement, kinematic scoring, and runtime validation clips.";
+    }
+    return "Backfill factory scorecards and validation clips before calling this validation-ready.";
+  }
+  if (guideBlockers.includes("visual_review_failed")) {
+    return "Replace the failed avatar/source candidate and record a new passed visual-review decision before guide promotion.";
+  }
+  if (guideBlockers.includes("reference_capture_required_gate")) {
+    return nextReview;
+  }
+  if (guideBlockers.length > 0) {
+    return `Resolve guide blockers: ${guideBlockers.join(", ")}`;
+  }
+  return nextReview;
+}
+
+function buildFactoryReadiness({
+  gateStatus,
+  trace,
+  manifest,
+  profile,
+  hasProfile,
+  demoStatus,
+  captureStatus,
+  normalizerStatus,
+  manifestStatus,
+  referenceStatus,
+  localOnlyArtifacts,
+  missing,
+  nextReview,
+}: {
+  gateStatus: MotionReviewExercise["gateStatus"];
+  trace: MotionFrame[];
+  manifest: JsonRecord | null;
+  profile: JsonRecord | null;
+  hasProfile: boolean;
+  demoStatus: string;
+  captureStatus: string;
+  normalizerStatus: string;
+  manifestStatus: string;
+  referenceStatus: string;
+  localOnlyArtifacts: string[];
+  missing: string[];
+  nextReview: string;
+}): MotionFactoryReadiness {
+  const concepts = factoryConcepts(manifest);
+  const guideBlockers = guideReadyBlockers({
+    gateStatus,
+    trace,
+    demoStatus,
+    manifest,
+    hasProfile,
+    concepts,
+    captureStatus,
+    manifestStatus,
+  });
+  const tier = promotionTier({
+    gateStatus,
+    trace,
+    manifest,
+    profile,
+    hasProfile,
+    guideBlockers,
+  });
+  const validationBlockers = validationReadyBlockers({
+    promotionTier: tier,
+    guideBlockers,
+    concepts,
+    localOnlyArtifacts,
+  });
+  const validationReady = tier === "guide-ready" && validationBlockers.length === 0;
+  const finalTier = validationReady ? "validation-ready" : tier;
+
+  return {
+    promotionTier: finalTier,
+    tierIndex: promotionTiers.indexOf(finalTier),
+    guideReady: tier === "guide-ready" && guideBlockers.length === 0,
+    validationReady,
+    guideReadyBlockers: guideBlockers,
+    validationReadyBlockers: validationBlockers,
+    warnings: missing,
+    nextAction: nextFactoryAction(finalTier, guideBlockers, validationBlockers, nextReview),
+    currentSignals: {
+      appGate: gateStatus,
+      referenceStatus,
+      captureStatus,
+      normalizerStatus,
+      manifestStatus,
+      playableJsonl: trace.length > 0,
+      localOnlyArtifacts,
+    },
+    concepts,
+  };
+}
+
 function targetLabel(preset: JsonRecord | null): string {
   const rep = nestedRecord(preset, "rep");
   const hold = nestedRecord(preset, "hold");
@@ -538,8 +1157,36 @@ export function getMotionReviewData(): MotionReviewData {
         : "unclassified";
     const sourceKind = stringValue(manifest?.source_kind, stringValue(profile?.viewer_status, "missing"));
     const acceptanceStatus = stringValue(manifest?.acceptance_status, "missing");
+    const referenceStatus = stringValue(manifest?.reference_status, stringValue(profile?.viewer_status, "missing"));
     const capture = nestedRecord(profile, "capture");
+    const normalizer = nestedRecord(profile, "normalizer");
     const setup = nestedRecord(preset, "setup");
+    const demoStatus = trace.length ? "ok" : "missing";
+    const missing = collectMissing(gateStatus, trace, media, manifest);
+    const nextReview = nextReviewForExercise(
+      gateStatus,
+      trace.length > 0,
+      Boolean(media.detectorVideoUrl),
+      acceptanceStatus,
+    );
+    const captureStatus = stringValue(capture?.status, "missing");
+    const normalizerStatus = stringValue(normalizer?.status, "missing");
+    const localOnlyArtifacts = localOnlyArtifactPaths(manifest);
+    const factory = buildFactoryReadiness({
+      gateStatus,
+      trace,
+      manifest,
+      profile,
+      hasProfile: Boolean(profile),
+      demoStatus,
+      captureStatus,
+      normalizerStatus,
+      manifestStatus: acceptanceStatus,
+      referenceStatus,
+      localOnlyArtifacts,
+      missing,
+      nextReview,
+    });
 
     return {
       id,
@@ -548,7 +1195,7 @@ export function getMotionReviewData(): MotionReviewData {
       sourceKind,
       acceptanceStatus,
       measurementStatus: stringValue(profile?.measurement_status, "missing"),
-      captureStatus: stringValue(capture?.status, "missing"),
+      captureStatus,
       requiredView: stringValue(setup?.required_view, stringValue(capture?.required_view, "missing")),
       requiredLandmarks: stringArray(setup?.required_landmarks),
       formCues: formCues(preset),
@@ -557,13 +1204,9 @@ export function getMotionReviewData(): MotionReviewData {
       ...stats,
       media,
       validation: buildValidation(manifest, profile),
-      missing: collectMissing(gateStatus, trace, media, manifest),
-      nextReview: nextReviewForExercise(
-        gateStatus,
-        trace.length > 0,
-        Boolean(media.detectorVideoUrl),
-        acceptanceStatus,
-      ),
+      missing,
+      nextReview,
+      factory,
     };
   });
 
@@ -571,17 +1214,30 @@ export function getMotionReviewData(): MotionReviewData {
     return exerciseSortRank(left) - exerciseSortRank(right) || left.name.localeCompare(right.name);
   });
 
+  const tierCounts = promotionTiers.reduce(
+    (counts, tier) => {
+      counts[tier] = exercises.filter((exercise) => exercise.factory.promotionTier === tier).length;
+      return counts;
+    },
+    {} as Record<MotionPromotionTier, number>,
+  );
+
   return {
     generatedAt: new Date().toISOString(),
     summary: {
       totalExercises: exercises.length,
-      guideReady: exercises.filter((exercise) => exercise.gateStatus === "guide_ready").length,
+      guideReady: exercises.filter((exercise) => exercise.factory.guideReady).length,
+      validationReady: exercises.filter((exercise) => exercise.factory.validationReady).length,
       referenceCaptureRequired: exercises.filter(
         (exercise) => exercise.gateStatus === "reference_capture_required",
       ).length,
       playableTraces: exercises.filter((exercise) => exercise.trace.length > 0).length,
       detectorReviews: exercises.filter((exercise) => Boolean(exercise.media.detectorVideoUrl)).length,
       contactSheets: exercises.filter((exercise) => Boolean(exercise.media.contactSheetUrl)).length,
+      blockedFromGuideReady: exercises.filter(
+        (exercise) => exercise.factory.guideReadyBlockers.length > 0,
+      ).length,
+      tierCounts,
     },
     exercises,
   };

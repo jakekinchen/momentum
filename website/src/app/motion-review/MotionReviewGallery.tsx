@@ -28,7 +28,7 @@ import type {
   MotionReviewExercise,
 } from "@/lib/motionReview";
 
-type GalleryFilter = "all" | "guide_ready" | "detector" | "missing";
+type GalleryFilter = "all" | "guide_ready" | "validation_ready" | "detector" | "missing";
 
 type ProjectedPoint = {
   x: number;
@@ -39,6 +39,7 @@ type ProjectedPoint = {
 const filters: Array<{ id: GalleryFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "guide_ready", label: "Guide-ready" },
+  { id: "validation_ready", label: "Validation-ready" },
   { id: "detector", label: "Detector media" },
   { id: "missing", label: "Needs work" },
 ];
@@ -115,14 +116,6 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-function formatDuration(ms: number) {
-  if (!ms) {
-    return "0.0s";
-  }
-
-  return `${(ms / 1000).toFixed(1)}s`;
-}
-
 function formatBytes(bytes: number | null) {
   if (bytes === null) {
     return "missing";
@@ -166,15 +159,52 @@ function validationClasses(status: MotionReviewExercise["validation"][number]["s
   return "text-[#65ffd2]";
 }
 
+function tierLabel(tier: MotionReviewExercise["factory"]["promotionTier"]) {
+  return tier.replaceAll("-", " ");
+}
+
+function tierClasses(tier: MotionReviewExercise["factory"]["promotionTier"]) {
+  if (tier === "validation-ready") {
+    return "border-[#65ffd2]/45 bg-[#65ffd2]/14 text-[#baffed]";
+  }
+  if (tier === "guide-ready") {
+    return "border-[#d7ff5f]/35 bg-[#d7ff5f]/14 text-[#d7ff5f]";
+  }
+  if (tier === "avatar-demo-candidate") {
+    return "border-[#ffb15f]/35 bg-[#ffb15f]/12 text-[#ffd3a1]";
+  }
+  if (tier === "detector-reviewable") {
+    return "border-[#8ad8ff]/35 bg-[#8ad8ff]/12 text-[#bfeaff]";
+  }
+  return "border-white/14 bg-white/8 text-white/66";
+}
+
+function conceptClasses(status: MotionReviewExercise["factory"]["concepts"][number]["status"]) {
+  if (status === "passed" || status === "present") {
+    return "text-[#d7ff5f]";
+  }
+  if (status === "failed" || status === "invalid") {
+    return "text-[#ffd3a1]";
+  }
+  return "text-white/42";
+}
+
+function formatReason(reason: string) {
+  return reason.replaceAll("_", " ").replaceAll(":", ": ");
+}
+
 function matchesFilter(exercise: MotionReviewExercise, filter: GalleryFilter) {
   if (filter === "guide_ready") {
-    return exercise.gateStatus === "guide_ready";
+    return exercise.factory.guideReady;
+  }
+  if (filter === "validation_ready") {
+    return exercise.factory.validationReady;
   }
   if (filter === "detector") {
     return Boolean(exercise.media.detectorVideoUrl || exercise.media.contactSheetUrl);
   }
   if (filter === "missing") {
-    return exercise.missing.length > 0;
+    return exercise.factory.guideReadyBlockers.length > 0 || exercise.factory.validationReadyBlockers.length > 0;
   }
   return true;
 }
@@ -230,8 +260,9 @@ export function MotionReviewGallery({ data }: { data: MotionReviewData }) {
           </div>
           <div className="hidden items-center gap-2 md:flex">
             <SummaryPill label="Exercises" value={data.summary.totalExercises} />
-            <SummaryPill label="Playable" value={data.summary.playableTraces} />
-            <SummaryPill label="Detector" value={data.summary.detectorReviews} />
+            <SummaryPill label="Guide" value={data.summary.guideReady} />
+            <SummaryPill label="Validation" value={data.summary.validationReady} />
+            <SummaryPill label="Blocked" value={data.summary.blockedFromGuideReady} />
           </div>
         </div>
       </header>
@@ -240,8 +271,8 @@ export function MotionReviewGallery({ data }: { data: MotionReviewData }) {
         <aside className="space-y-3 lg:sticky lg:top-[5rem] lg:h-[calc(100svh-6rem)]">
           <div className="grid grid-cols-3 gap-2 md:hidden">
             <SummaryPill label="All" value={data.summary.totalExercises} />
-            <SummaryPill label="Playable" value={data.summary.playableTraces} />
-            <SummaryPill label="Media" value={data.summary.detectorReviews} />
+            <SummaryPill label="Guide" value={data.summary.guideReady} />
+            <SummaryPill label="Valid" value={data.summary.validationReady} />
           </div>
 
           <label className="relative block">
@@ -307,6 +338,8 @@ export function MotionReviewGallery({ data }: { data: MotionReviewData }) {
             <DetectionPanel exercise={selectedExercise} />
           </div>
 
+          <FactoryPanel exercise={selectedExercise} />
+
           <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
             <ValidationPanel exercise={selectedExercise} />
             <ReviewPanel exercise={selectedExercise} />
@@ -337,7 +370,7 @@ function ExerciseListItem({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const Icon = exercise.gateStatus === "guide_ready" ? CheckCircle2 : AlertTriangle;
+  const Icon = exercise.factory.guideReady ? CheckCircle2 : AlertTriangle;
 
   return (
     <button
@@ -354,12 +387,17 @@ function ExerciseListItem({
         <Icon
           className={cx(
             "mt-0.5 size-4 shrink-0",
-            exercise.gateStatus === "guide_ready" ? "text-[#d7ff5f]" : "text-[#ffd3a1]",
+            exercise.factory.guideReady ? "text-[#d7ff5f]" : "text-[#ffd3a1]",
           )}
         />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-white">{exercise.name}</div>
           <div className="mt-1 truncate text-xs text-white/42">{exercise.id}</div>
+          <div className="mt-2">
+            <span className={cx("rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold", tierClasses(exercise.factory.promotionTier))}>
+              {tierLabel(exercise.factory.promotionTier)}
+            </span>
+          </div>
           <div className="mt-2 flex items-center gap-2 text-xs text-white/52">
             <span>{exercise.frameCount || "No"} frames</span>
             {exercise.media.detectorVideoUrl ? <Film className="size-3.5 text-[#65ffd2]" /> : null}
@@ -380,6 +418,19 @@ function ExerciseHeader({ exercise }: { exercise: MotionReviewExercise }) {
             <span className={cx("rounded-full border px-3 py-1 text-xs font-semibold", gateClasses(exercise.gateStatus))}>
               {gateLabel(exercise.gateStatus)}
             </span>
+            <span className={cx("rounded-full border px-3 py-1 text-xs font-semibold", tierClasses(exercise.factory.promotionTier))}>
+              {tierLabel(exercise.factory.promotionTier)}
+            </span>
+            <span
+              className={cx(
+                "rounded-full border px-3 py-1 text-xs font-semibold",
+                exercise.factory.validationReady
+                  ? "border-[#65ffd2]/45 bg-[#65ffd2]/14 text-[#baffed]"
+                  : "border-white/12 bg-white/7 text-white/58",
+              )}
+            >
+              {exercise.factory.validationReady ? "Validation-ready" : "Not validation-ready"}
+            </span>
             <span className="rounded-full border border-white/12 bg-white/7 px-3 py-1 text-xs font-semibold text-white/64">
               {exercise.sourceKind.replaceAll("_", " ")}
             </span>
@@ -391,8 +442,8 @@ function ExerciseHeader({ exercise }: { exercise: MotionReviewExercise }) {
         </div>
         <div className="grid grid-cols-3 gap-2 md:min-w-[22rem]">
           <Metric icon={Activity} label="Frames" value={String(exercise.frameCount)} />
-          <Metric icon={Gauge} label="Duration" value={formatDuration(exercise.durationMs)} />
-          <Metric icon={ShieldCheck} label="Target" value={exercise.target} />
+          <Metric icon={ShieldCheck} label="Guide" value={exercise.factory.guideReady ? "yes" : "no"} />
+          <Metric icon={Gauge} label="Valid" value={exercise.factory.validationReady ? "yes" : "no"} />
         </div>
       </div>
     </section>
@@ -589,6 +640,111 @@ function MediaStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function FactoryPanel({ exercise }: { exercise: MotionReviewExercise }) {
+  const signals = exercise.factory.currentSignals;
+  const signalItems = [
+    ["App gate", signals.appGate],
+    ["Reference", signals.referenceStatus],
+    ["Capture", signals.captureStatus],
+    ["Normalizer", signals.normalizerStatus],
+    ["Manifest", signals.manifestStatus],
+    ["Playable", signals.playableJsonl ? "yes" : "no"],
+  ];
+
+  return (
+    <section className="rounded-lg border border-white/10 bg-[#121712] p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Gauge className="size-5 text-[#65ffd2]" />
+            <h3 className="text-base font-semibold">Factory Readiness</h3>
+          </div>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-white/56">
+            {exercise.factory.nextAction}
+          </p>
+        </div>
+        <span
+          className={cx(
+            "w-fit rounded-full border px-3 py-1 text-xs font-semibold",
+            tierClasses(exercise.factory.promotionTier),
+          )}
+        >
+          {tierLabel(exercise.factory.promotionTier)}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        {exercise.factory.concepts.map((item) => (
+          <div key={item.key} className="rounded-md border border-white/8 bg-white/5 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">
+                {item.label}
+              </div>
+              <Circle className={cx("size-2.5 fill-current", conceptClasses(item.status))} />
+            </div>
+            <div className={cx("mt-2 text-sm font-semibold", conceptClasses(item.status))}>
+              {item.decision.replaceAll("_", " ")}
+            </div>
+            <div className="mt-2 text-xs leading-5 text-white/44">
+              {item.reasons.length ? formatReason(item.reasons[0]) : "ready"}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem]">
+        <BlockerList title="Guide blockers" blockers={exercise.factory.guideReadyBlockers} />
+        <BlockerList title="Validation blockers" blockers={exercise.factory.validationReadyBlockers} />
+        <div className="rounded-md border border-white/8 bg-white/5 p-3">
+          <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">
+            Current signals
+          </h4>
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            {signalItems.map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <div className="text-white/36">{label}</div>
+                <div className="mt-0.5 truncate font-semibold text-white/68">
+                  {formatReason(value)}
+                </div>
+              </div>
+            ))}
+          </div>
+          {signals.localOnlyArtifacts.length ? (
+            <div className="mt-3 border-t border-white/8 pt-3 text-xs leading-5 text-[#ffd3a1]">
+              Local-only artifacts: {signals.localOnlyArtifacts.length}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BlockerList({ title, blockers }: { title: string; blockers: string[] }) {
+  return (
+    <div className="rounded-md border border-white/8 bg-white/5 p-3">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        {blockers.length ? (
+          <AlertTriangle className="size-4 text-[#ffd3a1]" />
+        ) : (
+          <CheckCircle2 className="size-4 text-[#d7ff5f]" />
+        )}
+        {title}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(blockers.length ? blockers : ["none"]).map((item) => (
+          <span
+            key={item}
+            className="rounded-full border border-white/10 bg-[#0b100d] px-3 py-1 text-xs font-semibold text-white/62"
+          >
+            {formatReason(item)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ValidationPanel({ exercise }: { exercise: MotionReviewExercise }) {
   return (
     <section className="rounded-lg border border-white/10 bg-[#121712] p-4">
@@ -616,6 +772,14 @@ function ValidationPanel({ exercise }: { exercise: MotionReviewExercise }) {
 }
 
 function ReviewPanel({ exercise }: { exercise: MotionReviewExercise }) {
+  const reviewGaps = [
+    ...new Set([
+      ...exercise.missing,
+      ...exercise.factory.guideReadyBlockers,
+      ...exercise.factory.validationReadyBlockers,
+    ]),
+  ];
+
   return (
     <section className="rounded-lg border border-white/10 bg-[#121712] p-4">
       <div className="flex items-center gap-2">
@@ -640,7 +804,7 @@ function ReviewPanel({ exercise }: { exercise: MotionReviewExercise }) {
 
       <div className="mt-4 rounded-md border border-white/8 bg-white/5 p-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
-          {exercise.missing.length ? (
+          {reviewGaps.length ? (
             <AlertTriangle className="size-4 text-[#ffd3a1]" />
           ) : (
             <CheckCircle2 className="size-4 text-[#d7ff5f]" />
@@ -648,12 +812,12 @@ function ReviewPanel({ exercise }: { exercise: MotionReviewExercise }) {
           Review gaps
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {(exercise.missing.length ? exercise.missing : ["none"]).map((item) => (
+          {(reviewGaps.length ? reviewGaps : ["none"]).map((item) => (
             <span
               key={item}
               className="rounded-full border border-white/10 bg-[#0b100d] px-3 py-1 text-xs font-semibold text-white/62"
             >
-              {item}
+              {formatReason(item)}
             </span>
           ))}
         </div>
