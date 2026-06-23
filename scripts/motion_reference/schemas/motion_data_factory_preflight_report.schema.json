@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camifit.local/schemas/motion-reference/motion_data_factory_preflight_report.schema.json",
+  "title": "CamiFit Motion Data Factory Preflight Report",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "generated_by",
+    "promotion_tiers",
+    "summary",
+    "exercises"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "promotion_tiers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "contains": {
+        "const": "validation-ready"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "exercise_rows",
+        "tier_counts",
+        "guide_ready",
+        "validation_ready",
+        "blocked_from_guide_ready"
+      ]
+    },
+    "exercises": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "exercise_id",
+          "promotion_tier",
+          "tier_index",
+          "guide_ready",
+          "validation_ready",
+          "machine_reasons",
+          "factory_concepts",
+          "next_factory_action"
+        ],
+        "properties": {
+          "exercise_id": {
+            "type": "string"
+          },
+          "promotion_tier": {
+            "type": "string",
+            "enum": [
+              "recommendation-only",
+              "source-candidate",
+              "detector-reviewable",
+              "avatar-demo-candidate",
+              "guide-ready",
+              "validation-ready"
+            ]
+          },
+          "guide_ready": {
+            "type": "boolean"
+          },
+          "validation_ready": {
+            "type": "boolean"
+          },
+          "machine_reasons": {
+            "type": "object",
+            "required": [
+              "guide_ready_blockers",
+              "validation_ready_blockers",
+              "warnings"
+            ]
+          },
+          "factory_concepts": {
+            "type": "object",
+            "required": [
+              "capture_session_metadata",
+              "detector_agreement_scorecard",
+              "kinematic_scorecard",
+              "human_visual_review_decision",
+              "runtime_validation_set"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

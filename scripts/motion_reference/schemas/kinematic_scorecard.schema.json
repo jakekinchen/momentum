@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camifit.local/schemas/motion-reference/kinematic_scorecard.schema.json",
+  "title": "CamiFit Kinematic Scorecard",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "status",
+    "metrics"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "reviewed"
+      ]
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "limb_length_stability",
+        "joint_angle_limits",
+        "smoothness_jerk",
+        "loop_boundary_delta",
+        "contact_lock_delta",
+        "phase_monotonicity"
+      ],
+      "properties": {
+        "limb_length_stability": {
+          "type": "number",
+          "minimum": 0
+        },
+        "joint_angle_limits": {
+          "type": "object"
+        },
+        "smoothness_jerk": {
+          "type": "number",
+          "minimum": 0
+        },
+        "loop_boundary_delta": {
+          "type": "number",
+          "minimum": 0
+        },
+        "contact_lock_delta": {
+          "type": "number",
+          "minimum": 0
+        },
+        "side_primary_identity_stability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "phase_monotonicity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "expected_rep_count": {
+          "type": "number",
+          "minimum": 0
+        },
+        "equipment_path_sanity": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

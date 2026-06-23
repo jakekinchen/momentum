@@ -1,41 +1,84 @@
-# GOAL
+# Goal Loop Ledger
 
-## Active Mission
+Objective:
+Build the first concrete slice of the Momentum/CamiFit motion-data factory so bad exercise motion cannot be silently promoted from "detector produced landmarks" to "product-trustworthy motion." The loop should turn `docs/research/2026-06-23-motion-data-pipeline-deep-dive.md` into executable repo scaffolding, validation/reporting, and review guidance.
 
-Build **CamiFit**, an open-ended, on-device bodyweight-exercise coach for macOS. The foundation (Layer 1) is a deterministic, timestamped **exercise engine** that runs an **Exercise-Program** (JSON + a sandboxed rule DSL): pose landmarks → joint-angle signals → temporal filters → validity gating → rep/hold/set state machines → form rules → live cues + a post-set summary. The same JSON contract is later produced by an agent (Layer 2) and persisted/tracked over time (Layer 3).
+Started:
+2026-06-23
 
-The full, reviewed design is `docs/design/2026-06-03-camifit-exercise-engine-design.md`. The MediaPipe pose worker now lives on `main` at `pose_worker/` (Python, `VIDEO` mode, validated). The **north star** is a shipped macOS app: live camera → `MediaPipePoseProvider` (spawns `pose_worker.py`) → engine → live skeleton + rep/form HUD + exercise picker. Layer 2 (agent authoring via Codex app-server + ChatGPT login) and Layer 3 (session history/progress) come after. RF-DETR is intentionally **not** used — bodyweight reps/form/sets derive entirely from pose.
+Cadence:
+Iterate locally until either the done criteria pass or a hard blocker repeats for three materially identical iterations.
 
-## Current Milestone
+Owner constraints:
+- Work only in `/Users/kelly/Developer/camifit-app-agent-motion-data-factory`.
+- Target branch is `agent/motion-data-factory-goal-loop`.
+- Base branch is `main` at `f5b2c30`.
+- The live checkout at `/Users/kelly/Developer/camifit-app` has unrelated dirty files. Do not touch, restore, overwrite, or depend on that checkout.
+- Do not delete or rename `/Users/kelly/Developer/camifit` or `/Users/kelly/Developer/camifit-pose`.
+- Do not promote any `reference_capture_required` exercise to guide-ready.
+- Do not modify packaged `Sources/CamiFitApp/Resources/MotionDemos/*.jsonl` unless the change is only to add explicit non-promotional metadata or tests prove it is required.
 
-M4 - KG-backed memory inspector in the CamiFit app. The current implementation
-must follow the Phase 1 MVP checklist in brief 044: app-owned KG overlay loading,
-right-inspector memory mode, health/safety memory projection, and correction by
-validated `RetractMedicalConstraint`.
+Authorized mutations:
+- `scripts/motion_reference/**`
+- `docs/research/**`
+- `docs/manual-verification/**`
+- `website/src/app/motion-review/**`
+- `website/src/lib/motionReview.ts`
+- focused tests under `scripts/motion_reference/test_*.py`
 
-## Current Slice
+## Done Criteria
 
-docs/briefs/045-kg-memory-inspector-ui-wiring.md
+- A repo-local motion-data factory preflight exists and can classify exercises into explicit promotion tiers, including at least:
+  - recommendation-only
+  - source-candidate
+  - detector-reviewable
+  - avatar-demo-candidate
+  - guide-ready
+  - validation-ready
+- The preflight has hard, machine-readable reasons for why an exercise is not guide-ready or validation-ready.
+- The preflight does not merely duplicate `report_motion_pipeline_gaps.py`; it must add at least one new factory concept from the deep-dive, such as capture session metadata, detector agreement scorecards, kinematic scorecards, or explicit human visual-review decisions.
+- Any new schemas, examples, or scorecard contracts are documented and covered by tests.
+- Existing guide-ready exercises remain guide-ready unless a real discovered defect is documented as a blocker.
+- No bad or pending visual-review exercise is promoted.
+- All relevant local proof commands pass, or the loop exits blocked with exact failing command output and a minimal unblock plan.
+
+## Proof Target
+
+- Surface:
+  motion-reference pipeline scripts, tests, and review docs.
+- Required commands:
+  - `python3 -m py_compile scripts/motion_reference/*.py`
+  - `python3 scripts/motion_reference/test_report_motion_pipeline_gaps.py`
+  - any new `scripts/motion_reference/test_*.py` added by this work
+  - `python3 scripts/motion_reference/report_motion_pipeline_gaps.py`
+  - the new preflight/report command added by this loop
+- Required result:
+  all commands exit 0, and the new report exposes actionable tier/reason output for the current 15 exercise rows.
+
+## Current State
+
+- Last proof:
+  Parent thread generated `tmp/motion-review-deep-dive/gap-report.json`.
+- Last result:
+  Current report shows 15 exercise rows, 4 playable JSONLs, 4 guide-ready IDs, 11 reference-capture-required IDs, 4 blocked visual-review rows, and 4 guide-ready traces relying on local-only `dist/` source-chain artifacts.
+- Known blockers:
+  Actual new first-party video capture cannot happen inside this loop unless source files already exist locally. If capture is required, exit with a capture checklist and exact next capture pack contract instead of fabricating data.
+
+## Iterations
+
+| Time | Action | Proof | Result | Next Step |
+| --- | --- | --- | --- | --- |
+| 2026-06-23 16:07 CDT | Read AGENTS.md, GOAL.md, the motion-data deep dive, motion-reference README, existing gap/audit scripts, and confirmed the isolated worktree/branch. | `git status --short --branch`; `git worktree list --porcelain`; source reads of `report_motion_pipeline_gaps.py`, `audit_motion_coverage.py`, `audit_kg_motion_readiness.py`, manifests, and profile registry. | Target worktree is `/Users/kelly/Developer/camifit-app-agent-motion-data-factory` on `agent/motion-data-factory-goal-loop` at `f5b2c30`; only `GOAL.md` is modified as the loop ledger. Current app gate has 4 guide-ready IDs and 11 reference-capture-required IDs; the first slice should reuse the gap/audit facts while adding factory-specific capture/review/scorecard gates. | Add a repo-local motion-data factory preflight/report, JSON schema contracts, focused tests, and docs without modifying packaged MotionDemos. |
+| 2026-06-23 16:13 CDT | Added `preflight_motion_data_factory.py`, scorecard/capture/report schemas, unit tests, README docs, and manual verification guidance. | `python3 -m py_compile scripts/motion_reference/*.py`; `python3 scripts/motion_reference/test_preflight_motion_data_factory.py`; `python3 scripts/motion_reference/preflight_motion_data_factory.py`. | Initial proof passed. Preflight reports 15 exercise rows, 4 guide-ready, 0 validation-ready, 6 source-candidate, 5 avatar-demo-candidate, and 11 blocked from guide-ready. Existing guide-ready IDs remain guide-ready; reference-capture-required rows stay below guide-ready. | Run the full GOAL proof target, fix any failures, then commit locally if all done criteria pass. |
+| 2026-06-23 16:15 CDT | Ran the full proof target and self-audit pass. | `python3 -m py_compile scripts/motion_reference/*.py`; `python3 scripts/motion_reference/test_report_motion_pipeline_gaps.py`; `python3 scripts/motion_reference/test_preflight_motion_data_factory.py`; `python3 scripts/motion_reference/report_motion_pipeline_gaps.py`; `python3 scripts/motion_reference/preflight_motion_data_factory.py`; `scripts/motion_reference/preflight_motion_data_factory.py`; `git diff --check`. | All proof commands exited 0. Existing gap report still shows 4 guide-ready and 11 reference-capture-required rows; new factory preflight exposes 15 tiered rows, 4 guide-ready, 0 validation-ready, and 11 guide blockers. No packaged `Sources/CamiFitApp/Resources/MotionDemos/*.jsonl` files changed. | Commit the completed executable slice locally on `agent/motion-data-factory-goal-loop` and report the hash. |
 
 ## Stop Conditions
 
-- Stop or ESCALATE before any network model download (e.g. the MediaPipe model bundle) or `pip install` not explicitly authorized by the active brief. Slice 1 is pure Swift + JSON and must stay offline.
-- Stop coaching-accuracy or performance claims until a golden landmark fixture proves exact rep counts AND no false reps during no-person / low-visibility intervals.
-- Stop scope expansion beyond the Phase 1 MVP checklist in brief 044 unless the
-  Reviewer explicitly writes a follow-on brief and records `CONTINUE`.
-- Do not expose a user-visible CLI or shell tool for KG memories. User actions
-  must route through app-owned UI/store paths.
-- Codex is never the graph write path. It may propose or verbalize in future
-  slices, but only app-owned code may validate and append overlay operations.
-- The engine must reject invalid programs at load (unknown function, signal/filter DAG cycle, missing signal). A slice that weakens load-time validation is out of scope.
-- **Loop↔human boundary:** the autonomous loop validates only what `swift test --disable-sandbox` / `pytest` can prove headlessly. Anything that needs a live camera or a running SwiftUI app (the macOS app target, camera capture, on-screen overlay) must be built as wireable, unit-tested pieces and then **ESCALATE** for human run-verification — never claim a live-app behavior works without that. Decoding/logic (e.g. `MediaPipePoseProvider` JSONL→`PoseFrame`) IS testable headlessly with recorded fixtures and stays in-loop.
-- **pytest gate:** the `pose_worker/` pytest gate is **manager-verified** (the loop's sandbox lacks pytest; do NOT `pip install` in-loop). Slices that do not modify `pose_worker/` validate with `swift test --disable-sandbox` only and must not block on pytest. A slice that DOES modify `pose_worker/` should ESCALATE for a manager pytest run.
-
-## Human Constraints
-
-- The **Exercise-Program contract** is the single source of truth shared by hand-authored presets and (later) agent-authored programs. Do not fork its shape.
-- The **DSL stays total and sandboxed**: no arbitrary code execution, no statements/loops/IO. Temporal behavior lives in `filters` and FSM config, never inside expressions.
-- The **interpreter lives in Swift** (one evaluator); the Python pose worker is a pure, stateless, timestamped pose source behind a `PoseProvider` boundary.
-- Require approval before paid cloud work, large downloads, destructive actions, or public release.
-- Repo evidence beats chat memory: every slice leaves a brief, a session log (commands/outputs/files/validation/reachability), and a reviewer decision.
-- **Validation convention (SwiftPM under the Codex sandbox):** validate with `swift build --disable-sandbox` and `swift test --disable-sandbox` using the **default in-repo `.build`**. Do NOT redirect `--scratch-path`/`--cache-path` outside the repo — Codex's `workspace-write` sandbox blocks external writes, and `--disable-sandbox` avoids SwiftPM's nested sandbox-exec. This lets the executor/reviewer self-validate without bypassing the Codex sandbox. Manager confirmed 8/8 tests green this way on 2026-06-03 (slice 001).
+- Objective complete:
+  Done criteria pass and proof target commands are green.
+- Blocked:
+  The same missing external input, capture asset, credential, or unavailable tool blocks progress for three materially identical iterations.
+- Owner decision needed:
+  A product decision is required between multiple incompatible data-source strategies, licensing obligations, or promotion policy changes.
+- Cost/risk threshold:
+  Work would require downloading large datasets, committing large artifacts, altering guide-ready app motion files, or changing installed-app behavior without a separate approval.

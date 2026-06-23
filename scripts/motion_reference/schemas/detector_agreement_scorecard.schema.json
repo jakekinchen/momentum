@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camifit.local/schemas/motion-reference/detector_agreement_scorecard.schema.json",
+  "title": "CamiFit Detector Agreement Scorecard",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "status",
+    "detectors",
+    "metrics"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "reviewed"
+      ]
+    },
+    "detectors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "frame_coverage",
+        "mean_visibility",
+        "detector_disagreement",
+        "identity_flip_count",
+        "temporal_jitter",
+        "rejected_frame_windows"
+      ],
+      "properties": {
+        "frame_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mean_visibility": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "detector_disagreement": {
+          "type": "number",
+          "minimum": 0
+        },
+        "identity_flip_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "occlusion_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "temporal_jitter": {
+          "type": "number",
+          "minimum": 0
+        },
+        "foot_hand_contact_stability": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rejected_frame_windows": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

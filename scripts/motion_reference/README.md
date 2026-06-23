@@ -141,6 +141,41 @@ while still being unreproducible from a clean CI/release checkout unless the
 artifacts are mirrored into a durable artifact store or otherwise restored
 before strict provenance gates run.
 
+Run the motion-data factory preflight with:
+
+```bash
+scripts/motion_reference/preflight_motion_data_factory.py
+```
+
+This writes:
+
+- `dist/motion-reference/motion-data-factory-preflight.json`
+- `dist/motion-reference/motion-data-factory-preflight.md`
+
+The preflight is the promotion-tier surface for the motion-data factory. It
+classifies every current exercise row into:
+
+- `recommendation-only`
+- `source-candidate`
+- `detector-reviewable`
+- `avatar-demo-candidate`
+- `guide-ready`
+- `validation-ready`
+
+It preserves the current app-gated guide-ready inventory while reporting
+machine-readable guide blockers and validation blockers. `validation-ready`
+requires explicit capture-session metadata, detector-agreement scorecard,
+kinematic scorecard, passed visual review, runtime validation clips, and
+non-local source-chain storage. Capture-required exercises stay below
+guide-ready even when they have candidate manifests or detector output.
+
+Schema contracts live under `scripts/motion_reference/schemas/`:
+
+- `capture_session.schema.json`
+- `detector_agreement_scorecard.schema.json`
+- `kinematic_scorecard.schema.json`
+- `motion_data_factory_preflight_report.schema.json`
+
 For development experiments without accepted reference clips yet, compile a
 deterministic archetype candidate:
 
