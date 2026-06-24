@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camifit.local/schemas/motion-reference/visual_review.schema.json",
+  "title": "CamiFit Motion Visual Review",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "status",
+    "evidence"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "reviewed",
+        "failed",
+        "pending"
+      ]
+    },
+    "reviewer": {
+      "type": "string"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_video_reviewed": {
+      "type": "boolean"
+    },
+    "detector_video_reviewed": {
+      "type": "boolean"
+    },
+    "avatar_motion_reviewed": {
+      "type": "boolean"
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "properties": {
+        "anatomically_plausible": {
+          "type": "boolean"
+        },
+        "phase_matches_source": {
+          "type": "boolean"
+        },
+        "contact_points_stable": {
+          "type": "boolean"
+        },
+        "no_limb_identity_flips": {
+          "type": "boolean"
+        },
+        "loop_boundary_stable": {
+          "type": "boolean"
+        },
+        "source_provenance_present": {
+          "type": "boolean"
+        }
+      }
+    },
+    "failure_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

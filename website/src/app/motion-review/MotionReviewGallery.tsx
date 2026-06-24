@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   Landmark,
@@ -338,6 +338,7 @@ export function MotionReviewGallery({ data }: { data: MotionReviewData }) {
             <DetectionPanel exercise={selectedExercise} />
           </div>
 
+          <EvidencePanel exercise={selectedExercise} />
           <FactoryPanel exercise={selectedExercise} />
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -636,6 +637,89 @@ function MediaStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border border-white/8 bg-white/5 px-3 py-2">
       <div className="font-semibold text-white/78">{value}</div>
       <div className="mt-1 uppercase tracking-[0.12em] text-white/36">{label}</div>
+    </div>
+  );
+}
+
+function EvidencePanel({ exercise }: { exercise: MotionReviewExercise }) {
+  const { source, captureSession, visualReview } = exercise.evidence;
+  const reviewPassed = visualReview.status === "passed" || visualReview.status === "reviewed";
+
+  return (
+    <section className="rounded-lg border border-white/10 bg-[#121712] p-4">
+      <div className="flex items-center gap-2">
+        <Film className="size-5 text-[#65ffd2]" />
+        <h3 className="text-base font-semibold">Source Evidence</h3>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-3">
+        <EvidenceCard title="Source">
+          <EvidenceRow label="Kind" value={source.kind} />
+          <EvidenceRow label="Label" value={source.label} />
+          <EvidenceRow label="Video" value={source.videoPath} />
+          <EvidenceRow label="License" value={source.license} />
+          <EvidenceRow label="Attribution" value={source.attribution} />
+        </EvidenceCard>
+
+        <EvidenceCard title="Capture Session">
+          <EvidenceRow label="Status" value={captureSession.present ? "present" : "missing"} tone={captureSession.present ? "ok" : "warn"} />
+          <EvidenceRow label="Source" value={captureSession.sourceKind} />
+          <EvidenceRow label="View" value={captureSession.cameraView} />
+          <EvidenceRow label="FPS" value={captureSession.fps} />
+          <EvidenceRow label="Resolution" value={captureSession.resolution} />
+          <EvidenceRow label="Equipment" value={captureSession.equipment} />
+          <EvidenceRow label="Notes" value={captureSession.reviewerNotes} />
+        </EvidenceCard>
+
+        <EvidenceCard title="Visual Review">
+          <EvidenceRow label="Status" value={visualReview.status} tone={reviewPassed ? "ok" : visualReview.present ? "warn" : "missing"} />
+          <EvidenceRow label="Reviewer" value={visualReview.reviewer} />
+          <EvidenceRow label="Reviewed" value={visualReview.reviewedAt} />
+          <EvidenceRow label="Evidence" value={visualReview.evidence} />
+          <EvidenceRow
+            label="Failures"
+            value={visualReview.failureReasons.length ? visualReview.failureReasons.join(", ") : "none"}
+            tone={visualReview.failureReasons.length ? "warn" : "ok"}
+          />
+        </EvidenceCard>
+      </div>
+    </section>
+  );
+}
+
+function EvidenceCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="rounded-md border border-white/8 bg-white/5 p-3">
+      <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">{title}</h4>
+      <div className="mt-3 space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function EvidenceRow({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "ok" | "warn" | "missing";
+}) {
+  const toneClass =
+    tone === "ok"
+      ? "text-[#d7ff5f]"
+      : tone === "warn"
+        ? "text-[#ffd3a1]"
+        : tone === "missing"
+          ? "text-white/38"
+          : "text-white/68";
+
+  return (
+    <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 text-xs">
+      <div className="text-white/36">{label}</div>
+      <div className={cx("min-w-0 break-words font-semibold leading-5", toneClass)}>
+        {value || "missing"}
+      </div>
     </div>
   );
 }

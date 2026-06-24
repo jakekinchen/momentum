@@ -1,0 +1,28 @@
+{
+  "exercise_id": "<exercise_id>",
+  "source_kind": "first_party_trainer_capture",
+  "camera_view": "multi_view_side_front",
+  "fps": 60,
+  "resolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "equipment": "<equipment used or none>",
+  "license": "First-party CamiFit trainer capture",
+  "performer_notes": "<height range, stance, side dominance, clothing/visibility notes>",
+  "reviewer_notes": "<rep count, tempo, rejected takes, calibration, sync notes>",
+  "source_files": [
+    {
+      "view": "side",
+      "path": "dist/motion-reference/<exercise_id>/<session_id>/source_side.mp4",
+      "sha256": "<sha256>",
+      "bytes": 0
+    },
+    {
+      "view": "front",
+      "path": "dist/motion-reference/<exercise_id>/<session_id>/source_front.mp4",
+      "sha256": "<sha256>",
+      "bytes": 0
+    }
+  ]
+}

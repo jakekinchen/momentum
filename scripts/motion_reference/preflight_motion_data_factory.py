@@ -209,6 +209,21 @@ def check_visual_review_decision(manifest: dict[str, Any] | None) -> dict[str, A
 
     visual_review = manifest.get("visual_review")
     if not isinstance(visual_review, dict):
+        for key in ("visual_review_path", "visual_review_file"):
+            if key not in manifest:
+                continue
+            payload, error = load_json_if_present(manifest.get(key))
+            if payload is None:
+                return {
+                    "status": "missing",
+                    "required_for": ["guide-ready", "validation-ready"],
+                    "decision": "missing",
+                    "reasons": [f"{key}:{error}"],
+                }
+            visual_review = payload
+            break
+
+    if not isinstance(visual_review, dict):
         return {
             "status": "missing",
             "required_for": ["guide-ready", "validation-ready"],

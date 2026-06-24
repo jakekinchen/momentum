@@ -1,0 +1,20 @@
+{
+  "exercise_id": "<exercise_id>",
+  "status": "pending",
+  "reviewer": "<reviewer>",
+  "reviewed_at": "<ISO-8601 timestamp>",
+  "evidence": "<specific gallery/source/detector/avatar evidence reviewed>",
+  "source_video_reviewed": false,
+  "detector_video_reviewed": false,
+  "avatar_motion_reviewed": false,
+  "checks": {
+    "anatomically_plausible": false,
+    "phase_matches_source": false,
+    "contact_points_stable": false,
+    "no_limb_identity_flips": false,
+    "loop_boundary_stable": false,
+    "source_provenance_present": false
+  },
+  "failure_reasons": [],
+  "notes": ""
+}

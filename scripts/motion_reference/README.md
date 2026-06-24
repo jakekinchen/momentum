@@ -174,7 +174,14 @@ Schema contracts live under `scripts/motion_reference/schemas/`:
 - `capture_session.schema.json`
 - `detector_agreement_scorecard.schema.json`
 - `kinematic_scorecard.schema.json`
+- `visual_review.schema.json`
 - `motion_data_factory_preflight_report.schema.json`
+
+Template starting points live under `scripts/motion_reference/templates/`:
+
+- `capture_session.first_party_trainer.template.json`
+- `visual_review.template.json`
+- `next_capture_targets.json`
 
 Package the currently bundled motion demos for the web review gallery with:
 

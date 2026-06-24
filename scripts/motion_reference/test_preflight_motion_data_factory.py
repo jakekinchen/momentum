@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -204,6 +205,35 @@ class MotionDataFactoryPreflightTests(unittest.TestCase):
         self.assertTrue(result["validation_ready"])
         self.assertEqual(result["machine_reasons"]["validation_ready_blockers"], [])
 
+    def test_visual_review_path_counts_as_human_review_decision(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            review_path = Path(tmp) / "visual_review.json"
+            review_path.write_text(
+                json.dumps(
+                    {
+                        "status": "passed",
+                        "evidence": "Side-by-side source, detector, and avatar review passed.",
+                        "reviewer": "motion-qa",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            manifest = passed_visual_manifest(
+                visual_review_path=str(review_path),
+            )
+            manifest.pop("visual_review")
+
+            result = preflight.classify_factory_row(
+                base_row(),
+                manifest=manifest,
+                profile=accepted_profile(),
+            )
+
+        self.assertTrue(result["guide_ready"])
+        review = result["factory_concepts"]["human_visual_review_decision"]
+        self.assertEqual(review["status"], "passed")
+        self.assertEqual(review["reasons"], [])
+
     def test_current_inventory_preserves_guide_ready_and_blocks_capture_required(self) -> None:
         report = preflight.build_report(preflight.parse_args([]))
         self.assertEqual(report["summary"]["exercise_rows"], 15)
@@ -237,6 +267,7 @@ class MotionDataFactoryPreflightTests(unittest.TestCase):
         self.assertIn("capture_session.schema.json", schemas)
         self.assertIn("detector_agreement_scorecard.schema.json", schemas)
         self.assertIn("kinematic_scorecard.schema.json", schemas)
+        self.assertIn("visual_review.schema.json", schemas)
         report_schema = schemas["motion_data_factory_preflight_report.schema.json"]
         exercise_concepts = (
             report_schema["properties"]["exercises"]["items"]["properties"]["factory_concepts"]["required"]
@@ -245,6 +276,25 @@ class MotionDataFactoryPreflightTests(unittest.TestCase):
         self.assertIn("detector_agreement_scorecard", exercise_concepts)
         self.assertIn("kinematic_scorecard", exercise_concepts)
         self.assertIn("human_visual_review_decision", exercise_concepts)
+
+    def test_templates_are_valid_json_and_pin_next_capture_targets(self) -> None:
+        template_dir = SCRIPT_DIR / "templates"
+        templates = {
+            path.name: json.loads(path.read_text(encoding="utf-8"))
+            for path in template_dir.glob("*.json")
+        }
+
+        self.assertIn("capture_session.first_party_trainer.template.json", templates)
+        self.assertIn("visual_review.template.json", templates)
+        targets = templates["next_capture_targets.json"]["targets"]
+        self.assertEqual(
+            [target["exercise_id"] for target in targets],
+            [
+                "bodyweight_plank",
+                "machine_chest_supported_row",
+                "standing_miniband_hip_flexion",
+            ],
+        )
 
 
 if __name__ == "__main__":

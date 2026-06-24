@@ -50,7 +50,13 @@ Schema contracts are repo-local:
 - `scripts/motion_reference/schemas/capture_session.schema.json`
 - `scripts/motion_reference/schemas/detector_agreement_scorecard.schema.json`
 - `scripts/motion_reference/schemas/kinematic_scorecard.schema.json`
+- `scripts/motion_reference/schemas/visual_review.schema.json`
 - `scripts/motion_reference/schemas/motion_data_factory_preflight_report.schema.json`
+
+Capture and review templates are available under
+`scripts/motion_reference/templates/`. The first recommended target set is:
+`bodyweight_plank`, `machine_chest_supported_row`, and
+`standing_miniband_hip_flexion`.
 
 Detector agreement scorecards must include frame coverage, visibility,
 detector-disagreement, identity-flip, jitter, and rejected-frame-window fields.

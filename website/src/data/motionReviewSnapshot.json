@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-24T17:57:11.543Z",
+  "generatedAt": "2026-06-24T19:20:19.897Z",
   "summary": {
     "totalExercises": 15,
     "guideReady": 4,
@@ -26761,6 +26761,33 @@
         "local source video artifact"
       ],
       "nextReview": "Reconcile the manifest acceptance status before release claims.",
+      "evidence": {
+        "source": {
+          "kind": "trainer_reference_trace",
+          "label": "Wikimedia Commons Strength Training Circuit - Forward Lunge",
+          "videoPath": "dist/motion-reference/bodyweight_lunge/source/commons-forward-lunge.webm",
+          "license": "Public domain (U.S. Army / U.S. federal government work)",
+          "attribution": "Army Combat Fitness Test / U.S. Army via Wikimedia Commons"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": true,
+          "status": "passed",
+          "evidence": "Installed app screenshot /tmp/camifit_after_parity_relaunch.png shows the protected Bodyweight Lunge guide rendered as the Trackable selected exercise.",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "guide-ready",
         "tierIndex": 4,
@@ -33995,6 +34022,33 @@
         "local source video artifact"
       ],
       "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
+      "evidence": {
+        "source": {
+          "kind": "trainer_reference_trace",
+          "label": "first-party webcam push-up capture; primary_side=left",
+          "videoPath": "dist/motion-reference/bodyweight_pushup/user_capture_20260606-005504/bodyweight_pushup_reference.mov",
+          "license": "First-party CamiFit user capture",
+          "attribution": "CamiFit first-party webcam capture user_capture_20260606-005504"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": true,
+          "status": "passed",
+          "evidence": "App avatar review passed for the first-party push-up guide trace before guide-ready promotion.",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "guide-ready",
         "tierIndex": 4,
@@ -40355,6 +40409,33 @@
         "local source video artifact"
       ],
       "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
+      "evidence": {
+        "source": {
+          "kind": "trainer_reference_trace",
+          "label": "first-party webcam squat capture user_capture_20260608-152116; primary_side=left",
+          "videoPath": "dist/motion-reference/bodyweight_squat/user_capture_20260608-152116/squat_isolated_review.mp4",
+          "license": "First-party CamiFit user capture",
+          "attribution": "CamiFit first-party webcam capture user_capture_20260608-152116"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": true,
+          "status": "passed",
+          "evidence": "App avatar review passed for the first-party squat guide trace before guide-ready promotion.",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "guide-ready",
         "tierIndex": 4,
@@ -45640,6 +45721,33 @@
         "local source video artifact"
       ],
       "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
+      "evidence": {
+        "source": {
+          "kind": "licensed_external_reference_trace",
+          "label": "wger exercise 803 video 59 One Arm Triceps Extensions on Cable",
+          "videoPath": "dist/motion-reference/single_arm_cable_tricep_extension/source_candidates/wger_803_video59/wger_803_video59.MOV",
+          "license": "CC-BY-SA 4",
+          "attribution": "Goulart / wger exercise 803 video 59"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": true,
+          "status": "passed",
+          "evidence": "App avatar review passed for the licensed external cable tricep extension guide trace before guide-ready promotion.",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "guide-ready",
         "tierIndex": 4,
@@ -45802,6 +45910,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "canonical_archetype_trace",
+          "label": "lying_tricep_extension canonical motion profile",
+          "videoPath": "missing",
+          "license": "missing",
+          "attribution": "missing"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": false,
+          "status": "missing",
+          "evidence": "missing",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "source-candidate",
         "tierIndex": 1,
@@ -45961,6 +46096,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "missing",
+          "label": "missing",
+          "videoPath": "missing",
+          "license": "missing",
+          "attribution": "missing"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": false,
+          "status": "missing",
+          "evidence": "missing",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "source-candidate",
         "tierIndex": 1,
@@ -46128,6 +46290,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "licensed_external_reference_trace",
+          "label": "Pexels yoga flow in urban loft with natural light",
+          "videoPath": "dist/motion-reference/bodyweight_pike/source_candidates/yoga-flow-in-urban-loft-with-natural-light-31794279.mp4",
+          "license": "Pexels License",
+          "attribution": "K / Pexels video 31794279"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": false,
+          "status": "missing",
+          "evidence": "missing",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "avatar-demo-candidate",
         "tierIndex": 3,
@@ -46298,6 +46487,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "licensed_external_reference_trace",
+          "label": "Pexels woman doing plank exercise on a yoga mat",
+          "videoPath": "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
+          "license": "Pexels License",
+          "attribution": "Pexels / video 7801720"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": true,
+          "status": "failed",
+          "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass.",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "avatar-demo-candidate",
         "tierIndex": 3,
@@ -46471,6 +46687,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "licensed_external_reference_trace",
+          "label": "Wikimedia Commons Machine T-Bar Row",
+          "videoPath": "dist/motion-reference/machine_chest_supported_row/commons_machine_tbar_row/source.webm",
+          "license": "CC BY 3.0; YouTube CC verified by live metadata and Wayback captures; Commons marks the imported video as License review needed",
+          "attribution": "Colossus Fitness via Wikimedia Commons"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": false,
+          "status": "missing",
+          "evidence": "missing",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "avatar-demo-candidate",
         "tierIndex": 3,
@@ -46644,6 +46887,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "canonical_archetype_trace",
+          "label": "standing_reverse_curl canonical motion profile",
+          "videoPath": "missing",
+          "license": "missing",
+          "attribution": "missing"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": false,
+          "status": "missing",
+          "evidence": "missing",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "source-candidate",
         "tierIndex": 1,
@@ -46811,6 +47081,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "canonical_archetype_trace",
+          "label": "chest_supported_row canonical motion profile",
+          "videoPath": "missing",
+          "license": "missing",
+          "attribution": "missing"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": false,
+          "status": "missing",
+          "evidence": "missing",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "source-candidate",
         "tierIndex": 1,
@@ -46978,6 +47275,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "licensed_external_reference_trace",
+          "label": "Pixabay 66991 Crossfit Gym Workout Training",
+          "videoPath": "dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/crossfit_gym_workout_training_66991.mp4",
+          "license": "Pixabay Content License",
+          "attribution": "tixonov_valentin / Pixabay"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": true,
+          "status": "failed",
+          "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review.",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "avatar-demo-candidate",
         "tierIndex": 3,
@@ -47155,6 +47479,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "canonical_archetype_trace",
+          "label": "standing_hip_flexion canonical motion profile",
+          "videoPath": "missing",
+          "license": "missing",
+          "attribution": "missing"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": false,
+          "status": "missing",
+          "evidence": "missing",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "source-candidate",
         "tierIndex": 1,
@@ -47324,6 +47675,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "licensed_external_reference_trace",
+          "label": "Pexels side-view suspension trainer tricep press",
+          "videoPath": "dist/motion-reference/suspension_tricep_press/pexels_8435987/woman_suspension_tricep_press_8435987.mp4",
+          "license": "Pexels License",
+          "attribution": "Pexels / video 8435987"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": true,
+          "status": "failed",
+          "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review.",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "avatar-demo-candidate",
         "tierIndex": 3,
@@ -47497,6 +47875,33 @@
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "source": {
+          "kind": "canonical_archetype_trace",
+          "label": "preacher_curl canonical motion profile",
+          "videoPath": "missing",
+          "license": "missing",
+          "attribution": "missing"
+        },
+        "captureSession": {
+          "present": false,
+          "sourceKind": "missing",
+          "cameraView": "missing",
+          "fps": "missing",
+          "resolution": "missing",
+          "equipment": "missing",
+          "license": "missing",
+          "reviewerNotes": "missing"
+        },
+        "visualReview": {
+          "present": false,
+          "status": "missing",
+          "evidence": "missing",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
       "factory": {
         "promotionTier": "source-candidate",
         "tierIndex": 1,

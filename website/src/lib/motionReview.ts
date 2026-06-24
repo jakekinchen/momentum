@@ -51,6 +51,7 @@ export type MotionReviewExercise = {
   }>;
   missing: string[];
   nextReview: string;
+  evidence: MotionReviewEvidence;
   factory: MotionFactoryReadiness;
 };
 
@@ -108,6 +109,34 @@ export type MotionFactoryReadiness = {
     localOnlyArtifacts: string[];
   };
   concepts: MotionFactoryConcept[];
+};
+
+export type MotionReviewEvidence = {
+  source: {
+    kind: string;
+    label: string;
+    videoPath: string;
+    license: string;
+    attribution: string;
+  };
+  captureSession: {
+    present: boolean;
+    sourceKind: string;
+    cameraView: string;
+    fps: string;
+    resolution: string;
+    equipment: string;
+    license: string;
+    reviewerNotes: string;
+  };
+  visualReview: {
+    present: boolean;
+    status: string;
+    evidence: string;
+    reviewer: string;
+    reviewedAt: string;
+    failureReasons: string[];
+  };
 };
 
 export type MotionMediaAsset = "contact-sheet" | "detector-video" | "source-video";
@@ -241,6 +270,13 @@ function numberValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function displayValue(value: unknown, fallback = "missing"): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return stringValue(value, fallback);
+}
+
 function readProfiles(): Map<string, JsonRecord> {
   const root = readJson(profilePath);
   const profiles = Array.isArray(root?.profiles) ? root.profiles : [];
@@ -314,6 +350,30 @@ function resolveRepoPath(relativePath: string): string | null {
   const resolved = path.resolve(repoRoot, relativePath);
   if (resolved === repoRoot || resolved.startsWith(`${repoRoot}${path.sep}`)) {
     return resolved;
+  }
+
+  return null;
+}
+
+function readLinkedRecord(manifest: JsonRecord | null, inlineKey: string, pathKeys: string[]): JsonRecord | null {
+  const inline = nestedRecord(manifest, inlineKey);
+  if (inline) {
+    return inline;
+  }
+
+  for (const key of pathKeys) {
+    const value = stringValue(manifest?.[key], "");
+    if (!value) {
+      continue;
+    }
+    const resolved = resolveRepoPath(value);
+    if (!resolved) {
+      continue;
+    }
+    const linked = readJson(resolved);
+    if (linked) {
+      return linked;
+    }
   }
 
   return null;
@@ -620,7 +680,10 @@ function captureSessionConcept(manifest: JsonRecord | null): MotionFactoryConcep
     );
   }
 
-  const inline = nestedRecord(manifest, "capture_session");
+  const inline = readLinkedRecord(manifest, "capture_session", [
+    "capture_session_path",
+    "capture_session_file",
+  ]);
   if (!inline) {
     return concept(
       "capture_session_metadata",
@@ -690,7 +753,10 @@ function visualReviewConcept(manifest: JsonRecord | null): MotionFactoryConcept 
     );
   }
 
-  const visualReview = nestedRecord(manifest, "visual_review");
+  const visualReview = readLinkedRecord(manifest, "visual_review", [
+    "visual_review_path",
+    "visual_review_file",
+  ]);
   if (!visualReview) {
     return concept(
       "human_visual_review_decision",
@@ -718,6 +784,59 @@ function visualReviewConcept(manifest: JsonRecord | null): MotionFactoryConcept 
     ["guide-ready", "validation-ready"],
     decision || "missing",
   );
+}
+
+function formatResolution(value: unknown): string {
+  if (isRecord(value)) {
+    const width = numberValue(value.width);
+    const height = numberValue(value.height);
+    if (width && height) {
+      return `${width}x${height}`;
+    }
+  }
+  return stringValue(value, "missing");
+}
+
+function evidenceForExercise(manifest: JsonRecord | null): MotionReviewEvidence {
+  const captureSession = readLinkedRecord(manifest, "capture_session", [
+    "capture_session_path",
+    "capture_session_file",
+  ]);
+  const visualReview = readLinkedRecord(manifest, "visual_review", [
+    "visual_review_path",
+    "visual_review_file",
+  ]);
+  const failureReasons = Array.isArray(visualReview?.failure_reasons)
+    ? visualReview.failure_reasons.filter((item): item is string => typeof item === "string")
+    : [];
+
+  return {
+    source: {
+      kind: stringValue(manifest?.source_kind, "missing"),
+      label: stringValue(manifest?.source_label, "missing"),
+      videoPath: stringValue(manifest?.source_video, "missing"),
+      license: stringValue(manifest?.source_license, "missing"),
+      attribution: stringValue(manifest?.source_attribution, "missing"),
+    },
+    captureSession: {
+      present: Boolean(captureSession),
+      sourceKind: stringValue(captureSession?.source_kind, "missing"),
+      cameraView: stringValue(captureSession?.camera_view, "missing"),
+      fps: displayValue(captureSession?.fps),
+      resolution: formatResolution(captureSession?.resolution),
+      equipment: stringValue(captureSession?.equipment, "missing"),
+      license: stringValue(captureSession?.license, "missing"),
+      reviewerNotes: stringValue(captureSession?.reviewer_notes, "missing"),
+    },
+    visualReview: {
+      present: Boolean(visualReview),
+      status: stringValue(visualReview?.status, "missing"),
+      evidence: stringValue(visualReview?.evidence, "missing"),
+      reviewer: stringValue(visualReview?.reviewer, "missing"),
+      reviewedAt: stringValue(visualReview?.reviewed_at, "missing"),
+      failureReasons,
+    },
+  };
 }
 
 function runtimeValidationConcept(manifest: JsonRecord | null): MotionFactoryConcept {
@@ -1178,6 +1297,7 @@ function getFileSystemMotionReviewData(): MotionReviewData {
     const trace = readTrace(id);
     const stats = traceStats(trace);
     const media = mediaForExercise(id);
+    const evidence = evidenceForExercise(manifest);
     const gateStatus = guideReady.has(id)
       ? "guide_ready"
       : referenceCaptureRequired.has(id)
@@ -1234,6 +1354,7 @@ function getFileSystemMotionReviewData(): MotionReviewData {
       validation: buildValidation(manifest, profile),
       missing,
       nextReview,
+      evidence,
       factory,
     };
   });
