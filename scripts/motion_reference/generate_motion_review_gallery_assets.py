@@ -92,13 +92,21 @@ def update_snapshot_media(snapshot: dict[str, Any], public_dir: Path, exercise_i
         if not isinstance(exercise_id, str) or not isinstance(media, dict):
             continue
 
+        source_video_url = media.get("sourceVideoUrl")
+        source_video_bytes = media.get("sourceVideoBytes")
+        has_portable_source = isinstance(source_video_url, str) and source_video_url.startswith(("http://", "https://"))
+
         media["contactSheetUrl"] = None
-        media["sourceVideoUrl"] = None
         media["contactSheetBytes"] = None
-        media["sourceVideoBytes"] = None
+        if has_portable_source:
+            media["sourceVideoUrl"] = source_video_url
+            media["sourceVideoBytes"] = source_video_bytes if isinstance(source_video_bytes, int) else None
+        else:
+            media["sourceVideoUrl"] = None
+            media["sourceVideoBytes"] = None
 
         video = generated_video_path(public_dir, exercise_id)
-        if exercise_id in exercise_ids and video.exists():
+        if video.exists():
             media["detectorVideoUrl"] = public_media_url(exercise_id)
             media["detectorVideoBytes"] = video.stat().st_size
             detector_reviews += 1

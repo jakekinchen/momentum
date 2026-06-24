@@ -209,6 +209,21 @@ For licensed external clips, use `--source-kind licensed_external_clip` and
 `--manifest-source-kind licensed_external_reference_trace`, and include the
 source page, media URL, license, and attribution in the command.
 
+After extracting raw MediaPipe output and normalizing a candidate trace, write
+detector and kinematic scorecards with:
+
+```bash
+python3 scripts/motion_reference/score_motion_reference_trace.py \
+  --raw dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/raw_mediapipe.jsonl \
+  --normalized dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/bodyweight_plank.static_median.jsonl \
+  --output-dir dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6
+```
+
+The detector scorecard distinguishes single-detector quality evidence from
+true detector agreement. A MediaPipe-only pass can have complete coverage and
+good visibility while still failing `detector_agreement_scorecard` until a
+second detector or comparator exists.
+
 Package the currently bundled motion demos for the web review gallery with:
 
 ```bash

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-24T19:41:25.702Z",
+  "generatedAt": "2026-06-24T19:59:39.289Z",
   "summary": {
     "totalExercises": 15,
     "guideReady": 4,
     "validationReady": 0,
     "referenceCaptureRequired": 11,
     "playableTraces": 4,
-    "detectorReviews": 4,
+    "detectorReviews": 5,
     "contactSheets": 0,
     "blockedFromGuideReady": 11,
     "tierCounts": {
@@ -45863,6 +45863,199 @@
       }
     },
     {
+      "id": "bodyweight_plank",
+      "name": "Bodyweight Plank",
+      "gateStatus": "reference_capture_required",
+      "sourceKind": "licensed_external_reference_trace",
+      "acceptanceStatus": "blocked_visual_rig_review_failed",
+      "measurementStatus": "reference_capture_required",
+      "captureStatus": "pending_visual_rig_review",
+      "requiredView": "side",
+      "requiredLandmarks": [
+        "primary.shoulder",
+        "primary.hip",
+        "primary.ankle"
+      ],
+      "formCues": [
+        "Lift your hips"
+      ],
+      "target": "1 reps",
+      "trace": [],
+      "frameCount": 0,
+      "durationMs": 0,
+      "landmarkCount": 0,
+      "media": {
+        "detectorVideoUrl": "/motion-review-assets/bodyweight_plank/mediapipe_skeleton_review.mp4",
+        "contactSheetUrl": null,
+        "sourceVideoUrl": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
+        "detectorVideoBytes": 224069,
+        "contactSheetBytes": null,
+        "sourceVideoBytes": 12055907
+      },
+      "validation": [
+        {
+          "label": "Manifest",
+          "value": "blocked_visual_rig_review_failed",
+          "status": "warn"
+        },
+        {
+          "label": "Visual review",
+          "value": "failed",
+          "status": "warn"
+        },
+        {
+          "label": "Engine replay",
+          "value": "passed",
+          "status": "pass"
+        },
+        {
+          "label": "Live app",
+          "value": "failed",
+          "status": "warn"
+        },
+        {
+          "label": "Measurement",
+          "value": "reference_capture_required",
+          "status": "info"
+        }
+      ],
+      "missing": [
+        "playable JSONL",
+        "review contact sheet",
+        "guide-ready promotion"
+      ],
+      "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+      "evidence": {
+        "capturePlan": {
+          "priority": 1,
+          "requiredView": "side",
+          "reason": "Bodyweight hold movement; good first validation target for contact stability and loop-free posture.",
+          "promotionRule": "Do not promote until capture session, detector agreement, kinematic scorecard, visual review, engine replay, installed-app review, and durable artifact storage all pass."
+        },
+        "source": {
+          "kind": "licensed_external_reference_trace",
+          "label": "Pexels woman doing plank exercise on a yoga mat",
+          "videoPath": "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
+          "license": "Pexels License",
+          "attribution": "Pavel Danilyuk / Pexels video 7801720"
+        },
+        "captureSession": {
+          "present": true,
+          "sourceKind": "licensed_external_clip",
+          "cameraView": "side",
+          "fps": "25",
+          "resolution": "2732x1154",
+          "equipment": "yoga mat",
+          "license": "Pexels License",
+          "reviewerNotes": "Self-sourced external plank clip; source file registered locally under dist for detector extraction and review, not promoted."
+        },
+        "visualReview": {
+          "present": true,
+          "status": "failed",
+          "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass.",
+          "reviewer": "missing",
+          "reviewedAt": "missing",
+          "failureReasons": []
+        }
+      },
+      "factory": {
+        "promotionTier": "avatar-demo-candidate",
+        "tierIndex": 3,
+        "guideReady": false,
+        "validationReady": false,
+        "guideReadyBlockers": [
+          "manifest_acceptance_not_promotable:blocked_visual_rig_review_failed",
+          "reference_capture_required_gate",
+          "visual_review_failed"
+        ],
+        "validationReadyBlockers": [
+          "local_only_source_chain_artifacts",
+          "missing_runtime_validation_set",
+          "not_guide_ready",
+          "scorecard_status_not_passed:failed",
+          "visual_review_status_not_passed:failed"
+        ],
+        "warnings": [
+          "playable JSONL",
+          "review contact sheet",
+          "guide-ready promotion"
+        ],
+        "nextAction": "Replace the failed avatar/source candidate and record a new passed visual-review decision before guide promotion.",
+        "currentSignals": {
+          "appGate": "reference_capture_required",
+          "referenceStatus": "pending_reference_capture",
+          "captureStatus": "pending_visual_rig_review",
+          "normalizerStatus": "blocked_visual_rig_review_failed",
+          "manifestStatus": "blocked_visual_rig_review_failed",
+          "playableJsonl": false,
+          "localOnlyArtifacts": [
+            "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
+            "dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/raw_mediapipe.jsonl",
+            "dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/bodyweight_plank.static_median.jsonl"
+          ]
+        },
+        "concepts": [
+          {
+            "key": "capture_session_metadata",
+            "label": "Capture session",
+            "status": "present",
+            "decision": "licensed_external_clip",
+            "reasons": [],
+            "requiredFor": [
+              "validation-ready"
+            ]
+          },
+          {
+            "key": "detector_agreement_scorecard",
+            "label": "Detector agreement",
+            "status": "invalid",
+            "decision": "failed",
+            "reasons": [
+              "scorecard_status_not_passed:failed"
+            ],
+            "requiredFor": [
+              "validation-ready"
+            ]
+          },
+          {
+            "key": "kinematic_scorecard",
+            "label": "Kinematic scorecard",
+            "status": "passed",
+            "decision": "passed",
+            "reasons": [],
+            "requiredFor": [
+              "validation-ready"
+            ]
+          },
+          {
+            "key": "human_visual_review_decision",
+            "label": "Human visual review",
+            "status": "failed",
+            "decision": "failed",
+            "reasons": [
+              "visual_review_status_not_passed:failed"
+            ],
+            "requiredFor": [
+              "guide-ready",
+              "validation-ready"
+            ]
+          },
+          {
+            "key": "runtime_validation_set",
+            "label": "Runtime validation",
+            "status": "missing",
+            "decision": "missing",
+            "reasons": [
+              "missing_runtime_validation_set"
+            ],
+            "requiredFor": [
+              "validation-ready"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "id": "bench_lying_single_arm_dumbbell_tricep_extension",
       "name": "Bench-Lying Single-Arm Dumbbell Tricep Extension",
       "gateStatus": "reference_capture_required",
@@ -46437,204 +46630,6 @@
             "decision": "missing",
             "reasons": [
               "missing_visual_review_decision"
-            ],
-            "requiredFor": [
-              "guide-ready",
-              "validation-ready"
-            ]
-          },
-          {
-            "key": "runtime_validation_set",
-            "label": "Runtime validation",
-            "status": "missing",
-            "decision": "missing",
-            "reasons": [
-              "missing_runtime_validation_set"
-            ],
-            "requiredFor": [
-              "validation-ready"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "bodyweight_plank",
-      "name": "Bodyweight Plank",
-      "gateStatus": "reference_capture_required",
-      "sourceKind": "licensed_external_reference_trace",
-      "acceptanceStatus": "blocked_visual_rig_review_failed",
-      "measurementStatus": "reference_capture_required",
-      "captureStatus": "pending_visual_rig_review",
-      "requiredView": "side",
-      "requiredLandmarks": [
-        "primary.shoulder",
-        "primary.hip",
-        "primary.ankle"
-      ],
-      "formCues": [
-        "Lift your hips"
-      ],
-      "target": "1 reps",
-      "trace": [],
-      "frameCount": 0,
-      "durationMs": 0,
-      "landmarkCount": 0,
-      "media": {
-        "detectorVideoUrl": null,
-        "contactSheetUrl": null,
-        "sourceVideoUrl": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
-        "detectorVideoBytes": null,
-        "contactSheetBytes": null,
-        "sourceVideoBytes": 12055907
-      },
-      "validation": [
-        {
-          "label": "Manifest",
-          "value": "blocked_visual_rig_review_failed",
-          "status": "warn"
-        },
-        {
-          "label": "Visual review",
-          "value": "failed",
-          "status": "warn"
-        },
-        {
-          "label": "Engine replay",
-          "value": "passed",
-          "status": "pass"
-        },
-        {
-          "label": "Live app",
-          "value": "failed",
-          "status": "warn"
-        },
-        {
-          "label": "Measurement",
-          "value": "reference_capture_required",
-          "status": "info"
-        }
-      ],
-      "missing": [
-        "playable JSONL",
-        "review video",
-        "review contact sheet",
-        "guide-ready promotion"
-      ],
-      "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
-      "evidence": {
-        "capturePlan": {
-          "priority": 1,
-          "requiredView": "side",
-          "reason": "Bodyweight hold movement; good first validation target for contact stability and loop-free posture.",
-          "promotionRule": "Do not promote until capture session, detector agreement, kinematic scorecard, visual review, engine replay, installed-app review, and durable artifact storage all pass."
-        },
-        "source": {
-          "kind": "licensed_external_reference_trace",
-          "label": "Pexels woman doing plank exercise on a yoga mat",
-          "videoPath": "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
-          "license": "Pexels License",
-          "attribution": "Pavel Danilyuk / Pexels video 7801720"
-        },
-        "captureSession": {
-          "present": true,
-          "sourceKind": "licensed_external_clip",
-          "cameraView": "side",
-          "fps": "25",
-          "resolution": "2732x1154",
-          "equipment": "yoga mat",
-          "license": "Pexels License",
-          "reviewerNotes": "Self-sourced external plank clip; source file registered locally under dist for detector extraction and review, not promoted."
-        },
-        "visualReview": {
-          "present": true,
-          "status": "failed",
-          "evidence": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass.",
-          "reviewer": "missing",
-          "reviewedAt": "missing",
-          "failureReasons": []
-        }
-      },
-      "factory": {
-        "promotionTier": "avatar-demo-candidate",
-        "tierIndex": 3,
-        "guideReady": false,
-        "validationReady": false,
-        "guideReadyBlockers": [
-          "manifest_acceptance_not_promotable:blocked_visual_rig_review_failed",
-          "reference_capture_required_gate",
-          "visual_review_failed"
-        ],
-        "validationReadyBlockers": [
-          "local_only_source_chain_artifacts",
-          "missing_detector_agreement_scorecard",
-          "missing_kinematic_scorecard",
-          "missing_runtime_validation_set",
-          "not_guide_ready",
-          "visual_review_status_not_passed:failed"
-        ],
-        "warnings": [
-          "playable JSONL",
-          "review video",
-          "review contact sheet",
-          "guide-ready promotion"
-        ],
-        "nextAction": "Replace the failed avatar/source candidate and record a new passed visual-review decision before guide promotion.",
-        "currentSignals": {
-          "appGate": "reference_capture_required",
-          "referenceStatus": "pending_reference_capture",
-          "captureStatus": "pending_visual_rig_review",
-          "normalizerStatus": "blocked_visual_rig_review_failed",
-          "manifestStatus": "blocked_visual_rig_review_failed",
-          "playableJsonl": false,
-          "localOnlyArtifacts": [
-            "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
-            "dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/raw_mediapipe.jsonl",
-            "dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/bodyweight_plank.static_median.jsonl"
-          ]
-        },
-        "concepts": [
-          {
-            "key": "capture_session_metadata",
-            "label": "Capture session",
-            "status": "present",
-            "decision": "licensed_external_clip",
-            "reasons": [],
-            "requiredFor": [
-              "validation-ready"
-            ]
-          },
-          {
-            "key": "detector_agreement_scorecard",
-            "label": "Detector agreement",
-            "status": "missing",
-            "decision": "missing",
-            "reasons": [
-              "missing_detector_agreement_scorecard"
-            ],
-            "requiredFor": [
-              "validation-ready"
-            ]
-          },
-          {
-            "key": "kinematic_scorecard",
-            "label": "Kinematic scorecard",
-            "status": "missing",
-            "decision": "missing",
-            "reasons": [
-              "missing_kinematic_scorecard"
-            ],
-            "requiredFor": [
-              "validation-ready"
-            ]
-          },
-          {
-            "key": "human_visual_review_decision",
-            "label": "Human visual review",
-            "status": "failed",
-            "decision": "failed",
-            "reasons": [
-              "visual_review_status_not_passed:failed"
             ],
             "requiredFor": [
               "guide-ready",

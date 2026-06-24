@@ -50,6 +50,17 @@ class GenerateMotionReviewGalleryAssetsTests(unittest.TestCase):
                             "sourceVideoBytes": 13,
                         },
                     },
+                    {
+                        "id": "bodyweight_pike",
+                        "media": {
+                            "detectorVideoUrl": None,
+                            "contactSheetUrl": None,
+                            "sourceVideoUrl": "https://videos.pexels.com/example.mp4",
+                            "detectorVideoBytes": None,
+                            "contactSheetBytes": None,
+                            "sourceVideoBytes": 12055907,
+                        },
+                    },
                 ],
             }
 
@@ -57,11 +68,14 @@ class GenerateMotionReviewGalleryAssetsTests(unittest.TestCase):
 
         squat_media = updated["exercises"][0]["media"]
         plank_media = updated["exercises"][1]["media"]
+        pike_media = updated["exercises"][2]["media"]
         self.assertEqual(squat_media["detectorVideoUrl"], public_media_url("bodyweight_squat"))
         self.assertEqual(squat_media["detectorVideoBytes"], len(b"fake mp4"))
         self.assertIsNone(squat_media["contactSheetUrl"])
         self.assertIsNone(squat_media["sourceVideoUrl"])
         self.assertIsNone(plank_media["detectorVideoUrl"])
+        self.assertEqual(pike_media["sourceVideoUrl"], "https://videos.pexels.com/example.mp4")
+        self.assertEqual(pike_media["sourceVideoBytes"], 12055907)
         self.assertEqual(updated["summary"]["detectorReviews"], 1)
         self.assertEqual(updated["summary"]["contactSheets"], 0)
 
