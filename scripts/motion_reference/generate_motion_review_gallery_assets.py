@@ -16,14 +16,29 @@ DEFAULT_TMP_REVIEW = ROOT / "tmp" / "motion-review"
 DEFAULT_PUBLIC_REVIEW = ROOT / "website" / "public" / "motion-review-assets"
 DEFAULT_SNAPSHOT = ROOT / "website" / "src" / "data" / "motionReviewSnapshot.json"
 RENDERER = ROOT / "scripts" / "motion_reference" / "render_mediapipe_trace_review.py"
+SKELETON_REVIEW_FILENAME = "mediapipe_skeleton_review.mp4"
+TRACE_REVIEW_FILENAME = "mediapipe_trace_review.mp4"
+REVIEW_VIDEO_FILENAMES = (TRACE_REVIEW_FILENAME, SKELETON_REVIEW_FILENAME)
 
 
-def public_media_url(exercise_id: str) -> str:
-    return f"/motion-review-assets/{exercise_id}/mediapipe_skeleton_review.mp4"
+def public_media_url(exercise_id: str, filename: str = SKELETON_REVIEW_FILENAME) -> str:
+    return f"/motion-review-assets/{exercise_id}/{filename}"
 
 
-def generated_video_path(public_dir: Path, exercise_id: str) -> Path:
-    return public_dir / exercise_id / "mediapipe_skeleton_review.mp4"
+def generated_video_path(
+    public_dir: Path,
+    exercise_id: str,
+    filename: str = SKELETON_REVIEW_FILENAME,
+) -> Path:
+    return public_dir / exercise_id / filename
+
+
+def preferred_review_video(public_dir: Path, exercise_id: str) -> tuple[Path, str] | None:
+    for filename in REVIEW_VIDEO_FILENAMES:
+        path = generated_video_path(public_dir, exercise_id, filename)
+        if path.exists():
+            return path, filename
+    return None
 
 
 def packaged_trace_paths(motion_demos: Path) -> list[Path]:
@@ -62,7 +77,7 @@ def render_review_video(
         ]
     )
 
-    source = output_dir / "mediapipe_skeleton_review.mp4"
+    source = output_dir / SKELETON_REVIEW_FILENAME
     if not source.exists():
         raise FileNotFoundError(f"renderer did not create {source}")
 
@@ -105,9 +120,10 @@ def update_snapshot_media(snapshot: dict[str, Any], public_dir: Path, exercise_i
             media["sourceVideoUrl"] = None
             media["sourceVideoBytes"] = None
 
-        video = generated_video_path(public_dir, exercise_id)
-        if video.exists():
-            media["detectorVideoUrl"] = public_media_url(exercise_id)
+        preferred_video = preferred_review_video(public_dir, exercise_id)
+        if preferred_video is not None:
+            video, filename = preferred_video
+            media["detectorVideoUrl"] = public_media_url(exercise_id, filename)
             media["detectorVideoBytes"] = video.stat().st_size
             detector_reviews += 1
         else:
@@ -160,7 +176,7 @@ def main() -> int:
         generated_ids = {
             raw_path.stem
             for raw_path in raw_paths
-            if generated_video_path(args.public_review_dir, raw_path.stem).exists()
+            if preferred_review_video(args.public_review_dir, raw_path.stem) is not None
         }
 
     snapshot = load_snapshot(args.snapshot)

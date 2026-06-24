@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-24T19:59:39.289Z",
+  "generatedAt": "2026-06-24T20:19:15.759Z",
   "summary": {
     "totalExercises": 15,
     "guideReady": 4,
@@ -45885,10 +45885,10 @@
       "durationMs": 0,
       "landmarkCount": 0,
       "media": {
-        "detectorVideoUrl": "/motion-review-assets/bodyweight_plank/mediapipe_skeleton_review.mp4",
+        "detectorVideoUrl": "/motion-review-assets/bodyweight_plank/mediapipe_trace_review.mp4",
         "contactSheetUrl": null,
         "sourceVideoUrl": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
-        "detectorVideoBytes": 224069,
+        "detectorVideoBytes": 587765,
         "contactSheetBytes": null,
         "sourceVideoBytes": 12055907
       },

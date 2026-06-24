@@ -202,6 +202,10 @@ const captureTargetsPath = path.join(repoRoot, "scripts/motion_reference/templat
 const appGatePath = path.join(repoRoot, "Sources/CamiFitApp/AppExerciseTrackingGate.swift");
 const reviewDir = path.join(repoRoot, "tmp/motion-review");
 const publicReviewDir = path.join(process.cwd(), "public/motion-review-assets");
+const detectorReviewFilenames = [
+  "mediapipe_trace_review.mp4",
+  "mediapipe_skeleton_review.mp4",
+] as const;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -499,6 +503,24 @@ function publicReviewAssetUrl(exerciseId: string, filename: string): string {
   return `/motion-review-assets/${exerciseId}/${filename}`;
 }
 
+function firstExistingReviewAsset(
+  exerciseId: string,
+  assetPath: (id: string, filename: string) => string,
+): { path: string; filename: string } | null {
+  if (!safeExerciseId(exerciseId)) {
+    return null;
+  }
+
+  for (const filename of detectorReviewFilenames) {
+    const pathname = assetPath(exerciseId, filename);
+    if (existsSync(pathname)) {
+      return { path: pathname, filename };
+    }
+  }
+
+  return null;
+}
+
 export function resolveMotionMediaFile(
   exerciseId: string,
   asset: MotionMediaAsset,
@@ -513,8 +535,8 @@ export function resolveMotionMediaFile(
   }
 
   if (asset === "detector-video") {
-    const pathname = reviewAssetPath(exerciseId, "mediapipe_skeleton_review.mp4");
-    return existsSync(pathname) ? { path: pathname, contentType: "video/mp4" } : null;
+    const reviewAsset = firstExistingReviewAsset(exerciseId, reviewAssetPath);
+    return reviewAsset ? { path: reviewAsset.path, contentType: "video/mp4" } : null;
   }
 
   const manifest = readJson(manifestPath(exerciseId));
@@ -541,20 +563,15 @@ export function resolveMotionMediaRedirect(
 
 function mediaForExercise(exerciseId: string): MotionReviewMedia {
   const manifest = readJson(manifestPath(exerciseId));
-  const publicDetectorVideo = safeExerciseId(exerciseId)
-    ? publicReviewAssetPath(exerciseId, "mediapipe_skeleton_review.mp4")
-    : null;
-  const hasPublicDetectorVideo = Boolean(
-    publicDetectorVideo && existsSync(publicDetectorVideo),
-  );
+  const publicDetectorVideo = firstExistingReviewAsset(exerciseId, publicReviewAssetPath);
   const detectorVideo = resolveMotionMediaFile(exerciseId, "detector-video");
   const contactSheet = resolveMotionMediaFile(exerciseId, "contact-sheet");
   const sourceVideo = resolveMotionMediaFile(exerciseId, "source-video");
   const sourceMediaUrl = resolveMotionMediaRedirect(exerciseId, "source-video");
 
   return {
-    detectorVideoUrl: hasPublicDetectorVideo
-      ? publicReviewAssetUrl(exerciseId, "mediapipe_skeleton_review.mp4")
+    detectorVideoUrl: publicDetectorVideo
+      ? publicReviewAssetUrl(exerciseId, publicDetectorVideo.filename)
       : detectorVideo
         ? `/motion-review/api/media/${exerciseId}/detector-video`
         : null,
@@ -566,8 +583,8 @@ function mediaForExercise(exerciseId: string): MotionReviewMedia {
         ? `/motion-review/api/media/${exerciseId}/source-video`
         : null
     ),
-    detectorVideoBytes: hasPublicDetectorVideo && publicDetectorVideo
-      ? statBytes(publicDetectorVideo)
+    detectorVideoBytes: publicDetectorVideo
+      ? statBytes(publicDetectorVideo.path)
       : detectorVideo
         ? statBytes(detectorVideo.path)
         : null,

@@ -502,7 +502,7 @@ function DetectionPanel({ exercise }: { exercise: MotionReviewExercise }) {
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <div>
           <h3 className="text-base font-semibold">Trace Review</h3>
-          <p className="text-sm text-white/46">Packaged motion skeleton evidence</p>
+          <p className="text-sm text-white/46">Detector review evidence</p>
         </div>
         <div className="flex rounded-md border border-white/10 bg-white/6 p-1">
           <TabButton

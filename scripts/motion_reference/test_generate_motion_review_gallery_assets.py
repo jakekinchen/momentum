@@ -8,7 +8,9 @@ import unittest
 from pathlib import Path
 
 from generate_motion_review_gallery_assets import (
+    TRACE_REVIEW_FILENAME,
     generated_video_path,
+    preferred_review_video,
     public_media_url,
     update_snapshot_media,
 )
@@ -78,6 +80,56 @@ class GenerateMotionReviewGalleryAssetsTests(unittest.TestCase):
         self.assertEqual(pike_media["sourceVideoBytes"], 12055907)
         self.assertEqual(updated["summary"]["detectorReviews"], 1)
         self.assertEqual(updated["summary"]["contactSheets"], 0)
+
+    def test_update_snapshot_media_prefers_trace_review_video(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            public_dir = Path(tmp) / "public"
+            skeleton_video = generated_video_path(public_dir, "bodyweight_plank")
+            trace_video = generated_video_path(public_dir, "bodyweight_plank", TRACE_REVIEW_FILENAME)
+            skeleton_video.parent.mkdir(parents=True)
+            skeleton_video.write_bytes(b"small skeleton")
+            trace_video.write_bytes(b"larger side by side review")
+
+            snapshot = {
+                "summary": {
+                    "detectorReviews": 0,
+                    "contactSheets": 0,
+                },
+                "exercises": [
+                    {
+                        "id": "bodyweight_plank",
+                        "media": {
+                            "detectorVideoUrl": None,
+                            "contactSheetUrl": None,
+                            "sourceVideoUrl": None,
+                            "detectorVideoBytes": None,
+                            "contactSheetBytes": None,
+                            "sourceVideoBytes": None,
+                        },
+                    }
+                ],
+            }
+
+            updated = update_snapshot_media(snapshot, public_dir, {"bodyweight_plank"})
+
+        plank_media = updated["exercises"][0]["media"]
+        self.assertEqual(
+            plank_media["detectorVideoUrl"],
+            public_media_url("bodyweight_plank", TRACE_REVIEW_FILENAME),
+        )
+        self.assertEqual(plank_media["detectorVideoBytes"], len(b"larger side by side review"))
+
+    def test_preferred_review_video_falls_back_to_skeleton(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            public_dir = Path(tmp) / "public"
+            skeleton_video = generated_video_path(public_dir, "bodyweight_squat")
+            skeleton_video.parent.mkdir(parents=True)
+            skeleton_video.write_bytes(b"fake mp4")
+
+            preferred = preferred_review_video(public_dir, "bodyweight_squat")
+
+        self.assertIsNotNone(preferred)
+        self.assertEqual(preferred[1], "mediapipe_skeleton_review.mp4")
 
 
 if __name__ == "__main__":
