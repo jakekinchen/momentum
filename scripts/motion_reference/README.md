@@ -176,6 +176,20 @@ Schema contracts live under `scripts/motion_reference/schemas/`:
 - `kinematic_scorecard.schema.json`
 - `motion_data_factory_preflight_report.schema.json`
 
+Package the currently bundled motion demos for the web review gallery with:
+
+```bash
+scripts/motion_reference/generate_motion_review_gallery_assets.py
+```
+
+This renders a compact skeleton-review MP4 for every packaged
+`Sources/CamiFitApp/Resources/MotionDemos/*.jsonl` trace, copies those videos
+to `website/public/motion-review-assets/<exercise_id>/`, and updates
+`website/src/data/motionReviewSnapshot.json` so the Vercel-hosted
+`/motion-review` route has portable review data. It does not promote pending
+or rejected exercises and it does not fabricate motion for exercises that lack
+a packaged JSONL trace.
+
 For development experiments without accepted reference clips yet, compile a
 deterministic archetype candidate:
 

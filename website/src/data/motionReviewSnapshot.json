@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-24T02:48:01.204Z",
+  "generatedAt": "2026-06-24T17:57:11.543Z",
   "summary": {
     "totalExercises": 15,
     "guideReady": 4,
     "validationReady": 0,
     "referenceCaptureRequired": 11,
     "playableTraces": 4,
-    "detectorReviews": 0,
+    "detectorReviews": 4,
     "contactSheets": 0,
     "blockedFromGuideReady": 11,
     "tierCounts": {
@@ -26722,10 +26722,10 @@
       "durationMs": 7169,
       "landmarkCount": 34,
       "media": {
-        "detectorVideoUrl": null,
+        "detectorVideoUrl": "/motion-review-assets/bodyweight_lunge/mediapipe_skeleton_review.mp4",
         "contactSheetUrl": null,
         "sourceVideoUrl": null,
-        "detectorVideoBytes": null,
+        "detectorVideoBytes": 181449,
         "contactSheetBytes": null,
         "sourceVideoBytes": null
       },
@@ -26757,11 +26757,10 @@
         }
       ],
       "missing": [
-        "detector review video",
-        "detector contact sheet",
+        "review contact sheet",
         "local source video artifact"
       ],
-      "nextReview": "Generate a MediaPipe detector review video so the trace can be compared against source detection.",
+      "nextReview": "Reconcile the manifest acceptance status before release claims.",
       "factory": {
         "promotionTier": "guide-ready",
         "tierIndex": 4,
@@ -26776,8 +26775,7 @@
           "missing_runtime_validation_set"
         ],
         "warnings": [
-          "detector review video",
-          "detector contact sheet",
+          "review contact sheet",
           "local source video artifact"
         ],
         "nextAction": "Keep app guide-ready, then backfill durable artifact storage, capture-session metadata, detector agreement, kinematic scoring, and runtime validation clips.",
@@ -33958,10 +33956,10 @@
       "durationMs": 3400,
       "landmarkCount": 18,
       "media": {
-        "detectorVideoUrl": null,
+        "detectorVideoUrl": "/motion-review-assets/bodyweight_pushup/mediapipe_skeleton_review.mp4",
         "contactSheetUrl": null,
         "sourceVideoUrl": null,
-        "detectorVideoBytes": null,
+        "detectorVideoBytes": 71000,
         "contactSheetBytes": null,
         "sourceVideoBytes": null
       },
@@ -33993,11 +33991,10 @@
         }
       ],
       "missing": [
-        "detector review video",
-        "detector contact sheet",
+        "review contact sheet",
         "local source video artifact"
       ],
-      "nextReview": "Generate a MediaPipe detector review video so the trace can be compared against source detection.",
+      "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
       "factory": {
         "promotionTier": "guide-ready",
         "tierIndex": 4,
@@ -34012,8 +34009,7 @@
           "missing_runtime_validation_set"
         ],
         "warnings": [
-          "detector review video",
-          "detector contact sheet",
+          "review contact sheet",
           "local source video artifact"
         ],
         "nextAction": "Keep app guide-ready, then backfill durable artifact storage, capture-session metadata, detector agreement, kinematic scoring, and runtime validation clips.",
@@ -40320,10 +40316,10 @@
       "durationMs": 2832,
       "landmarkCount": 34,
       "media": {
-        "detectorVideoUrl": null,
+        "detectorVideoUrl": "/motion-review-assets/bodyweight_squat/mediapipe_skeleton_review.mp4",
         "contactSheetUrl": null,
         "sourceVideoUrl": null,
-        "detectorVideoBytes": null,
+        "detectorVideoBytes": 56599,
         "contactSheetBytes": null,
         "sourceVideoBytes": null
       },
@@ -40355,11 +40351,10 @@
         }
       ],
       "missing": [
-        "detector review video",
-        "detector contact sheet",
+        "review contact sheet",
         "local source video artifact"
       ],
-      "nextReview": "Generate a MediaPipe detector review video so the trace can be compared against source detection.",
+      "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
       "factory": {
         "promotionTier": "guide-ready",
         "tierIndex": 4,
@@ -40374,8 +40369,7 @@
           "missing_runtime_validation_set"
         ],
         "warnings": [
-          "detector review video",
-          "detector contact sheet",
+          "review contact sheet",
           "local source video artifact"
         ],
         "nextAction": "Keep app guide-ready, then backfill durable artifact storage, capture-session metadata, detector agreement, kinematic scoring, and runtime validation clips.",
@@ -45607,10 +45601,10 @@
       "durationMs": 2000,
       "landmarkCount": 28,
       "media": {
-        "detectorVideoUrl": null,
+        "detectorVideoUrl": "/motion-review-assets/single_arm_cable_tricep_extension/mediapipe_skeleton_review.mp4",
         "contactSheetUrl": null,
         "sourceVideoUrl": null,
-        "detectorVideoBytes": null,
+        "detectorVideoBytes": 28603,
         "contactSheetBytes": null,
         "sourceVideoBytes": null
       },
@@ -45642,11 +45636,10 @@
         }
       ],
       "missing": [
-        "detector review video",
-        "detector contact sheet",
+        "review contact sheet",
         "local source video artifact"
       ],
-      "nextReview": "Generate a MediaPipe detector review video so the trace can be compared against source detection.",
+      "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
       "factory": {
         "promotionTier": "guide-ready",
         "tierIndex": 4,
@@ -45661,8 +45654,7 @@
           "missing_runtime_validation_set"
         ],
         "warnings": [
-          "detector review video",
-          "detector contact sheet",
+          "review contact sheet",
           "local source video artifact"
         ],
         "nextAction": "Keep app guide-ready, then backfill durable artifact storage, capture-session metadata, detector agreement, kinematic scoring, and runtime validation clips.",
@@ -45804,8 +45796,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -45829,8 +45821,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -45963,8 +45955,8 @@
       "missing": [
         "playable JSONL",
         "motion manifest",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -45985,8 +45977,8 @@
         "warnings": [
           "playable JSONL",
           "motion manifest",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -46130,8 +46122,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -46157,8 +46149,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -46300,8 +46292,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -46327,8 +46319,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -46473,8 +46465,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -46500,8 +46492,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -46646,8 +46638,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -46671,8 +46663,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -46813,8 +46805,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -46838,8 +46830,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -46980,8 +46972,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -47007,8 +46999,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -47157,8 +47149,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -47182,8 +47174,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -47326,8 +47318,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -47353,8 +47345,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],
@@ -47499,8 +47491,8 @@
       ],
       "missing": [
         "playable JSONL",
-        "detector review video",
-        "detector contact sheet",
+        "review video",
+        "review contact sheet",
         "local source video artifact",
         "guide-ready promotion"
       ],
@@ -47524,8 +47516,8 @@
         ],
         "warnings": [
           "playable JSONL",
-          "detector review video",
-          "detector contact sheet",
+          "review video",
+          "review contact sheet",
           "local source video artifact",
           "guide-ready promotion"
         ],

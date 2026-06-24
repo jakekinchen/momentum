@@ -40,7 +40,7 @@ const filters: Array<{ id: GalleryFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "guide_ready", label: "Guide-ready" },
   { id: "validation_ready", label: "Validation-ready" },
-  { id: "detector", label: "Detector media" },
+  { id: "detector", label: "Review media" },
   { id: "missing", label: "Needs work" },
 ];
 
@@ -255,7 +255,7 @@ export function MotionReviewGallery({ data }: { data: MotionReviewData }) {
             </Link>
             <div>
               <h1 className="text-xl font-semibold tracking-[-0.01em]">Motion Review</h1>
-              <p className="text-sm text-white/54">Local app traces, detector media, validation state</p>
+              <p className="text-sm text-white/54">Local app traces, review media, validation state</p>
             </div>
           </div>
           <div className="hidden items-center gap-2 md:flex">
@@ -500,12 +500,12 @@ function DetectionPanel({ exercise }: { exercise: MotionReviewExercise }) {
     <section className="rounded-lg border border-white/10 bg-[#121712] p-3 md:p-4">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <div>
-          <h3 className="text-base font-semibold">Detection Review</h3>
-          <p className="text-sm text-white/46">MediaPipe extraction evidence</p>
+          <h3 className="text-base font-semibold">Trace Review</h3>
+          <p className="text-sm text-white/46">Packaged motion skeleton evidence</p>
         </div>
         <div className="flex rounded-md border border-white/10 bg-white/6 p-1">
           <TabButton
-            label="Detector video"
+            label="Review video"
             selected={activeTab === "video"}
             disabled={!hasVideo}
             onClick={() => setTab("video")}
@@ -550,7 +550,7 @@ function DetectionPanel({ exercise }: { exercise: MotionReviewExercise }) {
         {activeTab === "sheet" && hasSheet ? (
           <Image
             src={exercise.media.contactSheetUrl ?? ""}
-            alt={`${exercise.name} detector contact sheet`}
+            alt={`${exercise.name} review contact sheet`}
             width={1200}
             height={800}
             unoptimized
@@ -578,7 +578,7 @@ function DetectionPanel({ exercise }: { exercise: MotionReviewExercise }) {
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-white/52">
-        <MediaStat label="Detector" value={formatBytes(exercise.media.detectorVideoBytes)} />
+        <MediaStat label="Review" value={formatBytes(exercise.media.detectorVideoBytes)} />
         <MediaStat label="Sheet" value={formatBytes(exercise.media.contactSheetBytes)} />
         <MediaStat label="Source" value={formatBytes(exercise.media.sourceVideoBytes)} />
       </div>
@@ -622,7 +622,7 @@ function EmptyMediaState() {
     <div className="grid min-h-[22rem] place-items-center px-6 text-center">
       <div>
         <AlertTriangle className="mx-auto size-8 text-[#ffd3a1]" />
-        <p className="mt-3 text-sm font-semibold text-white">No detector media found</p>
+        <p className="mt-3 text-sm font-semibold text-white">No review media found</p>
         <p className="mt-2 max-w-sm text-sm leading-6 text-white/48">
           This exercise needs a generated review clip or contact sheet before visual QA can be trusted.
         </p>

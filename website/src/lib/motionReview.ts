@@ -165,6 +165,7 @@ const motionDemosDir = path.join(repoRoot, "Sources/CamiFitApp/Resources/MotionD
 const profilePath = path.join(repoRoot, "scripts/motion_reference/exercise_motion_profiles.json");
 const appGatePath = path.join(repoRoot, "Sources/CamiFitApp/AppExerciseTrackingGate.swift");
 const reviewDir = path.join(repoRoot, "tmp/motion-review");
+const publicReviewDir = path.join(process.cwd(), "public/motion-review-assets");
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -372,6 +373,14 @@ function reviewAssetPath(exerciseId: string, filename: string): string {
   return path.join(reviewDir, exerciseId, filename);
 }
 
+function publicReviewAssetPath(exerciseId: string, filename: string): string {
+  return path.join(publicReviewDir, exerciseId, filename);
+}
+
+function publicReviewAssetUrl(exerciseId: string, filename: string): string {
+  return `/motion-review-assets/${exerciseId}/${filename}`;
+}
+
 export function resolveMotionMediaFile(
   exerciseId: string,
   asset: MotionMediaAsset,
@@ -401,21 +410,33 @@ export function resolveMotionMediaFile(
 }
 
 function mediaForExercise(exerciseId: string): MotionReviewMedia {
+  const publicDetectorVideo = safeExerciseId(exerciseId)
+    ? publicReviewAssetPath(exerciseId, "mediapipe_skeleton_review.mp4")
+    : null;
+  const hasPublicDetectorVideo = Boolean(
+    publicDetectorVideo && existsSync(publicDetectorVideo),
+  );
   const detectorVideo = resolveMotionMediaFile(exerciseId, "detector-video");
   const contactSheet = resolveMotionMediaFile(exerciseId, "contact-sheet");
   const sourceVideo = resolveMotionMediaFile(exerciseId, "source-video");
 
   return {
-    detectorVideoUrl: detectorVideo
-      ? `/motion-review/api/media/${exerciseId}/detector-video`
-      : null,
+    detectorVideoUrl: hasPublicDetectorVideo
+      ? publicReviewAssetUrl(exerciseId, "mediapipe_skeleton_review.mp4")
+      : detectorVideo
+        ? `/motion-review/api/media/${exerciseId}/detector-video`
+        : null,
     contactSheetUrl: contactSheet
       ? `/motion-review/api/media/${exerciseId}/contact-sheet`
       : null,
     sourceVideoUrl: sourceVideo
       ? `/motion-review/api/media/${exerciseId}/source-video`
       : null,
-    detectorVideoBytes: detectorVideo ? statBytes(detectorVideo.path) : null,
+    detectorVideoBytes: hasPublicDetectorVideo && publicDetectorVideo
+      ? statBytes(publicDetectorVideo)
+      : detectorVideo
+        ? statBytes(detectorVideo.path)
+        : null,
     contactSheetBytes: contactSheet ? statBytes(contactSheet.path) : null,
     sourceVideoBytes: sourceVideo ? statBytes(sourceVideo.path) : null,
   };
@@ -529,10 +550,10 @@ function nextReviewForExercise(
     return "Capture or normalize a playable JSONL trace before judging the app motion.";
   }
   if (!hasDetectorVideo) {
-    return "Generate a MediaPipe detector review video so the trace can be compared against source detection.";
+    return "Generate a review video so the trace can be checked on the gallery surface.";
   }
   if (gateStatus === "reference_capture_required") {
-    return "Review detector media, then either promote after strict provenance or keep recommendation-only.";
+    return "Review the trace media, then either promote after strict provenance or keep recommendation-only.";
   }
   if (!acceptanceStatus.toLowerCase().includes("accepted")) {
     return "Reconcile the manifest acceptance status before release claims.";
@@ -555,10 +576,10 @@ function collectMissing(
     missing.push("motion manifest");
   }
   if (!media.detectorVideoUrl) {
-    missing.push("detector review video");
+    missing.push("review video");
   }
   if (!media.contactSheetUrl) {
-    missing.push("detector contact sheet");
+    missing.push("review contact sheet");
   }
   if (!media.sourceVideoUrl) {
     missing.push("local source video artifact");
