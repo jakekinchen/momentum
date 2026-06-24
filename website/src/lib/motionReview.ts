@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "fs";
 import path from "path";
 
+import motionReviewSnapshot from "@/data/motionReviewSnapshot.json";
+
 export type Landmark = {
   x: number;
   y: number;
@@ -1105,7 +1107,12 @@ function exerciseSortRank(exercise: MotionReviewExercise): number {
   return 4;
 }
 
-export function getMotionReviewData(): MotionReviewData {
+function snapshotMotionReviewData(): MotionReviewData | null {
+  const snapshot = motionReviewSnapshot as unknown as MotionReviewData;
+  return Array.isArray(snapshot.exercises) && snapshot.exercises.length ? snapshot : null;
+}
+
+function getFileSystemMotionReviewData(): MotionReviewData {
   const presets = readPresets();
   const profiles = readProfiles();
   const guideReady = readSwiftSet("guideReadyPresetIDs");
@@ -1241,4 +1248,9 @@ export function getMotionReviewData(): MotionReviewData {
     },
     exercises,
   };
+}
+
+export function getMotionReviewData(): MotionReviewData {
+  const data = getFileSystemMotionReviewData();
+  return data.exercises.length ? data : snapshotMotionReviewData() ?? data;
 }
