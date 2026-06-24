@@ -642,7 +642,7 @@ function MediaStat({ label, value }: { label: string; value: string }) {
 }
 
 function EvidencePanel({ exercise }: { exercise: MotionReviewExercise }) {
-  const { source, captureSession, visualReview } = exercise.evidence;
+  const { capturePlan, source, captureSession, visualReview } = exercise.evidence;
   const reviewPassed = visualReview.status === "passed" || visualReview.status === "reviewed";
 
   return (
@@ -652,7 +652,18 @@ function EvidencePanel({ exercise }: { exercise: MotionReviewExercise }) {
         <h3 className="text-base font-semibold">Source Evidence</h3>
       </div>
 
-      <div className="mt-4 grid gap-3 xl:grid-cols-3">
+      <div className="mt-4 grid gap-3 xl:grid-cols-4">
+        <EvidenceCard title="Capture Plan">
+          <EvidenceRow
+            label="Priority"
+            value={capturePlan.priority === null ? "missing" : `#${capturePlan.priority}`}
+            tone={capturePlan.priority === null ? "missing" : "ok"}
+          />
+          <EvidenceRow label="View" value={capturePlan.requiredView} />
+          <EvidenceRow label="Reason" value={capturePlan.reason} />
+          <EvidenceRow label="Promotion" value={capturePlan.promotionRule} />
+        </EvidenceCard>
+
         <EvidenceCard title="Source">
           <EvidenceRow label="Kind" value={source.kind} />
           <EvidenceRow label="Label" value={source.label} />

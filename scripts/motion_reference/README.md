@@ -183,6 +183,26 @@ Template starting points live under `scripts/motion_reference/templates/`:
 - `visual_review.template.json`
 - `next_capture_targets.json`
 
+Register real first-party capture files with:
+
+```bash
+scripts/motion_reference/register_motion_capture_session.py \
+  --exercise-id bodyweight_plank \
+  --session-id bodyweight_plank_YYYYMMDD \
+  --source side=/path/to/side.mp4 \
+  --source front=/path/to/front.mp4 \
+  --camera-view multi_view_side_front \
+  --fps 60 \
+  --resolution 1920x1080 \
+  --equipment "mat" \
+  --reviewer-notes "2-3 clean holds, full body visible, clap sync"
+```
+
+This copies source files into ignored `dist/motion-reference/<exercise_id>/`,
+writes `capture_session.json`, writes a pending `visual_review.json`, and prints
+a manifest patch. It does not write app MotionDemos JSONL files and it does not
+promote the exercise.
+
 Package the currently bundled motion demos for the web review gallery with:
 
 ```bash

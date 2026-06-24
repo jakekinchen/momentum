@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-24T19:20:19.897Z",
+  "generatedAt": "2026-06-24T19:31:11.045Z",
   "summary": {
     "totalExercises": 15,
     "guideReady": 4,
@@ -26762,6 +26762,12 @@
       ],
       "nextReview": "Reconcile the manifest acceptance status before release claims.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "trainer_reference_trace",
           "label": "Wikimedia Commons Strength Training Circuit - Forward Lunge",
@@ -34023,6 +34029,12 @@
       ],
       "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "trainer_reference_trace",
           "label": "first-party webcam push-up capture; primary_side=left",
@@ -40410,6 +40422,12 @@
       ],
       "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "trainer_reference_trace",
           "label": "first-party webcam squat capture user_capture_20260608-152116; primary_side=left",
@@ -45722,6 +45740,12 @@
       ],
       "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "licensed_external_reference_trace",
           "label": "wger exercise 803 video 59 One Arm Triceps Extensions on Cable",
@@ -45911,6 +45935,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "canonical_archetype_trace",
           "label": "lying_tricep_extension canonical motion profile",
@@ -46097,6 +46127,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "missing",
           "label": "missing",
@@ -46291,6 +46327,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "licensed_external_reference_trace",
           "label": "Pexels yoga flow in urban loft with natural light",
@@ -46488,6 +46530,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": 1,
+          "requiredView": "side",
+          "reason": "Bodyweight hold movement; good first validation target for contact stability and loop-free posture.",
+          "promotionRule": "Do not promote until capture session, detector agreement, kinematic scorecard, visual review, engine replay, installed-app review, and durable artifact storage all pass."
+        },
         "source": {
           "kind": "licensed_external_reference_trace",
           "label": "Pexels woman doing plank exercise on a yoga mat",
@@ -46688,6 +46736,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": 2,
+          "requiredView": "front_oblique",
+          "reason": "Equipment path and arm identity need explicit source evidence before guide-ready claims.",
+          "promotionRule": "Do not promote until capture session, detector agreement, kinematic scorecard, visual review, engine replay, installed-app review, and durable artifact storage all pass."
+        },
         "source": {
           "kind": "licensed_external_reference_trace",
           "label": "Wikimedia Commons Machine T-Bar Row",
@@ -46888,6 +46942,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "canonical_archetype_trace",
           "label": "standing_reverse_curl canonical motion profile",
@@ -47082,6 +47142,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "canonical_archetype_trace",
           "label": "chest_supported_row canonical motion profile",
@@ -47276,6 +47342,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "licensed_external_reference_trace",
           "label": "Pixabay 66991 Crossfit Gym Workout Training",
@@ -47480,6 +47552,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": 3,
+          "requiredView": "side",
+          "reason": "Single-leg/hip motion needs clean side-view capture and phase checks before app motion.",
+          "promotionRule": "Do not promote until capture session, detector agreement, kinematic scorecard, visual review, engine replay, installed-app review, and durable artifact storage all pass."
+        },
         "source": {
           "kind": "canonical_archetype_trace",
           "label": "standing_hip_flexion canonical motion profile",
@@ -47676,6 +47754,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "licensed_external_reference_trace",
           "label": "Pexels side-view suspension trainer tricep press",
@@ -47876,6 +47960,12 @@
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
       "evidence": {
+        "capturePlan": {
+          "priority": null,
+          "requiredView": "missing",
+          "reason": "missing",
+          "promotionRule": "missing"
+        },
         "source": {
           "kind": "canonical_archetype_trace",
           "label": "preacher_curl canonical motion profile",

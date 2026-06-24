@@ -112,6 +112,12 @@ export type MotionFactoryReadiness = {
 };
 
 export type MotionReviewEvidence = {
+  capturePlan: {
+    priority: number | null;
+    requiredView: string;
+    reason: string;
+    promotionRule: string;
+  };
   source: {
     kind: string;
     label: string;
@@ -192,6 +198,7 @@ const repoRoot = path.resolve(process.cwd(), "..");
 const presetsDir = path.join(repoRoot, "Sources/CamiFitApp/Resources/Presets");
 const motionDemosDir = path.join(repoRoot, "Sources/CamiFitApp/Resources/MotionDemos");
 const profilePath = path.join(repoRoot, "scripts/motion_reference/exercise_motion_profiles.json");
+const captureTargetsPath = path.join(repoRoot, "scripts/motion_reference/templates/next_capture_targets.json");
 const appGatePath = path.join(repoRoot, "Sources/CamiFitApp/AppExerciseTrackingGate.swift");
 const reviewDir = path.join(repoRoot, "tmp/motion-review");
 const publicReviewDir = path.join(process.cwd(), "public/motion-review-assets");
@@ -290,6 +297,26 @@ function readProfiles(): Map<string, JsonRecord> {
     const exerciseId = stringValue(profile.exercise_id, "");
     if (exerciseId) {
       map.set(exerciseId, profile);
+    }
+  });
+
+  return map;
+}
+
+function readCapturePlans(): Map<string, JsonRecord> {
+  const root = readJson(captureTargetsPath);
+  const promotionRule = stringValue(root?.promotion_rule, "");
+  const targets = Array.isArray(root?.targets) ? root.targets : [];
+  const map = new Map<string, JsonRecord>();
+
+  targets.forEach((target) => {
+    if (!isRecord(target)) {
+      return;
+    }
+
+    const exerciseId = stringValue(target.exercise_id, "");
+    if (exerciseId) {
+      map.set(exerciseId, { ...target, promotion_rule: promotionRule });
     }
   });
 
@@ -797,7 +824,10 @@ function formatResolution(value: unknown): string {
   return stringValue(value, "missing");
 }
 
-function evidenceForExercise(manifest: JsonRecord | null): MotionReviewEvidence {
+function evidenceForExercise(
+  manifest: JsonRecord | null,
+  capturePlan: JsonRecord | null,
+): MotionReviewEvidence {
   const captureSession = readLinkedRecord(manifest, "capture_session", [
     "capture_session_path",
     "capture_session_file",
@@ -811,6 +841,12 @@ function evidenceForExercise(manifest: JsonRecord | null): MotionReviewEvidence 
     : [];
 
   return {
+    capturePlan: {
+      priority: numberValue(capturePlan?.capture_priority),
+      requiredView: stringValue(capturePlan?.required_view, "missing"),
+      reason: stringValue(capturePlan?.reason, "missing"),
+      promotionRule: stringValue(capturePlan?.promotion_rule, "missing"),
+    },
     source: {
       kind: stringValue(manifest?.source_kind, "missing"),
       label: stringValue(manifest?.source_label, "missing"),
@@ -1255,6 +1291,7 @@ function snapshotMotionReviewData(): MotionReviewData | null {
 function getFileSystemMotionReviewData(): MotionReviewData {
   const presets = readPresets();
   const profiles = readProfiles();
+  const capturePlans = readCapturePlans();
   const guideReady = readSwiftSet("guideReadyPresetIDs");
   const referenceCaptureRequired = readSwiftSet("referenceCaptureRequiredPresetIDs");
   const playableIds = existsSync(motionDemosDir)
@@ -1282,6 +1319,7 @@ function getFileSystemMotionReviewData(): MotionReviewData {
     ...new Set([
       ...presets.keys(),
       ...profiles.keys(),
+      ...capturePlans.keys(),
       ...guideReady,
       ...referenceCaptureRequired,
       ...playableIds,
@@ -1293,11 +1331,12 @@ function getFileSystemMotionReviewData(): MotionReviewData {
   const exercises = exerciseIds.map((id): MotionReviewExercise => {
     const preset = presets.get(id) ?? null;
     const profile = profiles.get(id) ?? null;
+    const capturePlan = capturePlans.get(id) ?? null;
     const manifest = readJson(manifestPath(id));
     const trace = readTrace(id);
     const stats = traceStats(trace);
     const media = mediaForExercise(id);
-    const evidence = evidenceForExercise(manifest);
+    const evidence = evidenceForExercise(manifest, capturePlan);
     const gateStatus = guideReady.has(id)
       ? "guide_ready"
       : referenceCaptureRequired.has(id)

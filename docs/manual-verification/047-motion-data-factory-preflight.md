@@ -58,6 +58,12 @@ Capture and review templates are available under
 `bodyweight_plank`, `machine_chest_supported_row`, and
 `standing_miniband_hip_flexion`.
 
+Use `scripts/motion_reference/register_motion_capture_session.py` to register
+real source clips. The command writes capture/review sidecars and a manifest
+patch, but it intentionally leaves the exercise unpromoted until detector
+agreement, kinematic scorecards, human review, engine replay, installed-app
+review, and durable artifact storage pass.
+
 Detector agreement scorecards must include frame coverage, visibility,
 detector-disagreement, identity-flip, jitter, and rejected-frame-window fields.
 Kinematic scorecards must include limb-length stability, joint-angle limits,
