@@ -400,6 +400,19 @@ function sourceVideoArtifactBytes(manifest: JsonRecord | null): number | null {
   return numberValue(nestedValue(manifest, ["artifact_integrity", "source_video", "bytes"]));
 }
 
+function snapshotMediaRedirect(exerciseId: string): string | null {
+  const snapshot = motionReviewSnapshot as unknown;
+  if (!isRecord(snapshot) || !Array.isArray(snapshot.exercises)) {
+    return null;
+  }
+
+  const exercise = snapshot.exercises.find((item): item is JsonRecord => (
+    isRecord(item) && item.id === exerciseId
+  ));
+  const media = nestedRecord(exercise ?? null, "media");
+  return httpMediaUrl(media?.sourceVideoUrl);
+}
+
 function readLinkedRecord(manifest: JsonRecord | null, inlineKey: string, pathKeys: string[]): JsonRecord | null {
   const inline = nestedRecord(manifest, inlineKey);
   if (inline) {
@@ -523,7 +536,7 @@ export function resolveMotionMediaRedirect(
   }
 
   const manifest = readJson(manifestPath(exerciseId));
-  return httpMediaUrl(manifest?.source_media_url);
+  return httpMediaUrl(manifest?.source_media_url) ?? snapshotMediaRedirect(exerciseId);
 }
 
 function mediaForExercise(exerciseId: string): MotionReviewMedia {
