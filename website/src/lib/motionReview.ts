@@ -382,6 +382,24 @@ function resolveRepoPath(relativePath: string): string | null {
   return null;
 }
 
+function httpMediaUrl(value: unknown): string | null {
+  const candidate = stringValue(value, "");
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function sourceVideoArtifactBytes(manifest: JsonRecord | null): number | null {
+  return numberValue(nestedValue(manifest, ["artifact_integrity", "source_video", "bytes"]));
+}
+
 function readLinkedRecord(manifest: JsonRecord | null, inlineKey: string, pathKeys: string[]): JsonRecord | null {
   const inline = nestedRecord(manifest, inlineKey);
   if (inline) {
@@ -496,7 +514,20 @@ export function resolveMotionMediaFile(
   return { path: resolved, contentType: contentTypeForPath(resolved) };
 }
 
+export function resolveMotionMediaRedirect(
+  exerciseId: string,
+  asset: MotionMediaAsset,
+): string | null {
+  if (!safeExerciseId(exerciseId) || asset !== "source-video") {
+    return null;
+  }
+
+  const manifest = readJson(manifestPath(exerciseId));
+  return httpMediaUrl(manifest?.source_media_url);
+}
+
 function mediaForExercise(exerciseId: string): MotionReviewMedia {
+  const manifest = readJson(manifestPath(exerciseId));
   const publicDetectorVideo = safeExerciseId(exerciseId)
     ? publicReviewAssetPath(exerciseId, "mediapipe_skeleton_review.mp4")
     : null;
@@ -506,6 +537,7 @@ function mediaForExercise(exerciseId: string): MotionReviewMedia {
   const detectorVideo = resolveMotionMediaFile(exerciseId, "detector-video");
   const contactSheet = resolveMotionMediaFile(exerciseId, "contact-sheet");
   const sourceVideo = resolveMotionMediaFile(exerciseId, "source-video");
+  const sourceMediaUrl = resolveMotionMediaRedirect(exerciseId, "source-video");
 
   return {
     detectorVideoUrl: hasPublicDetectorVideo
@@ -516,16 +548,18 @@ function mediaForExercise(exerciseId: string): MotionReviewMedia {
     contactSheetUrl: contactSheet
       ? `/motion-review/api/media/${exerciseId}/contact-sheet`
       : null,
-    sourceVideoUrl: sourceVideo
-      ? `/motion-review/api/media/${exerciseId}/source-video`
-      : null,
+    sourceVideoUrl: sourceMediaUrl ?? (
+      sourceVideo
+        ? `/motion-review/api/media/${exerciseId}/source-video`
+        : null
+    ),
     detectorVideoBytes: hasPublicDetectorVideo && publicDetectorVideo
       ? statBytes(publicDetectorVideo)
       : detectorVideo
         ? statBytes(detectorVideo.path)
         : null,
     contactSheetBytes: contactSheet ? statBytes(contactSheet.path) : null,
-    sourceVideoBytes: sourceVideo ? statBytes(sourceVideo.path) : null,
+    sourceVideoBytes: sourceVideo ? statBytes(sourceVideo.path) : sourceVideoArtifactBytes(manifest),
   };
 }
 

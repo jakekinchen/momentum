@@ -191,10 +191,12 @@ scripts/motion_reference/register_motion_capture_session.py \
   --session-id bodyweight_plank_YYYYMMDD \
   --source side=/path/to/side.mp4 \
   --source front=/path/to/front.mp4 \
+  --source-label "first-party bodyweight plank capture" \
   --camera-view multi_view_side_front \
   --fps 60 \
   --resolution 1920x1080 \
   --equipment "mat" \
+  --source-license "First-party CamiFit trainer capture" \
   --reviewer-notes "2-3 clean holds, full body visible, clap sync"
 ```
 
@@ -202,6 +204,10 @@ This copies source files into ignored `dist/motion-reference/<exercise_id>/`,
 writes `capture_session.json`, writes a pending `visual_review.json`, and prints
 a manifest patch. It does not write app MotionDemos JSONL files and it does not
 promote the exercise.
+
+For licensed external clips, use `--source-kind licensed_external_clip` and
+`--manifest-source-kind licensed_external_reference_trace`, and include the
+source page, media URL, license, and attribution in the command.
 
 Package the currently bundled motion demos for the web review gallery with:
 

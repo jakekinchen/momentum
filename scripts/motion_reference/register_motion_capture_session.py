@@ -121,11 +121,16 @@ def register_capture_session(
     sources: list[SourceInput],
     output_root: Path,
     source_kind: str,
+    manifest_source_kind: str,
+    source_label: str,
+    source_page: str,
+    source_media_url: str,
+    source_license: str,
+    source_attribution: str,
     camera_view: str,
     fps: float,
     resolution: dict[str, int] | str,
     equipment: str,
-    license_name: str,
     performer_notes: str,
     reviewer_notes: str,
     force: bool = False,
@@ -149,7 +154,10 @@ def register_capture_session(
         "fps": fps,
         "resolution": resolution,
         "equipment": equipment,
-        "license": license_name,
+        "license": source_license,
+        "attribution": source_attribution,
+        "source_page": source_page,
+        "source_media_url": source_media_url,
         "performer_notes": performer_notes,
         "reviewer_notes": reviewer_notes,
         "source_files": source_files,
@@ -187,8 +195,13 @@ def register_capture_session(
     )
     manifest_patch = {
         "exercise_id": exercise_id,
-        "source_kind": source_kind,
+        "source_kind": manifest_source_kind,
+        "source_label": source_label,
+        "source_page": source_page,
+        "source_media_url": source_media_url,
         "source_video": preferred_source["path"],
+        "source_license": source_license,
+        "source_attribution": source_attribution,
         "capture_session_path": repo_path(capture_path),
         "visual_review_path": repo_path(visual_review_path),
         "artifact_integrity": {
@@ -225,11 +238,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--source", action="append", type=parse_source, required=True)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--source-kind", default="first_party_trainer_capture")
+    parser.add_argument("--manifest-source-kind", default=None)
+    parser.add_argument("--source-label", required=True)
+    parser.add_argument("--source-page", default="")
+    parser.add_argument("--source-media-url", default="")
     parser.add_argument("--camera-view", required=True)
     parser.add_argument("--fps", type=float, required=True)
     parser.add_argument("--resolution", type=parse_resolution, required=True)
     parser.add_argument("--equipment", required=True)
-    parser.add_argument("--license", dest="license_name", default="First-party CamiFit trainer capture")
+    parser.add_argument(
+        "--source-license",
+        "--license",
+        dest="source_license",
+        default="First-party CamiFit trainer capture",
+    )
+    parser.add_argument("--source-attribution", default="")
     parser.add_argument("--performer-notes", default="")
     parser.add_argument("--reviewer-notes", required=True)
     parser.add_argument("--force", action="store_true")
@@ -244,11 +267,16 @@ def main(argv: list[str] | None = None) -> int:
         sources=args.source,
         output_root=args.output_root,
         source_kind=args.source_kind,
+        manifest_source_kind=args.manifest_source_kind or args.source_kind,
+        source_label=args.source_label,
+        source_page=args.source_page,
+        source_media_url=args.source_media_url,
+        source_license=args.source_license,
+        source_attribution=args.source_attribution,
         camera_view=args.camera_view,
         fps=args.fps,
         resolution=args.resolution,
         equipment=args.equipment,
-        license_name=args.license_name,
         performer_notes=args.performer_notes,
         reviewer_notes=args.reviewer_notes,
         force=args.force,

@@ -8,7 +8,32 @@
   "source_media_url": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
   "source_video": "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
   "source_license": "Pexels License",
-  "source_attribution": "Pexels / video 7801720",
+  "source_attribution": "Pavel Danilyuk / Pexels video 7801720",
+  "capture_session": {
+    "exercise_id": "bodyweight_plank",
+    "session_id": "pexels_7801720_20260624",
+    "source_kind": "licensed_external_clip",
+    "camera_view": "side",
+    "fps": 25,
+    "resolution": {
+      "width": 2732,
+      "height": 1154
+    },
+    "equipment": "yoga mat",
+    "license": "Pexels License",
+    "attribution": "Pavel Danilyuk / Pexels video 7801720",
+    "source_page": "https://www.pexels.com/video/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720/",
+    "source_media_url": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
+    "reviewer_notes": "Self-sourced external plank clip; source file registered locally under dist for detector extraction and review, not promoted.",
+    "source_files": [
+      {
+        "view": "side",
+        "path": "dist/motion-reference/bodyweight_plank/pexels_7801720_20260624/source_side.mp4",
+        "sha256": "134712b11aaf6b939b3b5e78e193271e30cc7b255b0a25bd568e2bd0140dc116",
+        "bytes": 12055907
+      }
+    ]
+  },
   "rejected_candidates": [
     {
       "source_page": "https://www.pexels.com/video/woman-doing-plank-position-6437916/",

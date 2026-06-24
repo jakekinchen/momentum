@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-24T19:31:11.045Z",
+  "generatedAt": "2026-06-24T19:41:25.702Z",
   "summary": {
     "totalExercises": 15,
     "guideReady": 4,
@@ -26724,10 +26724,10 @@
       "media": {
         "detectorVideoUrl": "/motion-review-assets/bodyweight_lunge/mediapipe_skeleton_review.mp4",
         "contactSheetUrl": null,
-        "sourceVideoUrl": null,
+        "sourceVideoUrl": "https://upload.wikimedia.org/wikipedia/commons/5/57/Strength_Training_Circuit-_Forward_Lunge.webm",
         "detectorVideoBytes": 181449,
         "contactSheetBytes": null,
-        "sourceVideoBytes": null
+        "sourceVideoBytes": 6677033
       },
       "validation": [
         {
@@ -26757,8 +26757,7 @@
         }
       ],
       "missing": [
-        "review contact sheet",
-        "local source video artifact"
+        "review contact sheet"
       ],
       "nextReview": "Reconcile the manifest acceptance status before release claims.",
       "evidence": {
@@ -26808,8 +26807,7 @@
           "missing_runtime_validation_set"
         ],
         "warnings": [
-          "review contact sheet",
-          "local source video artifact"
+          "review contact sheet"
         ],
         "nextAction": "Keep app guide-ready, then backfill durable artifact storage, capture-session metadata, detector agreement, kinematic scoring, and runtime validation clips.",
         "currentSignals": {
@@ -33994,7 +33992,7 @@
         "sourceVideoUrl": null,
         "detectorVideoBytes": 71000,
         "contactSheetBytes": null,
-        "sourceVideoBytes": null
+        "sourceVideoBytes": 17468864
       },
       "validation": [
         {
@@ -40387,7 +40385,7 @@
         "sourceVideoUrl": null,
         "detectorVideoBytes": 56599,
         "contactSheetBytes": null,
-        "sourceVideoBytes": null
+        "sourceVideoBytes": 78202
       },
       "validation": [
         {
@@ -45702,10 +45700,10 @@
       "media": {
         "detectorVideoUrl": "/motion-review-assets/single_arm_cable_tricep_extension/mediapipe_skeleton_review.mp4",
         "contactSheetUrl": null,
-        "sourceVideoUrl": null,
+        "sourceVideoUrl": "https://wger.de/media/exercise-video/803/589d24e5-aaee-455d-93fd-f0f01da5d9c6.MOV",
         "detectorVideoBytes": 28603,
         "contactSheetBytes": null,
-        "sourceVideoBytes": null
+        "sourceVideoBytes": 4493262
       },
       "validation": [
         {
@@ -45735,8 +45733,7 @@
         }
       ],
       "missing": [
-        "review contact sheet",
-        "local source video artifact"
+        "review contact sheet"
       ],
       "nextReview": "Phone-review the 3D loop and detector clip for anatomy, phase, contact, and rep-count consistency.",
       "evidence": {
@@ -45786,8 +45783,7 @@
           "missing_runtime_validation_set"
         ],
         "warnings": [
-          "review contact sheet",
-          "local source video artifact"
+          "review contact sheet"
         ],
         "nextAction": "Keep app guide-ready, then backfill durable artifact storage, capture-session metadata, detector agreement, kinematic scoring, and runtime validation clips.",
         "currentSignals": {
@@ -46286,7 +46282,7 @@
       "media": {
         "detectorVideoUrl": null,
         "contactSheetUrl": null,
-        "sourceVideoUrl": null,
+        "sourceVideoUrl": "https://videos.pexels.com/video-files/31794279/13544679_2560_1440_24fps.mp4",
         "detectorVideoBytes": null,
         "contactSheetBytes": null,
         "sourceVideoBytes": null
@@ -46322,7 +46318,6 @@
         "playable JSONL",
         "review video",
         "review contact sheet",
-        "local source video artifact",
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
@@ -46382,7 +46377,6 @@
           "playable JSONL",
           "review video",
           "review contact sheet",
-          "local source video artifact",
           "guide-ready promotion"
         ],
         "nextAction": "Capture or normalize a playable JSONL trace before judging the app motion.",
@@ -46489,10 +46483,10 @@
       "media": {
         "detectorVideoUrl": null,
         "contactSheetUrl": null,
-        "sourceVideoUrl": null,
+        "sourceVideoUrl": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
         "detectorVideoBytes": null,
         "contactSheetBytes": null,
-        "sourceVideoBytes": null
+        "sourceVideoBytes": 12055907
       },
       "validation": [
         {
@@ -46525,7 +46519,6 @@
         "playable JSONL",
         "review video",
         "review contact sheet",
-        "local source video artifact",
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
@@ -46541,17 +46534,17 @@
           "label": "Pexels woman doing plank exercise on a yoga mat",
           "videoPath": "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
           "license": "Pexels License",
-          "attribution": "Pexels / video 7801720"
+          "attribution": "Pavel Danilyuk / Pexels video 7801720"
         },
         "captureSession": {
-          "present": false,
-          "sourceKind": "missing",
-          "cameraView": "missing",
-          "fps": "missing",
-          "resolution": "missing",
-          "equipment": "missing",
-          "license": "missing",
-          "reviewerNotes": "missing"
+          "present": true,
+          "sourceKind": "licensed_external_clip",
+          "cameraView": "side",
+          "fps": "25",
+          "resolution": "2732x1154",
+          "equipment": "yoga mat",
+          "license": "Pexels License",
+          "reviewerNotes": "Self-sourced external plank clip; source file registered locally under dist for detector extraction and review, not promoted."
         },
         "visualReview": {
           "present": true,
@@ -46574,7 +46567,6 @@
         ],
         "validationReadyBlockers": [
           "local_only_source_chain_artifacts",
-          "missing_capture_session_metadata",
           "missing_detector_agreement_scorecard",
           "missing_kinematic_scorecard",
           "missing_runtime_validation_set",
@@ -46585,7 +46577,6 @@
           "playable JSONL",
           "review video",
           "review contact sheet",
-          "local source video artifact",
           "guide-ready promotion"
         ],
         "nextAction": "Replace the failed avatar/source candidate and record a new passed visual-review decision before guide promotion.",
@@ -46606,11 +46597,9 @@
           {
             "key": "capture_session_metadata",
             "label": "Capture session",
-            "status": "missing",
-            "decision": "missing",
-            "reasons": [
-              "missing_capture_session_metadata"
-            ],
+            "status": "present",
+            "decision": "licensed_external_clip",
+            "reasons": [],
             "requiredFor": [
               "validation-ready"
             ]
@@ -46695,7 +46684,7 @@
       "media": {
         "detectorVideoUrl": null,
         "contactSheetUrl": null,
-        "sourceVideoUrl": null,
+        "sourceVideoUrl": "https://upload.wikimedia.org/wikipedia/commons/3/3d/How_to_properly_do_Machine_T-Bar_Rows.webm",
         "detectorVideoBytes": null,
         "contactSheetBytes": null,
         "sourceVideoBytes": null
@@ -46731,7 +46720,6 @@
         "playable JSONL",
         "review video",
         "review contact sheet",
-        "local source video artifact",
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
@@ -46791,7 +46779,6 @@
           "playable JSONL",
           "review video",
           "review contact sheet",
-          "local source video artifact",
           "guide-ready promotion"
         ],
         "nextAction": "Capture or normalize a playable JSONL trace before judging the app motion.",
@@ -47301,10 +47288,10 @@
       "media": {
         "detectorVideoUrl": null,
         "contactSheetUrl": null,
-        "sourceVideoUrl": null,
+        "sourceVideoUrl": "https://pixabay.com/videos/crossfit-gym-workout-training-66991/",
         "detectorVideoBytes": null,
         "contactSheetBytes": null,
-        "sourceVideoBytes": null
+        "sourceVideoBytes": 8681671
       },
       "validation": [
         {
@@ -47337,7 +47324,6 @@
         "playable JSONL",
         "review video",
         "review contact sheet",
-        "local source video artifact",
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
@@ -47397,7 +47383,6 @@
           "playable JSONL",
           "review video",
           "review contact sheet",
-          "local source video artifact",
           "guide-ready promotion"
         ],
         "nextAction": "Replace the failed avatar/source candidate and record a new passed visual-review decision before guide promotion.",
@@ -47713,10 +47698,10 @@
       "media": {
         "detectorVideoUrl": null,
         "contactSheetUrl": null,
-        "sourceVideoUrl": null,
+        "sourceVideoUrl": "https://videos.pexels.com/video-files/8435987/8435987-hd_1920_1080_25fps.mp4",
         "detectorVideoBytes": null,
         "contactSheetBytes": null,
-        "sourceVideoBytes": null
+        "sourceVideoBytes": 6822832
       },
       "validation": [
         {
@@ -47749,7 +47734,6 @@
         "playable JSONL",
         "review video",
         "review contact sheet",
-        "local source video artifact",
         "guide-ready promotion"
       ],
       "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
@@ -47809,7 +47793,6 @@
           "playable JSONL",
           "review video",
           "review contact sheet",
-          "local source video artifact",
           "guide-ready promotion"
         ],
         "nextAction": "Replace the failed avatar/source candidate and record a new passed visual-review decision before guide promotion.",

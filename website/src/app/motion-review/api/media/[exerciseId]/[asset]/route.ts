@@ -3,6 +3,7 @@ import { readFile } from "fs/promises";
 import {
   type MotionMediaAsset,
   resolveMotionMediaFile,
+  resolveMotionMediaRedirect,
 } from "@/lib/motionReview";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,11 @@ export async function GET(
 
   const media = resolveMotionMediaFile(exerciseId, asset as MotionMediaAsset);
   if (!media) {
+    const redirect = resolveMotionMediaRedirect(exerciseId, asset as MotionMediaAsset);
+    if (redirect) {
+      return Response.redirect(redirect, 302);
+    }
+
     return new Response("Media asset not found", { status: 404 });
   }
 
