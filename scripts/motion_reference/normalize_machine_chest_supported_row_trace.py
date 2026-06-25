@@ -85,6 +85,25 @@ def smoothstep(value: float) -> float:
     return value * value * (3.0 - (2.0 * value))
 
 
+def smooth_cycle_envelope(frame_count: int, peak_index: int) -> list[float]:
+    if frame_count <= 0:
+        return []
+    if frame_count == 1:
+        return [0.0]
+
+    peak_index = max(1, min(frame_count - 2, peak_index))
+    factors: list[float] = []
+    for index in range(frame_count):
+        if index <= peak_index:
+            phase = index / peak_index
+        else:
+            phase = (frame_count - 1 - index) / (frame_count - 1 - peak_index)
+        factors.append(smoothstep(phase))
+    factors[0] = 0.0
+    factors[-1] = 0.0
+    return factors
+
+
 def side_row_landmarks(factor: float) -> dict[str, dict[str, float]]:
     primary = {
         "nose": landmark(0.430, 0.270, -0.03),
@@ -146,14 +165,28 @@ def phase_factors(rows: list[dict[str, Any]], side: str) -> tuple[list[float], d
     if factors:
         factors[0] = 0.0
         factors[-1] = 0.0
+    peak_index = max(range(len(factors)), key=lambda i: factors[i])
+    raw_max_phase_step = max(
+        (abs(factors[index] - factors[index - 1]) for index in range(1, len(factors))),
+        default=0.0,
+    )
+    factors = smooth_cycle_envelope(len(factors), peak_index)
+    smoothed_max_phase_step = max(
+        (abs(factors[index] - factors[index - 1]) for index in range(1, len(factors))),
+        default=0.0,
+    )
+
     summary = {
         "source_side": side,
         "source_min_elbow_angle": round(min_angle, 2),
         "source_max_elbow_angle": round(max_angle, 2),
         "source_rom_degrees": round(max_angle - min_angle, 2),
         "source_good_frames": len(usable),
-        "peak_frame_index": max(range(len(factors)), key=lambda i: factors[i]),
-        "peak_timestamp_ms": records[max(range(len(factors)), key=lambda i: factors[i])]["timestamp_ms"],
+        "peak_frame_index": peak_index,
+        "peak_timestamp_ms": records[peak_index]["timestamp_ms"],
+        "phase_smoothing": "single_smoothstep_cycle_envelope",
+        "raw_max_phase_step": round(raw_max_phase_step, 6),
+        "smoothed_max_phase_step": round(smoothed_max_phase_step, 6),
     }
     return factors, summary
 

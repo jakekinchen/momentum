@@ -33,7 +33,10 @@
       "source_rom_degrees": 60.17,
       "source_good_frames": 84,
       "peak_frame_index": 42,
-      "peak_timestamp_ms": 3500
+      "peak_timestamp_ms": 3500,
+      "phase_smoothing": "single_smoothstep_cycle_envelope",
+      "raw_max_phase_step": 0.403749,
+      "smoothed_max_phase_step": 0.036578
     },
     "summary": {
       "frames": 84,

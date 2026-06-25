@@ -22,7 +22,7 @@ final class MachineChestSupportedRowAcceptanceTests: XCTestCase {
         )
     }
 
-    func testCandidateExternalTraceDecodesAndCountsCleanRepButDoesNotShipAsGuide() throws {
+    func testReviewOnlyExternalTraceDecodesAndCountsCleanRepButDoesNotShipAsGuide() throws {
         let program = try ProgramLoader.load(from: Self.presetURL)
         let frames = try MediaPipePoseJSONLDecoder.decode(contentsOf: Self.motionDemoURL)
         let manifest = try Self.manifest()
@@ -31,12 +31,14 @@ final class MachineChestSupportedRowAcceptanceTests: XCTestCase {
 
         XCTAssertEqual(manifest["source_kind"] as? String, "licensed_external_reference_trace")
         XCTAssertEqual(manifest["acceptance_status"] as? String, "pending_source_license_review")
-        XCTAssertEqual(manifest["playable_trace_packaged"] as? Bool, false)
+        XCTAssertEqual(manifest["playable_trace_packaged"] as? Bool, true)
+        XCTAssertEqual(manifest["packaging_scope"] as? String, "motion_review_gallery_demo_only")
         XCTAssertEqual(manifest["retarget"] as? String, "source_timed_side_view_machine_chest_supported_row")
-        XCTAssertFalse(FileManager.default.fileExists(atPath: Self.appBundleMotionDemoURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: Self.appBundleMotionDemoURL.path))
         XCTAssertEqual(frames.count, 84)
         XCTAssertEqual(first.timestampMS, 0)
         XCTAssertTrue(zip(frames, frames.dropFirst()).allSatisfy { $1.timestampMS > $0.timestampMS })
+        XCTAssertLessThanOrEqual(Self.maxStep(try Self.phaseFactors()), 0.05)
 
         for name in ["primary.shoulder", "primary.elbow", "primary.wrist", "primary.hip"] {
             let start = try XCTUnwrap(first.landmark(named: name), name)
@@ -147,6 +149,24 @@ final class MachineChestSupportedRowAcceptanceTests: XCTestCase {
         let denominator = max(hypot(ab.x, ab.y) * hypot(cb.x, cb.y), 0.000_001)
         let cosine = max(-1, min(1, ((ab.x * cb.x) + (ab.y * cb.y)) / denominator))
         return acos(cosine) * 180 / .pi
+    }
+
+    private static func phaseFactors() throws -> [Double] {
+        try String(contentsOf: Self.motionDemoURL, encoding: .utf8)
+            .split(separator: "\n")
+            .compactMap { line -> Double? in
+                guard let data = String(line).data(using: .utf8),
+                      let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    return nil
+                }
+                return object["phase_factor"] as? Double
+            }
+    }
+
+    private static func maxStep(_ values: [Double]) -> Double {
+        zip(values, values.dropFirst())
+            .map { abs($1 - $0) }
+            .max() ?? 0
     }
 
     private static func mix(_ a: Double, _ b: Double, _ t: Double) -> Double {
