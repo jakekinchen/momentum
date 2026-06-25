@@ -12,9 +12,11 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Ruler,
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  UserRound,
   Video,
 } from "lucide-react";
 import Image from "next/image";
@@ -34,6 +36,13 @@ type ProjectedPoint = {
   x: number;
   y: number;
   depth: number;
+  confidence: number;
+};
+
+type MotionCanvasOptions = {
+  exerciseId: string;
+  showMannequin: boolean;
+  showFormLines: boolean;
 };
 
 const filters: Array<{ id: GalleryFilter; label: string }> = [
@@ -78,6 +87,8 @@ const skeletonSegments: Array<{
 const pointCandidates = [
   "nose",
   "primary.nose",
+  "left.ear",
+  "right.ear",
   "left.shoulder",
   "right.shoulder",
   "left.elbow",
@@ -110,6 +121,24 @@ const pointCandidates = [
   "secondary.ankle",
   "secondary.heel",
   "secondary.foot.index",
+];
+
+const mannequinSegments: Array<{
+  from: string[];
+  to: string[];
+  tone: "left" | "right" | "core" | "primary" | "secondary";
+  width: number;
+}> = [
+  { from: ["left.shoulder", "secondary.shoulder"], to: ["left.elbow", "secondary.elbow"], tone: "left", width: 0.052 },
+  { from: ["left.elbow", "secondary.elbow"], to: ["left.wrist", "secondary.wrist"], tone: "left", width: 0.045 },
+  { from: ["right.shoulder", "primary.shoulder"], to: ["right.elbow", "primary.elbow"], tone: "right", width: 0.052 },
+  { from: ["right.elbow", "primary.elbow"], to: ["right.wrist", "primary.wrist"], tone: "right", width: 0.045 },
+  { from: ["left.hip", "secondary.hip"], to: ["left.knee", "secondary.knee"], tone: "left", width: 0.068 },
+  { from: ["left.knee", "secondary.knee"], to: ["left.ankle", "secondary.ankle"], tone: "left", width: 0.057 },
+  { from: ["right.hip", "primary.hip"], to: ["right.knee", "primary.knee"], tone: "right", width: 0.068 },
+  { from: ["right.knee", "primary.knee"], to: ["right.ankle", "primary.ankle"], tone: "right", width: 0.057 },
+  { from: ["primary.shoulder"], to: ["primary.hip"], tone: "primary", width: 0.058 },
+  { from: ["secondary.shoulder"], to: ["secondary.hip"], tone: "secondary", width: 0.058 },
 ];
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -954,6 +983,8 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
   const [frameIndex, setFrameIndex] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [yaw, setYaw] = useState(-22);
+  const [showMannequin, setShowMannequin] = useState(true);
+  const [showFormLines, setShowFormLines] = useState(true);
   const activeFrame = frames[frameIndex] ?? null;
 
   useEffect(() => {
@@ -999,8 +1030,12 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
       return;
     }
 
-    drawCanvas(canvas, activeFrame, yaw);
-  }, [activeFrame, yaw]);
+    drawCanvas(canvas, activeFrame, yaw, {
+      exerciseId: exercise.id,
+      showFormLines,
+      showMannequin,
+    });
+  }, [activeFrame, exercise.id, showFormLines, showMannequin, yaw]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1008,10 +1043,16 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
       return;
     }
 
-    const observer = new ResizeObserver(() => drawCanvas(canvas, activeFrame, yaw));
+    const observer = new ResizeObserver(() =>
+      drawCanvas(canvas, activeFrame, yaw, {
+        exerciseId: exercise.id,
+        showFormLines,
+        showMannequin,
+      }),
+    );
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [activeFrame, yaw]);
+  }, [activeFrame, exercise.id, showFormLines, showMannequin, yaw]);
 
   return (
     <div>
@@ -1069,6 +1110,34 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
           >
             <SlidersHorizontal className="size-5" />
           </button>
+          <button
+            type="button"
+            onClick={() => setShowMannequin((current) => !current)}
+            className={cx(
+              "grid size-10 place-items-center rounded-md border",
+              showMannequin
+                ? "border-[#65ffd2]/45 bg-[#65ffd2]/12 text-[#baffed]"
+                : "border-white/10 bg-white/7 text-white/72",
+            )}
+            aria-label="Toggle mannequin overlay"
+            title="Mannequin overlay"
+          >
+            <UserRound className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFormLines((current) => !current)}
+            className={cx(
+              "grid size-10 place-items-center rounded-md border",
+              showFormLines
+                ? "border-[#d7ff5f]/45 bg-[#d7ff5f]/12 text-[#edffad]"
+                : "border-white/10 bg-white/7 text-white/72",
+            )}
+            aria-label="Toggle form lines"
+            title="Form lines"
+          >
+            <Ruler className="size-5" />
+          </button>
         </div>
 
         <label className="block">
@@ -1104,7 +1173,12 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
   );
 }
 
-function drawCanvas(canvas: HTMLCanvasElement, frame: MotionFrame | null, yawDegrees: number) {
+function drawCanvas(
+  canvas: HTMLCanvasElement,
+  frame: MotionFrame | null,
+  yawDegrees: number,
+  options: MotionCanvasOptions,
+) {
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(1, rect.width);
   const height = Math.max(1, rect.height);
@@ -1127,7 +1201,14 @@ function drawCanvas(canvas: HTMLCanvasElement, frame: MotionFrame | null, yawDeg
   drawBackground(context, width, height);
 
   if (frame) {
-    drawSkeleton(context, frame, width, height, yawDegrees);
+    const projected = projectFrame(frame, width, height, yawDegrees);
+    if (options.showMannequin) {
+      drawMannequin(context, projected, width, height);
+    }
+    if (options.showFormLines) {
+      drawFormLines(context, projected, options.exerciseId);
+    }
+    drawSkeleton(context, projected);
   }
 
   context.restore();
@@ -1160,13 +1241,7 @@ function drawBackground(context: CanvasRenderingContext2D, width: number, height
   }
 }
 
-function drawSkeleton(
-  context: CanvasRenderingContext2D,
-  frame: MotionFrame,
-  width: number,
-  height: number,
-  yawDegrees: number,
-) {
+function projectFrame(frame: MotionFrame, width: number, height: number, yawDegrees: number) {
   const projected = new Map<string, ProjectedPoint>();
   pointCandidates.forEach((key) => {
     const landmark = frame.landmarks[key];
@@ -1177,6 +1252,62 @@ function drawSkeleton(
     projected.set(key, projectLandmark(landmark, width, height, yawDegrees));
   });
 
+  return projected;
+}
+
+function drawMannequin(
+  context: CanvasRenderingContext2D,
+  projected: Map<string, ProjectedPoint>,
+  width: number,
+  height: number,
+) {
+  const minDimension = Math.min(width, height);
+  drawTorsoShell(context, projected, minDimension);
+  drawHeadShell(context, projected, minDimension);
+
+  const sortedSegments = mannequinSegments
+    .map((segment) => {
+      const from = firstProjected(projected, segment.from);
+      const to = firstProjected(projected, segment.to);
+      return from && to ? { ...segment, fromPoint: from, toPoint: to } : null;
+    })
+    .filter((segment): segment is NonNullable<typeof segment> => Boolean(segment))
+    .sort((left, right) => left.fromPoint.depth + left.toPoint.depth - right.fromPoint.depth - right.toPoint.depth);
+
+  sortedSegments.forEach((segment) => {
+    drawCapsule(
+      context,
+      segment.fromPoint,
+      segment.toPoint,
+      minDimension * segment.width,
+      mannequinColor(segment.tone, Math.min(segment.fromPoint.confidence, segment.toPoint.confidence)),
+    );
+  });
+
+  [
+    ["left.wrist", "secondary.wrist"],
+    ["right.wrist", "primary.wrist"],
+    ["left.ankle", "secondary.ankle", "left.foot.index", "secondary.foot.index"],
+    ["right.ankle", "primary.ankle", "right.foot.index", "primary.foot.index"],
+  ].forEach((candidates) => {
+    const point = firstProjected(projected, candidates);
+    if (!point) {
+      return;
+    }
+
+    const radius = minDimension * (candidates.some((candidate) => candidate.includes("wrist")) ? 0.036 : 0.048);
+    const alpha = Math.max(0.12, 0.34 * point.confidence);
+    context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    context.strokeStyle = point.confidence < 0.45 ? "rgba(255, 177, 95, 0.62)" : "rgba(101, 255, 210, 0.42)";
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.ellipse(point.x, point.y + radius * 0.18, radius * 1.55, radius * 0.62, 0, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+  });
+}
+
+function drawSkeleton(context: CanvasRenderingContext2D, projected: Map<string, ProjectedPoint>) {
   const sortedSegments = skeletonSegments
     .map((segment) => {
       const from = firstProjected(projected, segment.from);
@@ -1207,6 +1338,155 @@ function drawSkeleton(
     context.arc(point.x, point.y, Math.max(3, radius - point.depth * 0.75), 0, Math.PI * 2);
     context.fill();
   });
+}
+
+function drawTorsoShell(
+  context: CanvasRenderingContext2D,
+  projected: Map<string, ProjectedPoint>,
+  minDimension: number,
+) {
+  const leftShoulder = firstProjected(projected, ["left.shoulder", "secondary.shoulder"]);
+  const rightShoulder = firstProjected(projected, ["right.shoulder", "primary.shoulder"]);
+  const leftHip = firstProjected(projected, ["left.hip", "secondary.hip"]);
+  const rightHip = firstProjected(projected, ["right.hip", "primary.hip"]);
+  if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
+    return;
+  }
+
+  const confidence = Math.min(
+    leftShoulder.confidence,
+    rightShoulder.confidence,
+    leftHip.confidence,
+    rightHip.confidence,
+  );
+  const centerX = (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4;
+  const centerY = (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4;
+  const gradient = context.createRadialGradient(
+    centerX,
+    centerY,
+    minDimension * 0.04,
+    centerX,
+    centerY,
+    minDimension * 0.34,
+  );
+  gradient.addColorStop(0, confidence < 0.45 ? "rgba(255, 177, 95, 0.24)" : "rgba(255, 255, 255, 0.2)");
+  gradient.addColorStop(1, confidence < 0.45 ? "rgba(255, 177, 95, 0.07)" : "rgba(101, 255, 210, 0.08)");
+
+  context.save();
+  context.fillStyle = gradient;
+  context.strokeStyle = confidence < 0.45 ? "rgba(255, 177, 95, 0.48)" : "rgba(255, 255, 255, 0.34)";
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.moveTo(leftShoulder.x, leftShoulder.y);
+  context.lineTo(rightShoulder.x, rightShoulder.y);
+  context.lineTo(rightHip.x, rightHip.y);
+  context.lineTo(leftHip.x, leftHip.y);
+  context.closePath();
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function drawHeadShell(
+  context: CanvasRenderingContext2D,
+  projected: Map<string, ProjectedPoint>,
+  minDimension: number,
+) {
+  const nose = firstProjected(projected, ["nose", "primary.nose"]);
+  const leftEar = firstProjected(projected, ["left.ear"]);
+  const rightEar = firstProjected(projected, ["right.ear"]);
+  const leftShoulder = firstProjected(projected, ["left.shoulder", "secondary.shoulder"]);
+  const rightShoulder = firstProjected(projected, ["right.shoulder", "primary.shoulder"]);
+  if (!nose) {
+    return;
+  }
+
+  const shoulderWidth = leftShoulder && rightShoulder ? distance(leftShoulder, rightShoulder) : minDimension * 0.2;
+  const earWidth = leftEar && rightEar ? distance(leftEar, rightEar) : shoulderWidth * 0.42;
+  const radiusX = Math.max(minDimension * 0.028, earWidth * 0.72);
+  const radiusY = Math.max(minDimension * 0.04, shoulderWidth * 0.18);
+  const confidence = Math.min(nose.confidence, leftEar?.confidence ?? 1, rightEar?.confidence ?? 1);
+
+  context.save();
+  context.fillStyle = confidence < 0.45 ? "rgba(255, 177, 95, 0.2)" : "rgba(255, 255, 255, 0.18)";
+  context.strokeStyle = confidence < 0.45 ? "rgba(255, 177, 95, 0.52)" : "rgba(255, 255, 255, 0.36)";
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.ellipse(nose.x, nose.y, radiusX, radiusY, -0.18, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function drawCapsule(
+  context: CanvasRenderingContext2D,
+  from: ProjectedPoint,
+  to: ProjectedPoint,
+  width: number,
+  color: string,
+) {
+  context.save();
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.shadowColor = "rgba(101, 255, 210, 0.12)";
+  context.shadowBlur = width * 0.7;
+  context.strokeStyle = color;
+  context.lineWidth = Math.max(8, width * (1.05 - Math.max(-0.25, Math.min(0.35, (from.depth + to.depth) / 2)) * 0.16));
+  context.beginPath();
+  context.moveTo(from.x, from.y);
+  context.lineTo(to.x, to.y);
+  context.stroke();
+  context.restore();
+}
+
+function drawFormLines(
+  context: CanvasRenderingContext2D,
+  projected: Map<string, ProjectedPoint>,
+  exerciseId: string,
+) {
+  if (exerciseId !== "bodyweight_plank") {
+    return;
+  }
+
+  const shoulder = firstProjected(projected, ["primary.shoulder", "right.shoulder", "left.shoulder"]);
+  const hip = firstProjected(projected, ["primary.hip", "right.hip", "left.hip"]);
+  const ankle = firstProjected(projected, ["primary.ankle", "right.ankle", "left.ankle"]);
+  if (!shoulder || !hip || !ankle) {
+    return;
+  }
+
+  const deviation = distancePointToSegment(hip, shoulder, ankle);
+  const reference = Math.max(1, distance(shoulder, ankle));
+  const aligned = deviation / reference < 0.11;
+  const lineColor = aligned ? "rgba(215, 255, 95, 0.86)" : "rgba(255, 177, 95, 0.9)";
+  const bandColor = aligned ? "rgba(215, 255, 95, 0.26)" : "rgba(255, 177, 95, 0.28)";
+
+  context.save();
+  context.lineCap = "round";
+  context.strokeStyle = bandColor;
+  context.lineWidth = 24;
+  context.beginPath();
+  context.moveTo(shoulder.x, shoulder.y);
+  context.lineTo(ankle.x, ankle.y);
+  context.stroke();
+
+  context.strokeStyle = lineColor;
+  context.lineWidth = 4;
+  context.setLineDash([9, 7]);
+  context.beginPath();
+  context.moveTo(shoulder.x, shoulder.y);
+  context.lineTo(ankle.x, ankle.y);
+  context.stroke();
+  context.setLineDash([]);
+
+  context.strokeStyle = lineColor;
+  context.lineWidth = 2;
+  context.fillStyle = aligned ? "rgba(215, 255, 95, 0.2)" : "rgba(255, 177, 95, 0.22)";
+  context.beginPath();
+  context.arc(hip.x, hip.y, 10, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  context.restore();
 }
 
 function isLandmarkUsable(value: Landmark | undefined): value is Landmark {
@@ -1255,6 +1535,7 @@ function projectLandmark(
     x: width / 2 + rotatedX * scale * perspective,
     y: height * 0.55 - rotatedY * scale * perspective,
     depth: pitchedZ,
+    confidence: Math.max(0.12, Math.min(1, Math.min(landmark.visibility ?? 1, landmark.presence ?? 1))),
   };
 }
 
@@ -1270,4 +1551,36 @@ function toneColor(
     return `rgba(215, 255, 95, ${alpha})`;
   }
   return `rgba(255, 255, 255, ${alpha})`;
+}
+
+function mannequinColor(
+  tone: "left" | "right" | "core" | "primary" | "secondary",
+  confidence: number,
+) {
+  if (confidence < 0.45) {
+    return `rgba(255, 177, 95, ${Math.max(0.2, confidence * 0.48)})`;
+  }
+  if (tone === "left" || tone === "secondary") {
+    return "rgba(101, 255, 210, 0.26)";
+  }
+  if (tone === "right" || tone === "primary") {
+    return "rgba(215, 255, 95, 0.25)";
+  }
+  return "rgba(255, 255, 255, 0.2)";
+}
+
+function distance(left: ProjectedPoint, right: ProjectedPoint) {
+  return Math.hypot(left.x - right.x, left.y - right.y);
+}
+
+function distancePointToSegment(point: ProjectedPoint, start: ProjectedPoint, end: ProjectedPoint) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) {
+    return distance(point, start);
+  }
+  const rawProgress = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
+  const progress = Math.max(0, Math.min(1, rawProgress));
+  return Math.hypot(point.x - (start.x + progress * dx), point.y - (start.y + progress * dy));
 }
