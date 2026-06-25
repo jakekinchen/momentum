@@ -40,8 +40,12 @@
       "sha256": "260984d96715444369629284345ac4cf78164ff34cb30042578d7944c7fb7c54"
     },
     "output_trace": {
-      "bytes": 83612,
-      "sha256": "ff23a465cec5d47a9a2c824e74d8da38d9b07910e9ed406486696bc515f2d630"
+      "bytes": 421176,
+      "sha256": "2ab7f8912a2a748696ad2b6424872646a0ad09a60158ecc6b3b15a83e0e4757c"
+    },
+    "review_gallery_postprocess": {
+      "bytes": 9930,
+      "sha256": "057b486df1b9702702dec2e24898201974742223f56a9f0b0eba2deaedb350b4"
     }
   },
   "loop_closure": "source_timed_anatomical_closed_loop",
@@ -51,7 +55,7 @@
   "playable_trace_packaged": true,
   "packaging_scope": "motion_review_gallery_demo_only",
   "review_gallery_packaged_at": "2026-06-25",
-  "review_gallery_note": "Packaged only so the web Motion Review mannequin overlay can be judged; this remains blocked from guide-ready and validation-ready promotion.",
+  "review_gallery_note": "Densified and smoothed only for the web Motion Review mannequin overlay; this remains blocked from guide-ready and validation-ready promotion.",
   "qa_gates": [
     "licensed_source_recorded",
     "raw_pose_reviewed",
@@ -62,7 +66,9 @@
     "constant_forearm_length",
     "loop_boundary_stable",
     "engine_counts_one_rep",
-    "agent_visual_reviewed"
+    "agent_visual_reviewed",
+    "review_gallery_motion_smoothed",
+    "review_gallery_only"
   ],
   "raw_trace": "dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/extract_0_24916/raw_mediapipe.jsonl",
   "required_output_landmarks": [
@@ -90,17 +96,17 @@
     "cycle_start_index": 41,
     "extended_settle_frames": 3,
     "extended_settle_interval_ms": 100,
-    "frames": 27,
+    "frames": 131,
     "max_endpoint_delta": 0.0,
     "max_forearm_length_ratio": 1.0,
     "max_primary_elbow_angle": 177.38,
     "max_torso_tilt": 5.91,
     "max_upper_arm_length_ratio": 1.0,
     "max_upper_arm_tilt": 22.62,
-    "min_primary_elbow_angle": 47.38,
-    "primary_elbow_angle_end": 177.38,
-    "primary_elbow_angle_flex": 47.38,
-    "primary_elbow_angle_start": 177.38,
+    "min_primary_elbow_angle": 48.04,
+    "primary_elbow_angle_end": 177.18,
+    "primary_elbow_angle_flex": 48.04,
+    "primary_elbow_angle_start": 177.18,
     "raw_end_elbow_angle": 152.24,
     "raw_endpoint_drift": {
       "right.elbow": 0.0027,
@@ -143,5 +149,46 @@
     "source_start_timestamp_ms": 4100
   },
   "viewer_command": "cp dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/extract_0_24916/single_arm_dumbbell_preacher_curl.external.jsonl Sources/CamiFitApp/Resources/MotionDemos/single_arm_dumbbell_preacher_curl.jsonl && cp dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/extract_0_24916/single_arm_dumbbell_preacher_curl.external.manifest.json Sources/CamiFitApp/Resources/MotionDemos/single_arm_dumbbell_preacher_curl.manifest.json && CAMIFIT_GUIDE_EXERCISE=single_arm_dumbbell_preacher_curl ./script/build_and_run.sh --verify # DEMOTED 2026-06-09: review-only until fixed-frame installed-app avatar visual review passes.",
-  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review."
+  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review.",
+  "review_gallery_cleanup_at": "2026-06-25",
+  "review_gallery_motion_cleanup": {
+    "status": "review_only_smoothed",
+    "script": "scripts/motion_reference/smooth_review_demo_trace.py",
+    "upsample_factor": 5,
+    "smooth_window": 5,
+    "excluded_landmarks": [],
+    "before": {
+      "frames": 27,
+      "max_landmark_step": {
+        "value": 0.172899,
+        "frame_index": 16,
+        "landmark": "right.wrist"
+      },
+      "max_phase_step": {
+        "value": 0.332067,
+        "frame_index": 16
+      },
+      "max_primary_elbow_angle_step": {
+        "value": 43.1688,
+        "frame_index": 16
+      }
+    },
+    "after": {
+      "frames": 131,
+      "max_landmark_step": {
+        "value": 0.03458,
+        "frame_index": 82,
+        "landmark": "primary.wrist"
+      },
+      "max_phase_step": {
+        "value": 0.066413,
+        "frame_index": 84
+      },
+      "max_primary_elbow_angle_step": {
+        "value": 9.0479,
+        "frame_index": 82
+      }
+    },
+    "promotion_scope": "no guide-ready or validation-ready promotion"
+  }
 }

@@ -48,25 +48,36 @@ final class AvatarHumanoidGLBAssetTests: XCTestCase {
         XCTAssertGreaterThan(abs(movingHip.y - firstHip.y), 0.08)
     }
 
-    func testPikeVisualRigFailureDoesNotShipPlayableMotionDemo() throws {
+    func testPikeVisualRigFailurePackagesReviewOnlyMotionDemo() throws {
         XCTAssertNotNil(Bundle.module.url(
             forResource: "bodyweight_pike",
             withExtension: "json",
             subdirectory: "Presets"
         ))
-        XCTAssertNil(Bundle.module.url(
+        let motionDemoURL = try XCTUnwrap(Bundle.module.url(
             forResource: "bodyweight_pike",
             withExtension: "jsonl",
             subdirectory: "MotionDemos"
         ))
+        let frames = try MediaPipePoseJSONLDecoder.decode(contentsOf: motionDemoURL)
         let manifestURL = try XCTUnwrap(Bundle.module.url(
             forResource: "bodyweight_pike",
             withExtension: "manifest.json",
             subdirectory: "MotionDemos"
         ))
         let manifest = try Self.jsonObject(at: manifestURL)
+        let qaGates = try XCTUnwrap(manifest["qa_gates"] as? [String])
+        let cleanup = try XCTUnwrap(manifest["review_gallery_motion_cleanup"] as? [String: Any])
+
         XCTAssertEqual(manifest["acceptance_status"] as? String, "blocked_visual_rig_review_failed")
-        XCTAssertEqual(manifest["playable_trace_packaged"] as? Bool, false)
+        XCTAssertEqual(manifest["playable_trace_packaged"] as? Bool, true)
+        XCTAssertEqual(manifest["packaging_scope"] as? String, "motion_review_gallery_demo_only")
+        XCTAssertTrue(qaGates.contains("visual_rig_review_failed"))
+        XCTAssertTrue(qaGates.contains("review_gallery_motion_smoothed"))
+        XCTAssertTrue(qaGates.contains("review_gallery_only"))
+        XCTAssertEqual(cleanup["status"] as? String, "review_only_smoothed")
+        XCTAssertEqual(cleanup["promotion_scope"] as? String, "no guide-ready or validation-ready promotion")
+        XCTAssertEqual(frames.count, 117)
         XCTAssertTrue((manifest["visual_review_failure"] as? String)?.contains("detached head/neck") == true)
     }
 

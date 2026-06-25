@@ -21,13 +21,15 @@ final class SingleArmDumbbellPreacherCurlAcceptanceTests: XCTestCase {
         )
     }
 
-    func testVisuallyRejectedPreacherCurlTraceDoesNotShipPlayableMotionDemo() throws {
+    func testVisuallyRejectedPreacherCurlTraceIsReviewOnlyAndNotGuidePromoted() throws {
         let manifest = try Self.motionDemoManifest()
         let qaGates = try XCTUnwrap(manifest["qa_gates"] as? [String])
+        let cleanup = try XCTUnwrap(manifest["review_gallery_motion_cleanup"] as? [String: Any])
+        let frames = try MediaPipePoseJSONLDecoder.decode(contentsOf: Self.motionDemoURL)
 
-        XCTAssertFalse(FileManager.default.fileExists(atPath: Self.motionDemoURL.path))
         XCTAssertEqual(manifest["acceptance_status"] as? String, "blocked_visual_rig_review_failed")
-        XCTAssertEqual(manifest["playable_trace_packaged"] as? Bool, false)
+        XCTAssertEqual(manifest["playable_trace_packaged"] as? Bool, true)
+        XCTAssertEqual(manifest["packaging_scope"] as? String, "motion_review_gallery_demo_only")
         XCTAssertEqual(manifest["source_kind"] as? String, "licensed_external_reference_trace")
         XCTAssertEqual(manifest["source_license"] as? String, "Pixabay Content License")
         XCTAssertEqual(manifest["source_attribution"] as? String, "tixonov_valentin / Pixabay")
@@ -37,6 +39,12 @@ final class SingleArmDumbbellPreacherCurlAcceptanceTests: XCTestCase {
         )
         XCTAssertTrue(qaGates.contains("source_timed_anatomical_retarget"))
         XCTAssertTrue(qaGates.contains("constant_forearm_length"))
+        XCTAssertTrue(qaGates.contains("review_gallery_motion_smoothed"))
+        XCTAssertTrue(qaGates.contains("review_gallery_only"))
+        XCTAssertEqual(cleanup["status"] as? String, "review_only_smoothed")
+        XCTAssertEqual(cleanup["promotion_scope"] as? String, "no guide-ready or validation-ready promotion")
+        XCTAssertEqual(frames.count, 131)
+        XCTAssertTrue(zip(frames, frames.dropFirst()).allSatisfy { $1.timestampMS > $0.timestampMS })
         XCTAssertTrue((manifest["visual_review_failure"] as? String)?.contains("demoted") == true)
     }
 
