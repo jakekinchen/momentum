@@ -48,7 +48,10 @@
   "normalizer": "scripts/motion_reference/normalize_single_arm_dumbbell_preacher_curl_trace.py",
   "output_trace": "dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/extract_0_24916/single_arm_dumbbell_preacher_curl.external.jsonl",
   "primary_side": "right",
-  "playable_trace_packaged": false,
+  "playable_trace_packaged": true,
+  "packaging_scope": "motion_review_gallery_demo_only",
+  "review_gallery_packaged_at": "2026-06-25",
+  "review_gallery_note": "Packaged only so the web Motion Review mannequin overlay can be judged; this remains blocked from guide-ready and validation-ready promotion.",
   "qa_gates": [
     "licensed_source_recorded",
     "raw_pose_reviewed",
@@ -73,7 +76,7 @@
   "source_kind": "licensed_external_reference_trace",
   "source_label": "Pixabay 66991 Crossfit Gym Workout Training",
   "source_license": "Pixabay Content License",
-  "source_media_url": "https://pixabay.com/videos/crossfit-gym-workout-training-66991/",
+  "source_media_url": null,
   "source_page": "https://pixabay.com/videos/crossfit-gym-workout-training-66991/",
   "source_video": "dist/motion-reference/single_arm_dumbbell_preacher_curl/pixabay_66991/crossfit_gym_workout_training_66991.mp4",
   "rejected_sources": {

@@ -39,12 +39,15 @@
     "visual_rig_review_failed",
     "engine_replay_candidate_only"
   ],
-  "viewer_command": "CAMIFIT_GUIDE_EXERCISE=bodyweight_pike CAMIFIT_ALLOW_FIXED_GUIDE_FRAME=1 CAMIFIT_GUIDE_FRAME_MS=2407 ./script/build_and_run.sh --verify # review-only; do not package JSONL until visual rig passes",
+  "viewer_command": "CAMIFIT_GUIDE_EXERCISE=bodyweight_pike CAMIFIT_ALLOW_FIXED_GUIDE_FRAME=1 CAMIFIT_GUIDE_FRAME_MS=2407 ./script/build_and_run.sh --verify # review-gallery only; do not promote until visual rig passes",
   "acceptance_status": "blocked_visual_rig_review_failed",
-  "playable_trace_packaged": false,
+  "playable_trace_packaged": true,
+  "packaging_scope": "motion_review_gallery_demo_only",
+  "review_gallery_packaged_at": "2026-06-25",
+  "review_gallery_note": "Packaged only so the web Motion Review mannequin overlay can be judged; this remains blocked from guide-ready and validation-ready promotion.",
   "visual_review_failure": "2026-06-09 installed app fixed-frame review at 2407 ms showed detached head/neck and broken avatar rig at deepest pike frame.",
   "candidate_status": "source_extraction_candidate_only",
-  "repair_plan": "Keep the Pexels source extraction under dist/ as a candidate; do not restore app MotionDemos/bodyweight_pike.jsonl until avatar rig/head-neck rendering is fixed and live app screenshots pass review.",
+  "repair_plan": "Keep the Pexels source extraction as a review-gallery-only candidate; do not promote this exercise until avatar rig/head-neck rendering is fixed and live app screenshots pass review.",
   "rejected_candidates": [
     {
       "source_page": "https://www.pexels.com/video/yoga-flow-in-urban-loft-with-natural-light-31794279/",

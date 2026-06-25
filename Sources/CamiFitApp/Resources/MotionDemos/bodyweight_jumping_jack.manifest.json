@@ -1,0 +1,45 @@
+{
+  "exercise_id": "bodyweight_jumping_jack",
+  "source_kind": "licensed_external_reference_trace",
+  "source_label": "Wikimedia Commons Jumping jack movimiento.ogg",
+  "acceptance_status": "blocked_review_only_trace",
+  "playable_trace_packaged": true,
+  "packaging_scope": "motion_review_gallery_demo_only",
+  "review_gallery_packaged_at": "2026-06-25",
+  "review_gallery_note": "Packaged only so the web Motion Review mannequin overlay can be judged; this remains blocked from guide-ready and validation-ready promotion.",
+  "source_page": "https://commons.wikimedia.org/wiki/File:Jumping_jack_movimiento.ogg",
+  "source_media_url": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Jumping_jack_movimiento.ogg",
+  "source_license": "CC BY-SA 3.0",
+  "source_attribution": "Albaparejadelrio / Wikimedia Commons; derivative work as described on source page",
+  "source_video": "dist/motion-reference/bodyweight_jumping_jack/commons_jumping_jack_movimiento/jumping_jack_movimiento.ogg",
+  "raw_trace": "dist/motion-reference/bodyweight_jumping_jack/commons_jumping_jack_movimiento/raw_mediapipe.jsonl",
+  "output_trace": "dist/motion-reference/bodyweight_jumping_jack/commons_jumping_jack_movimiento/bodyweight_jumping_jack.normalized.jsonl",
+  "normalizer": "scripts/motion_reference/normalize_jumping_jack_trace.py",
+  "retarget": "front-view-jumping-jack",
+  "phase_driver": "raw_mediapipe_wrist_height_plus_ankle_spread",
+  "visual_review": {
+    "status": "failed",
+    "evidence": "Existing motion profile notes prior jumping-jack candidates failed user-visible and source-shape review; this Commons trace is packaged only for web mannequin review until a clean source-preserving extraction passes app-visible review."
+  },
+  "engine_replay": {
+    "status": "pending",
+    "evidence": "Review-gallery demo only; not promoted into the guide-ready app gate."
+  },
+  "qa_gates": [
+    "licensed_source_recorded",
+    "raw_pose_reviewed",
+    "closed_open_closed_spread",
+    "engine_counts_one_rep",
+    "viewer_reviewed",
+    "review_gallery_only"
+  ],
+  "summary": {
+    "frames": 19,
+    "cycle_start_index": 0,
+    "cycle_end_index": 18,
+    "min_phase_factor": 0.0,
+    "max_phase_factor": 1.0,
+    "min_jack_spread": 0.996,
+    "max_jack_spread": 5.0767
+  }
+}

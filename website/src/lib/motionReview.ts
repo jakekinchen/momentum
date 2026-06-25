@@ -558,7 +558,11 @@ export function resolveMotionMediaRedirect(
   }
 
   const manifest = readJson(manifestPath(exerciseId));
-  return httpMediaUrl(manifest?.source_media_url) ?? snapshotMediaRedirect(exerciseId);
+  if (manifest) {
+    return httpMediaUrl(manifest.source_media_url);
+  }
+
+  return snapshotMediaRedirect(exerciseId);
 }
 
 function mediaForExercise(exerciseId: string): MotionReviewMedia {
