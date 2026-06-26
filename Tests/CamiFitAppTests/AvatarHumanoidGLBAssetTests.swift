@@ -139,38 +139,48 @@ final class AvatarHumanoidGLBAssetTests: XCTestCase {
             withExtension: "json",
             subdirectory: "Presets"
         ))
-        XCTAssertNil(Bundle.module.url(
+        let traceURL = Bundle.module.url(
             forResource: "bodyweight_jumping_jack",
             withExtension: "jsonl",
             subdirectory: "MotionDemos"
-        ))
-        XCTAssertNil(Bundle.module.url(
+        )
+        XCTAssertNotNil(Bundle.module.url(
             forResource: "bodyweight_jumping_jack",
             withExtension: "manifest.json",
             subdirectory: "MotionDemos"
         ))
+        if let traceURL {
+            let manifest = try XCTUnwrap(MotionDemoManifest.load(nextTo: traceURL))
+            XCTAssertFalse(manifest.isGuideEligible)
+            XCTAssertFalse(manifest.isGuideEligible(for: "bodyweight_jumping_jack"))
+        }
         let program = try Self.programWithID("bodyweight_jumping_jack")
         XCTAssertNil(MotionDemoBundleStore.timeline(for: program))
         XCTAssertNil(MotionDemoBundleStore.guideTimeline(for: program))
     }
 
-    func testCaptureRequiredBundlesDoNotShipPlayableMotionDemos() throws {
+    func testCaptureRequiredBundlesDoNotProduceGuideTimelines() throws {
         for presetID in Self.captureRequiredPresetIDs {
             let presetURL = try XCTUnwrap(Bundle.module.url(
                 forResource: presetID,
                 withExtension: "json",
                 subdirectory: "Presets"
             ), presetID)
-            XCTAssertNil(Bundle.module.url(
+            let traceURL = Bundle.module.url(
                 forResource: presetID,
                 withExtension: "jsonl",
                 subdirectory: "MotionDemos"
-            ), presetID)
+            )
             XCTAssertNotNil(Bundle.module.url(
                 forResource: presetID,
                 withExtension: "manifest.json",
                 subdirectory: "MotionDemos"
             ), presetID)
+            if let traceURL {
+                let manifest = try XCTUnwrap(MotionDemoManifest.load(nextTo: traceURL), presetID)
+                XCTAssertFalse(manifest.isGuideEligible, presetID)
+                XCTAssertFalse(manifest.isGuideEligible(for: presetID), presetID)
+            }
             let program = try ProgramLoader.load(from: presetURL)
             XCTAssertNil(MotionDemoBundleStore.timeline(for: program), presetID)
             XCTAssertNil(MotionDemoBundleStore.guideTimeline(for: program), presetID)
@@ -205,7 +215,10 @@ final class AvatarHumanoidGLBAssetTests: XCTestCase {
                 : nil
         })
 
-        XCTAssertEqual(playableIDs, AppExerciseTrackingGate.guideReadyPresetIDs)
+        let reviewOnlyPlayableIDs = playableIDs.subtracting(AppExerciseTrackingGate.guideReadyPresetIDs)
+
+        XCTAssertTrue(AppExerciseTrackingGate.guideReadyPresetIDs.isSubset(of: playableIDs))
+        XCTAssertTrue(reviewOnlyPlayableIDs.isSubset(of: AppExerciseTrackingGate.referenceCaptureRequiredPresetIDs))
         XCTAssertEqual(guideEligibleManifestIDs, AppExerciseTrackingGate.guideReadyPresetIDs)
         XCTAssertTrue(AppExerciseTrackingGate.guideReadyPresetIDs.isDisjoint(
             with: AppExerciseTrackingGate.referenceCaptureRequiredPresetIDs

@@ -4,9 +4,9 @@
   "source_label": "lying_tricep_extension canonical motion profile",
   "archetype": "lying_tricep_extension",
   "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
-  "compiler": "scripts/motion_reference/compile_archetype_trace.py",
-  "output_trace": null,
-  "playable_trace_packaged": false,
+  "compiler": "scripts/motion_reference/package_review_gallery_archetype_traces.py",
+  "output_trace": "Sources/CamiFitApp/Resources/MotionDemos/bench_lying_single_arm_dumbbell_tricep_extension.jsonl",
+  "playable_trace_packaged": true,
   "acceptance_status": "pending_reference_capture",
   "normalizer_status": "pending_source_preserving_normalizer",
   "interval_ms": 100,
@@ -19,9 +19,67 @@
     "left.hip"
   ],
   "summary": {
-    "frames": 17,
+    "frames": 65,
     "min_primary_elbow_angle": 79.21,
     "max_primary_elbow_angle": 180.0
   },
-  "replacement_plan": "Locate an exact licensed external workout clip and source-preserving normalizer before packaging any playable guide trace."
+  "replacement_plan": "Locate an exact licensed external workout clip and source-preserving normalizer before packaging any playable guide trace.",
+  "packaging_scope": "motion_review_gallery_demo_only",
+  "review_gallery_packaged_at": "2026-06-26",
+  "review_gallery_cleanup_at": "2026-06-26",
+  "review_gallery_note": "Canonical archetype demo packaged only so the web Motion Review mannequin and review video can be judged; this remains blocked from guide-ready and validation-ready promotion.",
+  "qa_gates": [
+    "canonical_archetype_review_demo",
+    "review_gallery_motion_smoothed",
+    "review_gallery_only",
+    "engine_replay_candidate_only"
+  ],
+  "candidate_status": "canonical_archetype_review_gallery_only",
+  "review_gallery_motion_cleanup": {
+    "status": "review_only_smoothed",
+    "script": "scripts/motion_reference/package_review_gallery_archetype_traces.py",
+    "upsample_factor": 4,
+    "smooth_window": 3,
+    "excluded_landmarks": [],
+    "before": {
+      "frames": 17,
+      "max_landmark_step": {
+        "value": 0.103293,
+        "frame_index": 11,
+        "landmark": "left.wrist"
+      },
+      "max_phase_step": {
+        "value": 0.0,
+        "frame_index": null
+      },
+      "max_primary_elbow_angle_step": {
+        "value": 48.9476,
+        "frame_index": 4
+      }
+    },
+    "after": {
+      "frames": 65,
+      "max_landmark_step": {
+        "value": 0.025823,
+        "frame_index": 46,
+        "landmark": "left.wrist"
+      },
+      "max_phase_step": {
+        "value": 0.0,
+        "frame_index": null
+      },
+      "max_primary_elbow_angle_step": {
+        "value": 13.5756,
+        "frame_index": 18
+      }
+    },
+    "promotion_scope": "no guide-ready or validation-ready promotion"
+  },
+  "review_gallery_detection_data": {
+    "status": "generated_from_packaged_review_trace",
+    "asset_script": "scripts/motion_reference/generate_motion_review_gallery_assets.py",
+    "asset_path": "website/public/motion-review-assets/bench_lying_single_arm_dumbbell_tricep_extension/mediapipe_skeleton_review.mp4",
+    "promotion_scope": "review media only; not detector agreement or runtime validation"
+  },
+  "updated_at": "2026-06-26T16:08:25.379831Z"
 }

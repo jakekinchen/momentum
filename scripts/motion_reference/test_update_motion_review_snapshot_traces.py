@@ -40,7 +40,34 @@ class UpdateMotionReviewSnapshotTracesTests(unittest.TestCase):
             snapshot = {
                 "generatedAt": "old",
                 "summary": {"playableTraces": 0},
-                "exercises": [{"id": "bodyweight_test", "trace": [], "frameCount": 0, "durationMs": 0}],
+                "exercises": [
+                    {
+                        "id": "bodyweight_test",
+                        "gateStatus": "reference_capture_required",
+                        "acceptanceStatus": "pending_reference_capture",
+                        "trace": [],
+                        "frameCount": 0,
+                        "durationMs": 0,
+                        "media": {
+                            "detectorVideoUrl": "/motion-review-assets/bodyweight_test/mediapipe_skeleton_review.mp4",
+                            "contactSheetUrl": None,
+                            "sourceVideoUrl": None,
+                        },
+                        "missing": ["playable JSONL", "review video"],
+                        "nextReview": "Capture or normalize a playable JSONL trace before judging the app motion.",
+                        "factory": {
+                            "promotionTier": "source-candidate",
+                            "tierIndex": 1,
+                            "guideReady": False,
+                            "validationReady": False,
+                            "guideReadyBlockers": ["reference_capture_required_gate"],
+                            "validationReadyBlockers": ["not_guide_ready"],
+                            "warnings": ["playable JSONL", "review video"],
+                            "nextAction": "Capture or normalize a playable JSONL trace before judging the app motion.",
+                            "currentSignals": {"playableJsonl": False},
+                        },
+                    }
+                ],
             }
 
             updated = update_snapshot(snapshot, motion_demos, {"bodyweight_test"})
@@ -50,7 +77,16 @@ class UpdateMotionReviewSnapshotTracesTests(unittest.TestCase):
         self.assertEqual(exercise["frameCount"], 2)
         self.assertEqual(exercise["durationMs"], 120)
         self.assertEqual(exercise["landmarkCount"], 2)
+        self.assertNotIn("playable JSONL", exercise["missing"])
+        self.assertNotIn("review video", exercise["missing"])
+        self.assertEqual(
+            exercise["nextReview"],
+            "Review the trace media, then either promote after strict provenance or keep recommendation-only.",
+        )
+        self.assertEqual(exercise["factory"]["promotionTier"], "avatar-demo-candidate")
+        self.assertTrue(exercise["factory"]["currentSignals"]["playableJsonl"])
         self.assertEqual(snapshot["summary"]["playableTraces"], 1)
+        self.assertEqual(snapshot["summary"]["tierCounts"]["avatar-demo-candidate"], 1)
         self.assertNotEqual(snapshot["generatedAt"], "old")
 
 

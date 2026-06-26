@@ -10,6 +10,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from update_motion_review_snapshot_traces import update_snapshot as update_snapshot_traces
+
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MOTION_DEMOS = ROOT / "Sources" / "CamiFitApp" / "Resources" / "MotionDemos"
 DEFAULT_TMP_REVIEW = ROOT / "tmp" / "motion-review"
@@ -181,6 +183,7 @@ def main() -> int:
 
     snapshot = load_snapshot(args.snapshot)
     update_snapshot_media(snapshot, args.public_review_dir, generated_ids)
+    update_snapshot_traces(snapshot, args.motion_demos, {raw_path.stem for raw_path in raw_paths})
     write_snapshot(args.snapshot, snapshot)
     print(
         "motion-review gallery assets "
