@@ -6,6 +6,7 @@ Research artifacts live here. They are evidence and input material, not automati
 
 | File | Purpose |
 |---|---|
+| [`2026-07-01-no-first-party-motion-sourcing.md`](2026-07-01-no-first-party-motion-sourcing.md) | Optimal per-exercise guide-motion sourcing without first-party recording: four-lane strategy (marketplace mocap, procedural authoring, licensed stock video + GEM-X, commissioned animation), license verdicts, per-exercise mapping. |
 | [`2026-06-23-motion-data-pipeline-deep-dive.md`](2026-06-23-motion-data-pipeline-deep-dive.md) | Current recommendation for turning exercise source footage into trustworthy avatar motion, detector validation data, and promotion gates. |
 | [`2026-06-03-chatgpt-pro-pose-stack-research-prompt.md`](2026-06-03-chatgpt-pro-pose-stack-research-prompt.md) | Prompt used for the deep research pass. |
 
