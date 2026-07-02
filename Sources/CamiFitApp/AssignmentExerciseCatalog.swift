@@ -197,8 +197,6 @@ enum AssignmentExerciseTrackingCoverage {
         switch exerciseID {
         case "Exercise:jumping_jack":
             return syntheticReferenceCaptureRequired("bodyweight_jumping_jack")
-        case "Exercise:standing_miniband_hip_flexion":
-            return syntheticReferenceCaptureRequired("standing_miniband_hip_flexion")
         case "Exercise:resistance_band_reverse_curl":
             return syntheticReferenceCaptureRequired("resistance_band_reverse_curl")
         case "Exercise:bodyweight_pike":

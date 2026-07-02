@@ -36,12 +36,12 @@
       "max_noise_to_signal_median": 0.25
     },
     "standing_miniband_hip_flexion": {
-      "source_kind": "procedural_fallback",
-      "max_bone_length_cv": 0.17,
-      "max_peak_landmark_speed_body_per_second": 3.1,
+      "source_kind": "canonical_archetype_authored",
+      "max_bone_length_cv": 0.05,
+      "max_peak_landmark_speed_body_per_second": 0.85,
       "max_loop_closure_gap_body_scaled": 0.01,
       "max_form_violation_frames": 0,
-      "max_noise_to_signal_median": 1.3
+      "max_noise_to_signal_median": 0.35
     },
     "resistance_band_reverse_curl": {
       "source_kind": "procedural_fallback",
@@ -76,7 +76,7 @@
       "max_noise_to_signal_median": 1.3
     },
     "single_arm_cable_tricep_extension": {
-      "source_kind": "trainer_reference_trace",
+      "source_kind": "licensed_external_reference_trace",
       "max_bone_length_cv": 0.43,
       "max_peak_landmark_speed_body_per_second": 2.2,
       "max_loop_closure_gap_body_scaled": 0.01,

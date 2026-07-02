@@ -10,9 +10,9 @@ final class AssignmentExerciseCatalogTests: XCTestCase {
 
         XCTAssertEqual(exercises.count, 50)
         XCTAssertEqual(exercises.first?.name, "Alternating Dumbbell Decline Bench Press")
-        XCTAssertEqual(statusCounts[.guideReady], 1)
+        XCTAssertEqual(statusCounts[.guideReady], 2)
         XCTAssertEqual(statusCounts[.archetypeDemoOnly], 14)
-        XCTAssertEqual(statusCounts[.recommendOnly], 35)
+        XCTAssertEqual(statusCounts[.recommendOnly], 34)
     }
 
     func testAssessmentExerciseIncludesGraphMetadata() throws {
@@ -113,7 +113,6 @@ final class AssignmentExerciseCatalogTests: XCTestCase {
         let blockedMappings = [
             "Exercise:jumping_jack": "bodyweight_jumping_jack",
             "Exercise:bodyweight_plank": "bodyweight_plank",
-            "Exercise:standing_miniband_hip_flexion": "standing_miniband_hip_flexion",
             "Exercise:resistance_band_reverse_curl": "resistance_band_reverse_curl",
             "Exercise:bodyweight_pike": "bodyweight_pike",
             "Exercise:single_arm_dumbbell_preacher_curl": "single_arm_dumbbell_preacher_curl",
@@ -145,7 +144,8 @@ final class AssignmentExerciseCatalogTests: XCTestCase {
             "Exercise:bodyweight_squat": "bodyweight_squat",
             "Exercise:bodyweight_lunge": "bodyweight_lunge",
             "Exercise:bodyweight_pushup": "bodyweight_pushup",
-            "Exercise:single_arm_cable_tricep_extension": "single_arm_cable_tricep_extension"
+            "Exercise:single_arm_cable_tricep_extension": "single_arm_cable_tricep_extension",
+            "Exercise:standing_miniband_hip_flexion": "standing_miniband_hip_flexion"
         ]
 
         XCTAssertEqual(Set(guideReadyMappings.values), AppExerciseTrackingGate.guideReadyPresetIDs)

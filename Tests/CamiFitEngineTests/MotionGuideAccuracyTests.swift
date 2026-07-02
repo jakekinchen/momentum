@@ -123,7 +123,7 @@ final class MotionGuideAccuracyTests: XCTestCase {
             return try MotionGuideAccuracyScorer.score(
                 program: program,
                 frames: frames,
-                sourceKind: .trainerReferenceTrace
+                sourceKind: bundledSourceKind(nextTo: recordedURL) ?? .trainerReferenceTrace
             )
         }
 
@@ -133,6 +133,25 @@ final class MotionGuideAccuracyTests: XCTestCase {
             frames: timeline.frames,
             sourceKind: .proceduralFallback
         )
+    }
+
+    private struct BundledManifestSourceKind: Decodable {
+        let sourceKind: MotionDemoSourceKind?
+
+        private enum CodingKeys: String, CodingKey {
+            case sourceKind = "source_kind"
+        }
+    }
+
+    private static func bundledSourceKind(nextTo traceURL: URL) -> MotionDemoSourceKind? {
+        let manifestURL = traceURL
+            .deletingPathExtension()
+            .appendingPathExtension("manifest.json")
+        guard let data = try? Data(contentsOf: manifestURL),
+              let manifest = try? JSONDecoder().decode(BundledManifestSourceKind.self, from: data) else {
+            return nil
+        }
+        return manifest.sourceKind
     }
 
     // MARK: - Baseline and scorecard

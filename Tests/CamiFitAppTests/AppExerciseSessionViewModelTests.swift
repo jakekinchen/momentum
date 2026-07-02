@@ -35,7 +35,6 @@ final class AppExerciseSessionViewModelTests: XCTestCase {
             "single_arm_chest_supported_incline_row",
             "single_arm_dumbbell_preacher_curl",
             "suspension_tricep_press",
-            "standing_miniband_hip_flexion",
             "wide_grip_preacher_curl_with_ez_bar"
         ] {
             XCTAssertFalse(availablePresetIDs.contains(presetID), presetID)
@@ -108,7 +107,6 @@ final class AppExerciseSessionViewModelTests: XCTestCase {
             "single_arm_chest_supported_incline_row",
             "single_arm_dumbbell_preacher_curl",
             "suspension_tricep_press",
-            "standing_miniband_hip_flexion",
             "wide_grip_preacher_curl_with_ez_bar"
         ] {
             XCTAssertFalse(viewModel.availablePresets.contains { $0.id == presetID }, presetID)
