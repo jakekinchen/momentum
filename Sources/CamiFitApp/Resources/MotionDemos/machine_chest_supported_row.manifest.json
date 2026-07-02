@@ -3,7 +3,10 @@
   "source_kind": "licensed_external_reference_trace",
   "source_label": "Wikimedia Commons Machine T-Bar Row",
   "acceptance_status": "pending_source_license_review",
-  "playable_trace_packaged": false,
+  "playable_trace_packaged": true,
+  "packaging_scope": "motion_review_gallery_demo_only",
+  "review_gallery_packaged_at": "2026-06-25",
+  "review_gallery_note": "Packaged only so the web Motion Review mannequin overlay can be judged; this remains blocked from guide-ready and validation-ready promotion.",
   "candidate_status": "license_review_needed",
   "source_page": "https://commons.wikimedia.org/wiki/File:How_to_properly_do_Machine_T-Bar_Rows.webm",
   "source_media_url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/How_to_properly_do_Machine_T-Bar_Rows.webm",
@@ -30,7 +33,10 @@
       "source_rom_degrees": 60.17,
       "source_good_frames": 84,
       "peak_frame_index": 42,
-      "peak_timestamp_ms": 3500
+      "peak_timestamp_ms": 3500,
+      "phase_smoothing": "single_smoothstep_cycle_envelope",
+      "raw_max_phase_step": 0.403749,
+      "smoothed_max_phase_step": 0.036578
     },
     "summary": {
       "frames": 84,

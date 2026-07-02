@@ -8,7 +8,32 @@
   "source_media_url": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
   "source_video": "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
   "source_license": "Pexels License",
-  "source_attribution": "Pexels / video 7801720",
+  "source_attribution": "Pavel Danilyuk / Pexels video 7801720",
+  "capture_session": {
+    "exercise_id": "bodyweight_plank",
+    "session_id": "pexels_7801720_20260624",
+    "source_kind": "licensed_external_clip",
+    "camera_view": "side",
+    "fps": 25,
+    "resolution": {
+      "width": 2732,
+      "height": 1154
+    },
+    "equipment": "yoga mat",
+    "license": "Pexels License",
+    "attribution": "Pavel Danilyuk / Pexels video 7801720",
+    "source_page": "https://www.pexels.com/video/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720/",
+    "source_media_url": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
+    "reviewer_notes": "Self-sourced external plank clip; source file registered locally under dist for detector extraction and review, not promoted.",
+    "source_files": [
+      {
+        "view": "side",
+        "path": "dist/motion-reference/bodyweight_plank/pexels_7801720_20260624/source_side.mp4",
+        "sha256": "134712b11aaf6b939b3b5e78e193271e30cc7b255b0a25bd568e2bd0140dc116",
+        "bytes": 12055907
+      }
+    ]
+  },
   "rejected_candidates": [
     {
       "source_page": "https://www.pexels.com/video/woman-doing-plank-position-6437916/",
@@ -29,6 +54,68 @@
   "golden_comparison": {
     "status": "not_applicable",
     "reason": "No protected plank or static-hold golden comparator exists yet; Bodyweight Lunge remains the protected dynamic lunge-family extractor comparator."
+  },
+  "detector_agreement_scorecard": {
+    "status": "failed",
+    "detectors": [
+      "mediapipe"
+    ],
+    "metrics": {
+      "frame_coverage": 1.0,
+      "mean_visibility": 0.81981,
+      "detector_disagreement": 0.0,
+      "identity_flip_count": 0,
+      "occlusion_count": 0,
+      "temporal_jitter": 0.017439,
+      "rejected_frame_windows": []
+    },
+    "review": {
+      "frame_count": 60,
+      "posed_frame_count": 60,
+      "comparison_basis": "single_detector_temporal_quality",
+      "failure_reasons": [
+        "requires_at_least_two_detectors_for_agreement"
+      ]
+    }
+  },
+  "kinematic_scorecard": {
+    "status": "passed",
+    "metrics": {
+      "limb_length_stability": 0.0,
+      "joint_angle_limits": {
+        "primary_plank_line_degrees": {
+          "mean": 161.261595,
+          "min": 161.261595,
+          "max": 161.261595,
+          "expected": ">=150"
+        },
+        "primary_elbow_degrees": {
+          "mean": 118.851741,
+          "min": 118.851741,
+          "max": 118.851741
+        }
+      },
+      "smoothness_jerk": 0.0,
+      "loop_boundary_delta": 0.0,
+      "contact_lock_delta": 0.0,
+      "side_primary_identity_stability": 1.0,
+      "phase_monotonicity": 1.0,
+      "expected_rep_count": 0,
+      "equipment_path_sanity": "none"
+    },
+    "review": {
+      "frame_count": 31,
+      "scored_frame_count": 31,
+      "segment_stability": {
+        "primary.shoulder:primary.elbow": 0.0,
+        "primary.elbow:primary.wrist": 0.0,
+        "primary.shoulder:primary.hip": 0.0,
+        "primary.hip:primary.knee": 0.0,
+        "primary.knee:primary.ankle": 0.0,
+        "primary.ankle:primary.foot.index": 0.0
+      },
+      "failure_reasons": []
+    }
   },
   "visual_review": {
     "status": "failed",
@@ -58,7 +145,7 @@
     },
     "raw_trace": {
       "bytes": 424077,
-      "sha256": "5968224c232521a6b60c651f898e3aab9c011ac00e1dc434d7a2726578d1efcf"
+      "sha256": "33d9a0aa8b74d8c9448303df7cad52a9649fef75347f1d062bf733373fab8238"
     },
     "normalizer": {
       "bytes": 11481,
@@ -67,6 +154,14 @@
     "output_trace": {
       "bytes": 240164,
       "sha256": "17a7b2be25fcbd446887109f639ba0a90b42427540ef72ef622ed0bad9c0b0d8"
+    },
+    "detector_agreement_scorecard": {
+      "bytes": 514,
+      "sha256": "1331ebdeecd4c2c65c0c61d2bc2c53a0f92567553e9b3a0359757541f8fa90ec"
+    },
+    "kinematic_scorecard": {
+      "bytes": 1012,
+      "sha256": "ed46bc7a4951384cd3fb7587f67e2c68820627732b9f5dd5b53a8646509ba908"
     }
   },
   "retarget": "static_median_external_reference_hold",

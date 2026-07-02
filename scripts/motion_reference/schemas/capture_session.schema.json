@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camifit.local/schemas/motion-reference/capture_session.schema.json",
+  "title": "CamiFit Motion Capture Session",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "source_kind",
+    "camera_view",
+    "fps",
+    "resolution",
+    "equipment",
+    "license",
+    "reviewer_notes"
+  ],
+  "properties": {
+    "source_kind": {
+      "type": "string",
+      "enum": [
+        "first_party_trainer_capture",
+        "first_party_webcam_capture",
+        "licensed_external_clip",
+        "protected_golden_reference"
+      ]
+    },
+    "performer_notes": {
+      "type": "string"
+    },
+    "camera_view": {
+      "type": "string",
+      "examples": [
+        "side",
+        "front",
+        "front_oblique",
+        "multi_view_side_front"
+      ]
+    },
+    "fps": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "resolution": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "width",
+            "height"
+          ],
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "equipment": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string"
+    },
+    "attribution": {
+      "type": "string"
+    },
+    "rejected_alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "reviewer_notes": {
+      "type": "string"
+    }
+  }
+}

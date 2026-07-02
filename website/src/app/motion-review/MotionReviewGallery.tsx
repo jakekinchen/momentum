@@ -12,14 +12,16 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Ruler,
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  UserRound,
   Video,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   Landmark,
@@ -28,18 +30,26 @@ import type {
   MotionReviewExercise,
 } from "@/lib/motionReview";
 
-type GalleryFilter = "all" | "guide_ready" | "detector" | "missing";
+type GalleryFilter = "all" | "guide_ready" | "validation_ready" | "detector" | "missing";
 
 type ProjectedPoint = {
   x: number;
   y: number;
   depth: number;
+  confidence: number;
+};
+
+type MotionCanvasOptions = {
+  exerciseId: string;
+  showMannequin: boolean;
+  showFormLines: boolean;
 };
 
 const filters: Array<{ id: GalleryFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "guide_ready", label: "Guide-ready" },
-  { id: "detector", label: "Detector media" },
+  { id: "validation_ready", label: "Validation-ready" },
+  { id: "detector", label: "Review media" },
   { id: "missing", label: "Needs work" },
 ];
 
@@ -77,6 +87,8 @@ const skeletonSegments: Array<{
 const pointCandidates = [
   "nose",
   "primary.nose",
+  "left.ear",
+  "right.ear",
   "left.shoulder",
   "right.shoulder",
   "left.elbow",
@@ -111,16 +123,26 @@ const pointCandidates = [
   "secondary.foot.index",
 ];
 
+const mannequinSegments: Array<{
+  from: string[];
+  to: string[];
+  tone: "left" | "right" | "core" | "primary" | "secondary";
+  width: number;
+}> = [
+  { from: ["left.shoulder", "secondary.shoulder"], to: ["left.elbow", "secondary.elbow"], tone: "left", width: 0.052 },
+  { from: ["left.elbow", "secondary.elbow"], to: ["left.wrist", "secondary.wrist"], tone: "left", width: 0.045 },
+  { from: ["right.shoulder", "primary.shoulder"], to: ["right.elbow", "primary.elbow"], tone: "right", width: 0.052 },
+  { from: ["right.elbow", "primary.elbow"], to: ["right.wrist", "primary.wrist"], tone: "right", width: 0.045 },
+  { from: ["left.hip", "secondary.hip"], to: ["left.knee", "secondary.knee"], tone: "left", width: 0.068 },
+  { from: ["left.knee", "secondary.knee"], to: ["left.ankle", "secondary.ankle"], tone: "left", width: 0.057 },
+  { from: ["right.hip", "primary.hip"], to: ["right.knee", "primary.knee"], tone: "right", width: 0.068 },
+  { from: ["right.knee", "primary.knee"], to: ["right.ankle", "primary.ankle"], tone: "right", width: 0.057 },
+  { from: ["primary.shoulder"], to: ["primary.hip"], tone: "primary", width: 0.058 },
+  { from: ["secondary.shoulder"], to: ["secondary.hip"], tone: "secondary", width: 0.058 },
+];
+
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
-}
-
-function formatDuration(ms: number) {
-  if (!ms) {
-    return "0.0s";
-  }
-
-  return `${(ms / 1000).toFixed(1)}s`;
 }
 
 function formatBytes(bytes: number | null) {
@@ -166,15 +188,52 @@ function validationClasses(status: MotionReviewExercise["validation"][number]["s
   return "text-[#65ffd2]";
 }
 
+function tierLabel(tier: MotionReviewExercise["factory"]["promotionTier"]) {
+  return tier.replaceAll("-", " ");
+}
+
+function tierClasses(tier: MotionReviewExercise["factory"]["promotionTier"]) {
+  if (tier === "validation-ready") {
+    return "border-[#65ffd2]/45 bg-[#65ffd2]/14 text-[#baffed]";
+  }
+  if (tier === "guide-ready") {
+    return "border-[#d7ff5f]/35 bg-[#d7ff5f]/14 text-[#d7ff5f]";
+  }
+  if (tier === "avatar-demo-candidate") {
+    return "border-[#ffb15f]/35 bg-[#ffb15f]/12 text-[#ffd3a1]";
+  }
+  if (tier === "detector-reviewable") {
+    return "border-[#8ad8ff]/35 bg-[#8ad8ff]/12 text-[#bfeaff]";
+  }
+  return "border-white/14 bg-white/8 text-white/66";
+}
+
+function conceptClasses(status: MotionReviewExercise["factory"]["concepts"][number]["status"]) {
+  if (status === "passed" || status === "present") {
+    return "text-[#d7ff5f]";
+  }
+  if (status === "failed" || status === "invalid") {
+    return "text-[#ffd3a1]";
+  }
+  return "text-white/42";
+}
+
+function formatReason(reason: string) {
+  return reason.replaceAll("_", " ").replaceAll(":", ": ");
+}
+
 function matchesFilter(exercise: MotionReviewExercise, filter: GalleryFilter) {
   if (filter === "guide_ready") {
-    return exercise.gateStatus === "guide_ready";
+    return exercise.factory.guideReady;
+  }
+  if (filter === "validation_ready") {
+    return exercise.factory.validationReady;
   }
   if (filter === "detector") {
     return Boolean(exercise.media.detectorVideoUrl || exercise.media.contactSheetUrl);
   }
   if (filter === "missing") {
-    return exercise.missing.length > 0;
+    return exercise.factory.guideReadyBlockers.length > 0 || exercise.factory.validationReadyBlockers.length > 0;
   }
   return true;
 }
@@ -225,13 +284,14 @@ export function MotionReviewGallery({ data }: { data: MotionReviewData }) {
             </Link>
             <div>
               <h1 className="text-xl font-semibold tracking-[-0.01em]">Motion Review</h1>
-              <p className="text-sm text-white/54">Local app traces, detector media, validation state</p>
+              <p className="text-sm text-white/54">Local app traces, review media, validation state</p>
             </div>
           </div>
           <div className="hidden items-center gap-2 md:flex">
             <SummaryPill label="Exercises" value={data.summary.totalExercises} />
-            <SummaryPill label="Playable" value={data.summary.playableTraces} />
-            <SummaryPill label="Detector" value={data.summary.detectorReviews} />
+            <SummaryPill label="Guide" value={data.summary.guideReady} />
+            <SummaryPill label="Validation" value={data.summary.validationReady} />
+            <SummaryPill label="Blocked" value={data.summary.blockedFromGuideReady} />
           </div>
         </div>
       </header>
@@ -240,8 +300,8 @@ export function MotionReviewGallery({ data }: { data: MotionReviewData }) {
         <aside className="space-y-3 lg:sticky lg:top-[5rem] lg:h-[calc(100svh-6rem)]">
           <div className="grid grid-cols-3 gap-2 md:hidden">
             <SummaryPill label="All" value={data.summary.totalExercises} />
-            <SummaryPill label="Playable" value={data.summary.playableTraces} />
-            <SummaryPill label="Media" value={data.summary.detectorReviews} />
+            <SummaryPill label="Guide" value={data.summary.guideReady} />
+            <SummaryPill label="Valid" value={data.summary.validationReady} />
           </div>
 
           <label className="relative block">
@@ -307,6 +367,9 @@ export function MotionReviewGallery({ data }: { data: MotionReviewData }) {
             <DetectionPanel exercise={selectedExercise} />
           </div>
 
+          <EvidencePanel exercise={selectedExercise} />
+          <FactoryPanel exercise={selectedExercise} />
+
           <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
             <ValidationPanel exercise={selectedExercise} />
             <ReviewPanel exercise={selectedExercise} />
@@ -337,7 +400,7 @@ function ExerciseListItem({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const Icon = exercise.gateStatus === "guide_ready" ? CheckCircle2 : AlertTriangle;
+  const Icon = exercise.factory.guideReady ? CheckCircle2 : AlertTriangle;
 
   return (
     <button
@@ -354,12 +417,17 @@ function ExerciseListItem({
         <Icon
           className={cx(
             "mt-0.5 size-4 shrink-0",
-            exercise.gateStatus === "guide_ready" ? "text-[#d7ff5f]" : "text-[#ffd3a1]",
+            exercise.factory.guideReady ? "text-[#d7ff5f]" : "text-[#ffd3a1]",
           )}
         />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-white">{exercise.name}</div>
           <div className="mt-1 truncate text-xs text-white/42">{exercise.id}</div>
+          <div className="mt-2">
+            <span className={cx("rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold", tierClasses(exercise.factory.promotionTier))}>
+              {tierLabel(exercise.factory.promotionTier)}
+            </span>
+          </div>
           <div className="mt-2 flex items-center gap-2 text-xs text-white/52">
             <span>{exercise.frameCount || "No"} frames</span>
             {exercise.media.detectorVideoUrl ? <Film className="size-3.5 text-[#65ffd2]" /> : null}
@@ -380,6 +448,19 @@ function ExerciseHeader({ exercise }: { exercise: MotionReviewExercise }) {
             <span className={cx("rounded-full border px-3 py-1 text-xs font-semibold", gateClasses(exercise.gateStatus))}>
               {gateLabel(exercise.gateStatus)}
             </span>
+            <span className={cx("rounded-full border px-3 py-1 text-xs font-semibold", tierClasses(exercise.factory.promotionTier))}>
+              {tierLabel(exercise.factory.promotionTier)}
+            </span>
+            <span
+              className={cx(
+                "rounded-full border px-3 py-1 text-xs font-semibold",
+                exercise.factory.validationReady
+                  ? "border-[#65ffd2]/45 bg-[#65ffd2]/14 text-[#baffed]"
+                  : "border-white/12 bg-white/7 text-white/58",
+              )}
+            >
+              {exercise.factory.validationReady ? "Validation-ready" : "Not validation-ready"}
+            </span>
             <span className="rounded-full border border-white/12 bg-white/7 px-3 py-1 text-xs font-semibold text-white/64">
               {exercise.sourceKind.replaceAll("_", " ")}
             </span>
@@ -391,8 +472,8 @@ function ExerciseHeader({ exercise }: { exercise: MotionReviewExercise }) {
         </div>
         <div className="grid grid-cols-3 gap-2 md:min-w-[22rem]">
           <Metric icon={Activity} label="Frames" value={String(exercise.frameCount)} />
-          <Metric icon={Gauge} label="Duration" value={formatDuration(exercise.durationMs)} />
-          <Metric icon={ShieldCheck} label="Target" value={exercise.target} />
+          <Metric icon={ShieldCheck} label="Guide" value={exercise.factory.guideReady ? "yes" : "no"} />
+          <Metric icon={Gauge} label="Valid" value={exercise.factory.validationReady ? "yes" : "no"} />
         </div>
       </div>
     </section>
@@ -449,12 +530,12 @@ function DetectionPanel({ exercise }: { exercise: MotionReviewExercise }) {
     <section className="rounded-lg border border-white/10 bg-[#121712] p-3 md:p-4">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <div>
-          <h3 className="text-base font-semibold">Detection Review</h3>
-          <p className="text-sm text-white/46">MediaPipe extraction evidence</p>
+          <h3 className="text-base font-semibold">Trace Review</h3>
+          <p className="text-sm text-white/46">Detector review evidence</p>
         </div>
         <div className="flex rounded-md border border-white/10 bg-white/6 p-1">
           <TabButton
-            label="Detector video"
+            label="Review video"
             selected={activeTab === "video"}
             disabled={!hasVideo}
             onClick={() => setTab("video")}
@@ -499,7 +580,7 @@ function DetectionPanel({ exercise }: { exercise: MotionReviewExercise }) {
         {activeTab === "sheet" && hasSheet ? (
           <Image
             src={exercise.media.contactSheetUrl ?? ""}
-            alt={`${exercise.name} detector contact sheet`}
+            alt={`${exercise.name} review contact sheet`}
             width={1200}
             height={800}
             unoptimized
@@ -527,7 +608,7 @@ function DetectionPanel({ exercise }: { exercise: MotionReviewExercise }) {
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-white/52">
-        <MediaStat label="Detector" value={formatBytes(exercise.media.detectorVideoBytes)} />
+        <MediaStat label="Review" value={formatBytes(exercise.media.detectorVideoBytes)} />
         <MediaStat label="Sheet" value={formatBytes(exercise.media.contactSheetBytes)} />
         <MediaStat label="Source" value={formatBytes(exercise.media.sourceVideoBytes)} />
       </div>
@@ -571,7 +652,7 @@ function EmptyMediaState() {
     <div className="grid min-h-[22rem] place-items-center px-6 text-center">
       <div>
         <AlertTriangle className="mx-auto size-8 text-[#ffd3a1]" />
-        <p className="mt-3 text-sm font-semibold text-white">No detector media found</p>
+        <p className="mt-3 text-sm font-semibold text-white">No review media found</p>
         <p className="mt-2 max-w-sm text-sm leading-6 text-white/48">
           This exercise needs a generated review clip or contact sheet before visual QA can be trusted.
         </p>
@@ -585,6 +666,205 @@ function MediaStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border border-white/8 bg-white/5 px-3 py-2">
       <div className="font-semibold text-white/78">{value}</div>
       <div className="mt-1 uppercase tracking-[0.12em] text-white/36">{label}</div>
+    </div>
+  );
+}
+
+function EvidencePanel({ exercise }: { exercise: MotionReviewExercise }) {
+  const { capturePlan, source, captureSession, visualReview } = exercise.evidence;
+  const reviewPassed = visualReview.status === "passed" || visualReview.status === "reviewed";
+
+  return (
+    <section className="rounded-lg border border-white/10 bg-[#121712] p-4">
+      <div className="flex items-center gap-2">
+        <Film className="size-5 text-[#65ffd2]" />
+        <h3 className="text-base font-semibold">Source Evidence</h3>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-4">
+        <EvidenceCard title="Capture Plan">
+          <EvidenceRow
+            label="Priority"
+            value={capturePlan.priority === null ? "missing" : `#${capturePlan.priority}`}
+            tone={capturePlan.priority === null ? "missing" : "ok"}
+          />
+          <EvidenceRow label="View" value={capturePlan.requiredView} />
+          <EvidenceRow label="Reason" value={capturePlan.reason} />
+          <EvidenceRow label="Promotion" value={capturePlan.promotionRule} />
+        </EvidenceCard>
+
+        <EvidenceCard title="Source">
+          <EvidenceRow label="Kind" value={source.kind} />
+          <EvidenceRow label="Label" value={source.label} />
+          <EvidenceRow label="Video" value={source.videoPath} />
+          <EvidenceRow label="License" value={source.license} />
+          <EvidenceRow label="Attribution" value={source.attribution} />
+        </EvidenceCard>
+
+        <EvidenceCard title="Capture Session">
+          <EvidenceRow label="Status" value={captureSession.present ? "present" : "missing"} tone={captureSession.present ? "ok" : "warn"} />
+          <EvidenceRow label="Source" value={captureSession.sourceKind} />
+          <EvidenceRow label="View" value={captureSession.cameraView} />
+          <EvidenceRow label="FPS" value={captureSession.fps} />
+          <EvidenceRow label="Resolution" value={captureSession.resolution} />
+          <EvidenceRow label="Equipment" value={captureSession.equipment} />
+          <EvidenceRow label="Notes" value={captureSession.reviewerNotes} />
+        </EvidenceCard>
+
+        <EvidenceCard title="Visual Review">
+          <EvidenceRow label="Status" value={visualReview.status} tone={reviewPassed ? "ok" : visualReview.present ? "warn" : "missing"} />
+          <EvidenceRow label="Reviewer" value={visualReview.reviewer} />
+          <EvidenceRow label="Reviewed" value={visualReview.reviewedAt} />
+          <EvidenceRow label="Evidence" value={visualReview.evidence} />
+          <EvidenceRow
+            label="Failures"
+            value={visualReview.failureReasons.length ? visualReview.failureReasons.join(", ") : "none"}
+            tone={visualReview.failureReasons.length ? "warn" : "ok"}
+          />
+        </EvidenceCard>
+      </div>
+    </section>
+  );
+}
+
+function EvidenceCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="rounded-md border border-white/8 bg-white/5 p-3">
+      <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">{title}</h4>
+      <div className="mt-3 space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function EvidenceRow({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "ok" | "warn" | "missing";
+}) {
+  const toneClass =
+    tone === "ok"
+      ? "text-[#d7ff5f]"
+      : tone === "warn"
+        ? "text-[#ffd3a1]"
+        : tone === "missing"
+          ? "text-white/38"
+          : "text-white/68";
+
+  return (
+    <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 text-xs">
+      <div className="text-white/36">{label}</div>
+      <div className={cx("min-w-0 break-words font-semibold leading-5", toneClass)}>
+        {value || "missing"}
+      </div>
+    </div>
+  );
+}
+
+function FactoryPanel({ exercise }: { exercise: MotionReviewExercise }) {
+  const signals = exercise.factory.currentSignals;
+  const signalItems = [
+    ["App gate", signals.appGate],
+    ["Reference", signals.referenceStatus],
+    ["Capture", signals.captureStatus],
+    ["Normalizer", signals.normalizerStatus],
+    ["Manifest", signals.manifestStatus],
+    ["Playable", signals.playableJsonl ? "yes" : "no"],
+  ];
+
+  return (
+    <section className="rounded-lg border border-white/10 bg-[#121712] p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Gauge className="size-5 text-[#65ffd2]" />
+            <h3 className="text-base font-semibold">Factory Readiness</h3>
+          </div>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-white/56">
+            {exercise.factory.nextAction}
+          </p>
+        </div>
+        <span
+          className={cx(
+            "w-fit rounded-full border px-3 py-1 text-xs font-semibold",
+            tierClasses(exercise.factory.promotionTier),
+          )}
+        >
+          {tierLabel(exercise.factory.promotionTier)}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        {exercise.factory.concepts.map((item) => (
+          <div key={item.key} className="rounded-md border border-white/8 bg-white/5 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">
+                {item.label}
+              </div>
+              <Circle className={cx("size-2.5 fill-current", conceptClasses(item.status))} />
+            </div>
+            <div className={cx("mt-2 text-sm font-semibold", conceptClasses(item.status))}>
+              {item.decision.replaceAll("_", " ")}
+            </div>
+            <div className="mt-2 text-xs leading-5 text-white/44">
+              {item.reasons.length ? formatReason(item.reasons[0]) : "ready"}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem]">
+        <BlockerList title="Guide blockers" blockers={exercise.factory.guideReadyBlockers} />
+        <BlockerList title="Validation blockers" blockers={exercise.factory.validationReadyBlockers} />
+        <div className="rounded-md border border-white/8 bg-white/5 p-3">
+          <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">
+            Current signals
+          </h4>
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            {signalItems.map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <div className="text-white/36">{label}</div>
+                <div className="mt-0.5 truncate font-semibold text-white/68">
+                  {formatReason(value)}
+                </div>
+              </div>
+            ))}
+          </div>
+          {signals.localOnlyArtifacts.length ? (
+            <div className="mt-3 border-t border-white/8 pt-3 text-xs leading-5 text-[#ffd3a1]">
+              Local-only artifacts: {signals.localOnlyArtifacts.length}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BlockerList({ title, blockers }: { title: string; blockers: string[] }) {
+  return (
+    <div className="rounded-md border border-white/8 bg-white/5 p-3">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        {blockers.length ? (
+          <AlertTriangle className="size-4 text-[#ffd3a1]" />
+        ) : (
+          <CheckCircle2 className="size-4 text-[#d7ff5f]" />
+        )}
+        {title}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(blockers.length ? blockers : ["none"]).map((item) => (
+          <span
+            key={item}
+            className="rounded-full border border-white/10 bg-[#0b100d] px-3 py-1 text-xs font-semibold text-white/62"
+          >
+            {formatReason(item)}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -616,6 +896,14 @@ function ValidationPanel({ exercise }: { exercise: MotionReviewExercise }) {
 }
 
 function ReviewPanel({ exercise }: { exercise: MotionReviewExercise }) {
+  const reviewGaps = [
+    ...new Set([
+      ...exercise.missing,
+      ...exercise.factory.guideReadyBlockers,
+      ...exercise.factory.validationReadyBlockers,
+    ]),
+  ];
+
   return (
     <section className="rounded-lg border border-white/10 bg-[#121712] p-4">
       <div className="flex items-center gap-2">
@@ -640,7 +928,7 @@ function ReviewPanel({ exercise }: { exercise: MotionReviewExercise }) {
 
       <div className="mt-4 rounded-md border border-white/8 bg-white/5 p-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
-          {exercise.missing.length ? (
+          {reviewGaps.length ? (
             <AlertTriangle className="size-4 text-[#ffd3a1]" />
           ) : (
             <CheckCircle2 className="size-4 text-[#d7ff5f]" />
@@ -648,12 +936,12 @@ function ReviewPanel({ exercise }: { exercise: MotionReviewExercise }) {
           Review gaps
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {(exercise.missing.length ? exercise.missing : ["none"]).map((item) => (
+          {(reviewGaps.length ? reviewGaps : ["none"]).map((item) => (
             <span
               key={item}
               className="rounded-full border border-white/10 bg-[#0b100d] px-3 py-1 text-xs font-semibold text-white/62"
             >
-              {item}
+              {formatReason(item)}
             </span>
           ))}
         </div>
@@ -695,6 +983,8 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
   const [frameIndex, setFrameIndex] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [yaw, setYaw] = useState(-22);
+  const [showMannequin, setShowMannequin] = useState(true);
+  const [showFormLines, setShowFormLines] = useState(true);
   const activeFrame = frames[frameIndex] ?? null;
 
   useEffect(() => {
@@ -740,8 +1030,12 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
       return;
     }
 
-    drawCanvas(canvas, activeFrame, yaw);
-  }, [activeFrame, yaw]);
+    drawCanvas(canvas, activeFrame, yaw, {
+      exerciseId: exercise.id,
+      showFormLines,
+      showMannequin,
+    });
+  }, [activeFrame, exercise.id, showFormLines, showMannequin, yaw]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -749,10 +1043,16 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
       return;
     }
 
-    const observer = new ResizeObserver(() => drawCanvas(canvas, activeFrame, yaw));
+    const observer = new ResizeObserver(() =>
+      drawCanvas(canvas, activeFrame, yaw, {
+        exerciseId: exercise.id,
+        showFormLines,
+        showMannequin,
+      }),
+    );
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [activeFrame, yaw]);
+  }, [activeFrame, exercise.id, showFormLines, showMannequin, yaw]);
 
   return (
     <div>
@@ -810,6 +1110,34 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
           >
             <SlidersHorizontal className="size-5" />
           </button>
+          <button
+            type="button"
+            onClick={() => setShowMannequin((current) => !current)}
+            className={cx(
+              "grid size-10 place-items-center rounded-md border",
+              showMannequin
+                ? "border-[#65ffd2]/45 bg-[#65ffd2]/12 text-[#baffed]"
+                : "border-white/10 bg-white/7 text-white/72",
+            )}
+            aria-label="Toggle mannequin overlay"
+            title="Mannequin overlay"
+          >
+            <UserRound className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFormLines((current) => !current)}
+            className={cx(
+              "grid size-10 place-items-center rounded-md border",
+              showFormLines
+                ? "border-[#d7ff5f]/45 bg-[#d7ff5f]/12 text-[#edffad]"
+                : "border-white/10 bg-white/7 text-white/72",
+            )}
+            aria-label="Toggle form lines"
+            title="Form lines"
+          >
+            <Ruler className="size-5" />
+          </button>
         </div>
 
         <label className="block">
@@ -845,7 +1173,12 @@ function SkeletonCanvas({ exercise }: { exercise: MotionReviewExercise }) {
   );
 }
 
-function drawCanvas(canvas: HTMLCanvasElement, frame: MotionFrame | null, yawDegrees: number) {
+function drawCanvas(
+  canvas: HTMLCanvasElement,
+  frame: MotionFrame | null,
+  yawDegrees: number,
+  options: MotionCanvasOptions,
+) {
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(1, rect.width);
   const height = Math.max(1, rect.height);
@@ -868,7 +1201,14 @@ function drawCanvas(canvas: HTMLCanvasElement, frame: MotionFrame | null, yawDeg
   drawBackground(context, width, height);
 
   if (frame) {
-    drawSkeleton(context, frame, width, height, yawDegrees);
+    const projected = projectFrame(frame, width, height, yawDegrees);
+    if (options.showMannequin) {
+      drawMannequin(context, projected, width, height);
+    }
+    if (options.showFormLines) {
+      drawFormLines(context, projected, options.exerciseId);
+    }
+    drawSkeleton(context, projected);
   }
 
   context.restore();
@@ -901,13 +1241,7 @@ function drawBackground(context: CanvasRenderingContext2D, width: number, height
   }
 }
 
-function drawSkeleton(
-  context: CanvasRenderingContext2D,
-  frame: MotionFrame,
-  width: number,
-  height: number,
-  yawDegrees: number,
-) {
+function projectFrame(frame: MotionFrame, width: number, height: number, yawDegrees: number) {
   const projected = new Map<string, ProjectedPoint>();
   pointCandidates.forEach((key) => {
     const landmark = frame.landmarks[key];
@@ -918,6 +1252,62 @@ function drawSkeleton(
     projected.set(key, projectLandmark(landmark, width, height, yawDegrees));
   });
 
+  return projected;
+}
+
+function drawMannequin(
+  context: CanvasRenderingContext2D,
+  projected: Map<string, ProjectedPoint>,
+  width: number,
+  height: number,
+) {
+  const minDimension = Math.min(width, height);
+  drawTorsoShell(context, projected, minDimension);
+  drawHeadShell(context, projected, minDimension);
+
+  const sortedSegments = mannequinSegments
+    .map((segment) => {
+      const from = firstProjected(projected, segment.from);
+      const to = firstProjected(projected, segment.to);
+      return from && to ? { ...segment, fromPoint: from, toPoint: to } : null;
+    })
+    .filter((segment): segment is NonNullable<typeof segment> => Boolean(segment))
+    .sort((left, right) => left.fromPoint.depth + left.toPoint.depth - right.fromPoint.depth - right.toPoint.depth);
+
+  sortedSegments.forEach((segment) => {
+    drawCapsule(
+      context,
+      segment.fromPoint,
+      segment.toPoint,
+      minDimension * segment.width,
+      mannequinColor(segment.tone, Math.min(segment.fromPoint.confidence, segment.toPoint.confidence)),
+    );
+  });
+
+  [
+    ["left.wrist", "secondary.wrist"],
+    ["right.wrist", "primary.wrist"],
+    ["left.ankle", "secondary.ankle", "left.foot.index", "secondary.foot.index"],
+    ["right.ankle", "primary.ankle", "right.foot.index", "primary.foot.index"],
+  ].forEach((candidates) => {
+    const point = firstProjected(projected, candidates);
+    if (!point) {
+      return;
+    }
+
+    const radius = minDimension * (candidates.some((candidate) => candidate.includes("wrist")) ? 0.036 : 0.048);
+    const alpha = Math.max(0.12, 0.34 * point.confidence);
+    context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    context.strokeStyle = point.confidence < 0.45 ? "rgba(255, 177, 95, 0.62)" : "rgba(101, 255, 210, 0.42)";
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.ellipse(point.x, point.y + radius * 0.18, radius * 1.55, radius * 0.62, 0, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+  });
+}
+
+function drawSkeleton(context: CanvasRenderingContext2D, projected: Map<string, ProjectedPoint>) {
   const sortedSegments = skeletonSegments
     .map((segment) => {
       const from = firstProjected(projected, segment.from);
@@ -948,6 +1338,155 @@ function drawSkeleton(
     context.arc(point.x, point.y, Math.max(3, radius - point.depth * 0.75), 0, Math.PI * 2);
     context.fill();
   });
+}
+
+function drawTorsoShell(
+  context: CanvasRenderingContext2D,
+  projected: Map<string, ProjectedPoint>,
+  minDimension: number,
+) {
+  const leftShoulder = firstProjected(projected, ["left.shoulder", "secondary.shoulder"]);
+  const rightShoulder = firstProjected(projected, ["right.shoulder", "primary.shoulder"]);
+  const leftHip = firstProjected(projected, ["left.hip", "secondary.hip"]);
+  const rightHip = firstProjected(projected, ["right.hip", "primary.hip"]);
+  if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
+    return;
+  }
+
+  const confidence = Math.min(
+    leftShoulder.confidence,
+    rightShoulder.confidence,
+    leftHip.confidence,
+    rightHip.confidence,
+  );
+  const centerX = (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4;
+  const centerY = (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4;
+  const gradient = context.createRadialGradient(
+    centerX,
+    centerY,
+    minDimension * 0.04,
+    centerX,
+    centerY,
+    minDimension * 0.34,
+  );
+  gradient.addColorStop(0, confidence < 0.45 ? "rgba(255, 177, 95, 0.24)" : "rgba(255, 255, 255, 0.2)");
+  gradient.addColorStop(1, confidence < 0.45 ? "rgba(255, 177, 95, 0.07)" : "rgba(101, 255, 210, 0.08)");
+
+  context.save();
+  context.fillStyle = gradient;
+  context.strokeStyle = confidence < 0.45 ? "rgba(255, 177, 95, 0.48)" : "rgba(255, 255, 255, 0.34)";
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.moveTo(leftShoulder.x, leftShoulder.y);
+  context.lineTo(rightShoulder.x, rightShoulder.y);
+  context.lineTo(rightHip.x, rightHip.y);
+  context.lineTo(leftHip.x, leftHip.y);
+  context.closePath();
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function drawHeadShell(
+  context: CanvasRenderingContext2D,
+  projected: Map<string, ProjectedPoint>,
+  minDimension: number,
+) {
+  const nose = firstProjected(projected, ["nose", "primary.nose"]);
+  const leftEar = firstProjected(projected, ["left.ear"]);
+  const rightEar = firstProjected(projected, ["right.ear"]);
+  const leftShoulder = firstProjected(projected, ["left.shoulder", "secondary.shoulder"]);
+  const rightShoulder = firstProjected(projected, ["right.shoulder", "primary.shoulder"]);
+  if (!nose) {
+    return;
+  }
+
+  const shoulderWidth = leftShoulder && rightShoulder ? distance(leftShoulder, rightShoulder) : minDimension * 0.2;
+  const earWidth = leftEar && rightEar ? distance(leftEar, rightEar) : shoulderWidth * 0.42;
+  const radiusX = Math.max(minDimension * 0.028, earWidth * 0.72);
+  const radiusY = Math.max(minDimension * 0.04, shoulderWidth * 0.18);
+  const confidence = Math.min(nose.confidence, leftEar?.confidence ?? 1, rightEar?.confidence ?? 1);
+
+  context.save();
+  context.fillStyle = confidence < 0.45 ? "rgba(255, 177, 95, 0.2)" : "rgba(255, 255, 255, 0.18)";
+  context.strokeStyle = confidence < 0.45 ? "rgba(255, 177, 95, 0.52)" : "rgba(255, 255, 255, 0.36)";
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.ellipse(nose.x, nose.y, radiusX, radiusY, -0.18, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function drawCapsule(
+  context: CanvasRenderingContext2D,
+  from: ProjectedPoint,
+  to: ProjectedPoint,
+  width: number,
+  color: string,
+) {
+  context.save();
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.shadowColor = "rgba(101, 255, 210, 0.12)";
+  context.shadowBlur = width * 0.7;
+  context.strokeStyle = color;
+  context.lineWidth = Math.max(8, width * (1.05 - Math.max(-0.25, Math.min(0.35, (from.depth + to.depth) / 2)) * 0.16));
+  context.beginPath();
+  context.moveTo(from.x, from.y);
+  context.lineTo(to.x, to.y);
+  context.stroke();
+  context.restore();
+}
+
+function drawFormLines(
+  context: CanvasRenderingContext2D,
+  projected: Map<string, ProjectedPoint>,
+  exerciseId: string,
+) {
+  if (exerciseId !== "bodyweight_plank") {
+    return;
+  }
+
+  const shoulder = firstProjected(projected, ["primary.shoulder", "right.shoulder", "left.shoulder"]);
+  const hip = firstProjected(projected, ["primary.hip", "right.hip", "left.hip"]);
+  const ankle = firstProjected(projected, ["primary.ankle", "right.ankle", "left.ankle"]);
+  if (!shoulder || !hip || !ankle) {
+    return;
+  }
+
+  const deviation = distancePointToSegment(hip, shoulder, ankle);
+  const reference = Math.max(1, distance(shoulder, ankle));
+  const aligned = deviation / reference < 0.11;
+  const lineColor = aligned ? "rgba(215, 255, 95, 0.86)" : "rgba(255, 177, 95, 0.9)";
+  const bandColor = aligned ? "rgba(215, 255, 95, 0.26)" : "rgba(255, 177, 95, 0.28)";
+
+  context.save();
+  context.lineCap = "round";
+  context.strokeStyle = bandColor;
+  context.lineWidth = 24;
+  context.beginPath();
+  context.moveTo(shoulder.x, shoulder.y);
+  context.lineTo(ankle.x, ankle.y);
+  context.stroke();
+
+  context.strokeStyle = lineColor;
+  context.lineWidth = 4;
+  context.setLineDash([9, 7]);
+  context.beginPath();
+  context.moveTo(shoulder.x, shoulder.y);
+  context.lineTo(ankle.x, ankle.y);
+  context.stroke();
+  context.setLineDash([]);
+
+  context.strokeStyle = lineColor;
+  context.lineWidth = 2;
+  context.fillStyle = aligned ? "rgba(215, 255, 95, 0.2)" : "rgba(255, 177, 95, 0.22)";
+  context.beginPath();
+  context.arc(hip.x, hip.y, 10, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  context.restore();
 }
 
 function isLandmarkUsable(value: Landmark | undefined): value is Landmark {
@@ -996,6 +1535,7 @@ function projectLandmark(
     x: width / 2 + rotatedX * scale * perspective,
     y: height * 0.55 - rotatedY * scale * perspective,
     depth: pitchedZ,
+    confidence: Math.max(0.12, Math.min(1, Math.min(landmark.visibility ?? 1, landmark.presence ?? 1))),
   };
 }
 
@@ -1011,4 +1551,36 @@ function toneColor(
     return `rgba(215, 255, 95, ${alpha})`;
   }
   return `rgba(255, 255, 255, ${alpha})`;
+}
+
+function mannequinColor(
+  tone: "left" | "right" | "core" | "primary" | "secondary",
+  confidence: number,
+) {
+  if (confidence < 0.45) {
+    return `rgba(255, 177, 95, ${Math.max(0.2, confidence * 0.48)})`;
+  }
+  if (tone === "left" || tone === "secondary") {
+    return "rgba(101, 255, 210, 0.26)";
+  }
+  if (tone === "right" || tone === "primary") {
+    return "rgba(215, 255, 95, 0.25)";
+  }
+  return "rgba(255, 255, 255, 0.2)";
+}
+
+function distance(left: ProjectedPoint, right: ProjectedPoint) {
+  return Math.hypot(left.x - right.x, left.y - right.y);
+}
+
+function distancePointToSegment(point: ProjectedPoint, start: ProjectedPoint, end: ProjectedPoint) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) {
+    return distance(point, start);
+  }
+  const rawProgress = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
+  const progress = Math.max(0, Math.min(1, rawProgress));
+  return Math.hypot(point.x - (start.x + progress * dx), point.y - (start.y + progress * dy));
 }

@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export const metadata: Metadata = {
   title: "Momentum Motion Review",
   description:
-    "Local review gallery for Momentum motion demos, detector videos, and validation manifests.",
+    "Review gallery for Momentum motion demos, trace videos, and validation manifests.",
 };
 
 export default function MotionReviewPage() {

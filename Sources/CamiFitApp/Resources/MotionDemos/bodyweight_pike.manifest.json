@@ -22,12 +22,12 @@
   ],
   "fit_viewport": true,
   "summary": {
-    "frames": 59,
-    "min_primary_pike_angle": 48.99,
+    "frames": 117,
+    "min_primary_pike_angle": 49.54,
     "max_primary_pike_angle": 177.68,
-    "min_primary_knee_angle": 158.6,
-    "min_primary_elbow_angle": 167.21,
-    "max_primary_shoulder_stack_angle": 35.15
+    "min_primary_knee_angle": 159.03,
+    "min_primary_elbow_angle": 167.48,
+    "max_primary_shoulder_stack_angle": 34.74
   },
   "qa_gates": [
     "licensed_source_recorded",
@@ -37,14 +37,19 @@
     "descent_mirrored_to_closed_cycle",
     "knees_and_elbows_stay_long",
     "visual_rig_review_failed",
-    "engine_replay_candidate_only"
+    "engine_replay_candidate_only",
+    "review_gallery_motion_smoothed",
+    "review_gallery_only"
   ],
-  "viewer_command": "CAMIFIT_GUIDE_EXERCISE=bodyweight_pike CAMIFIT_ALLOW_FIXED_GUIDE_FRAME=1 CAMIFIT_GUIDE_FRAME_MS=2407 ./script/build_and_run.sh --verify # review-only; do not package JSONL until visual rig passes",
+  "viewer_command": "CAMIFIT_GUIDE_EXERCISE=bodyweight_pike CAMIFIT_ALLOW_FIXED_GUIDE_FRAME=1 CAMIFIT_GUIDE_FRAME_MS=2407 ./script/build_and_run.sh --verify # review-gallery only; do not promote until visual rig passes",
   "acceptance_status": "blocked_visual_rig_review_failed",
-  "playable_trace_packaged": false,
+  "playable_trace_packaged": true,
+  "packaging_scope": "motion_review_gallery_demo_only",
+  "review_gallery_packaged_at": "2026-06-25",
+  "review_gallery_note": "Densified and smoothed only for the web Motion Review mannequin overlay; this remains blocked from guide-ready and validation-ready promotion.",
   "visual_review_failure": "2026-06-09 installed app fixed-frame review at 2407 ms showed detached head/neck and broken avatar rig at deepest pike frame.",
   "candidate_status": "source_extraction_candidate_only",
-  "repair_plan": "Keep the Pexels source extraction under dist/ as a candidate; do not restore app MotionDemos/bodyweight_pike.jsonl until avatar rig/head-neck rendering is fixed and live app screenshots pass review.",
+  "repair_plan": "Keep the Pexels source extraction as a review-gallery-only candidate; do not promote this exercise until avatar rig/head-neck rendering is fixed and live app screenshots pass review.",
   "rejected_candidates": [
     {
       "source_page": "https://www.pexels.com/video/yoga-flow-in-urban-loft-with-natural-light-31794279/",
@@ -54,5 +59,51 @@
       "decision": "rejected - visual rig review failed",
       "reason": "Installed-app fixed-frame review at 2407 ms showed detached head/neck and broken avatar rig at the deepest pike frame, so this source extraction remains repair-candidate-only and cannot be Trackable."
     }
-  ]
+  ],
+  "review_gallery_cleanup_at": "2026-06-25",
+  "review_gallery_motion_cleanup": {
+    "status": "review_only_smoothed",
+    "script": "scripts/motion_reference/smooth_review_demo_trace.py",
+    "upsample_factor": 2,
+    "smooth_window": 5,
+    "excluded_landmarks": [
+      "primary.foot.index",
+      "primary.wrist",
+      "right.foot.index",
+      "right.wrist"
+    ],
+    "before": {
+      "frames": 59,
+      "max_landmark_step": {
+        "value": 0.044602,
+        "frame_index": 49,
+        "landmark": "primary.nose"
+      },
+      "max_phase_step": {
+        "value": 0.0,
+        "frame_index": null
+      },
+      "max_primary_elbow_angle_step": {
+        "value": 5.5312,
+        "frame_index": 26
+      }
+    },
+    "after": {
+      "frames": 117,
+      "max_landmark_step": {
+        "value": 0.017932,
+        "frame_index": 17,
+        "landmark": "primary.hip"
+      },
+      "max_phase_step": {
+        "value": 0.0,
+        "frame_index": null
+      },
+      "max_primary_elbow_angle_step": {
+        "value": 1.9275,
+        "frame_index": 64
+      }
+    },
+    "promotion_scope": "no guide-ready or validation-ready promotion"
+  }
 }

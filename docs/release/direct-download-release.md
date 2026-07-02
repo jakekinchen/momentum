@@ -109,6 +109,25 @@ spctl -a -vv -t open --context context:primary-signature dist/releases/Momentum-
 Expected `spctl` result for the direct-download app is `accepted` with an
 origin beginning with `Developer ID Application: Jake Kinchen`.
 
+## June 27, 2026 Motion Review Update Attempt
+
+```text
+Target version: 20260627-1
+Commit: d1ea6f9 plus release-packaging verifier update
+Local bundle: dist/Momentum.app
+Local bundle status: built and Developer ID signed
+Included update data: the five remaining 65-frame review-only MotionDemos JSONLs
+  and manifests are present in the packaged app bundle.
+Guide boundary: review-only manifests remain blocked/pending, and
+  AvatarHumanoidGLBAssetTests confirms they do not produce guide timelines.
+Notary status: blocked before submission completion
+Apple notary error: HTTP 403, required Apple Developer Program agreement is
+  missing or expired for team BN58T9KR6C.
+Public GitHub stable asset: not updated
+Live website download: still points at the previous notarized DMG until the
+  Apple agreement is signed and the release script can complete notarization.
+```
+
 ## June 8, 2026 Initial Evidence (Superseded)
 
 ```text

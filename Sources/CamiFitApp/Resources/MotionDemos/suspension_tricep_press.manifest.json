@@ -3,7 +3,10 @@
   "source_kind": "licensed_external_reference_trace",
   "source_label": "Pexels side-view suspension trainer tricep press",
   "acceptance_status": "blocked_visual_rig_review_failed",
-  "playable_trace_packaged": false,
+  "playable_trace_packaged": true,
+  "packaging_scope": "motion_review_gallery_demo_only",
+  "review_gallery_packaged_at": "2026-06-25",
+  "review_gallery_note": "Densified and smoothed only for the web Motion Review mannequin overlay; this remains blocked from guide-ready and validation-ready promotion.",
   "source_page": "https://www.pexels.com/video/a-woman-doing-push-up-8435987/",
   "source_media_url": "https://videos.pexels.com/video-files/8435987/8435987-hd_1920_1080_25fps.mp4",
   "source_video": "dist/motion-reference/suspension_tricep_press/pexels_8435987/woman_suspension_tricep_press_8435987.mp4",
@@ -56,8 +59,12 @@
       "sha256": "b4238f98f0b61f39b1279edbf51c4ce471863a1c1d06c53f1a87e11a1ef6b9e7"
     },
     "output_trace": {
-      "bytes": 451164,
-      "sha256": "d8cb5c4eac7d50f0bd57832d784634635622f9d271daa0bf87c857119acb6acf"
+      "bytes": 1789099,
+      "sha256": "e8dc3bdbdd04cc52c5c54189c4771c5925fff4d1c969503c2202d333bc383f15"
+    },
+    "review_gallery_postprocess": {
+      "bytes": 9930,
+      "sha256": "057b486df1b9702702dec2e24898201974742223f56a9f0b0eba2deaedb350b4"
     }
   },
   "retarget": "raw_mediapipe_side_view_preserved",
@@ -69,13 +76,13 @@
   "primary_side": "left",
   "fit_viewport": true,
   "summary": {
-    "frames": 83,
-    "min_primary_elbow_angle": 43.0,
-    "max_primary_elbow_angle": 176.93,
-    "min_primary_body_line_angle": 165.34,
-    "max_primary_body_line_angle": 172.47,
-    "min_primary_upper_arm_body_angle": 0.42,
-    "max_primary_upper_arm_body_angle": 56.2
+    "frames": 329,
+    "min_primary_elbow_angle": 54.78,
+    "max_primary_elbow_angle": 175.83,
+    "min_primary_body_line_angle": 165.58,
+    "max_primary_body_line_angle": 172.26,
+    "min_primary_upper_arm_body_angle": 0.05,
+    "max_primary_upper_arm_body_angle": 55.84
   },
   "qa_gates": [
     "licensed_source_recorded",
@@ -86,8 +93,51 @@
     "body_line_stable",
     "loop_boundary_stable",
     "engine_counts_one_rep",
-    "viewer_reviewed"
+    "viewer_reviewed",
+    "review_gallery_motion_smoothed",
+    "review_gallery_only"
   ],
   "viewer_command": "cp dist/motion-reference/suspension_tricep_press/pexels_8435987/extract_4500_10000/suspension_tricep_press.external.jsonl Sources/CamiFitApp/Resources/MotionDemos/suspension_tricep_press.jsonl && CAMIFIT_GUIDE_EXERCISE=suspension_tricep_press ./script/build_and_run.sh --verify # DEMOTED 2026-06-09: review-only until fixed-frame installed-app avatar visual review passes.",
-  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review."
+  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/suspension_tricep_press_1200.png matches user-reported bad horizontal suspension press silhouette with missing strap/contact context and fragile head/arm attachment; demoted until corrected rig/source trace passes visual review.",
+  "review_gallery_cleanup_at": "2026-06-25",
+  "review_gallery_motion_cleanup": {
+    "status": "review_only_smoothed",
+    "script": "scripts/motion_reference/smooth_review_demo_trace.py",
+    "upsample_factor": 4,
+    "smooth_window": 7,
+    "excluded_landmarks": [],
+    "before": {
+      "frames": 83,
+      "max_landmark_step": {
+        "value": 0.290589,
+        "frame_index": 72,
+        "landmark": "primary.wrist"
+      },
+      "max_phase_step": {
+        "value": 0.0,
+        "frame_index": null
+      },
+      "max_primary_elbow_angle_step": {
+        "value": 31.2568,
+        "frame_index": 81
+      }
+    },
+    "after": {
+      "frames": 329,
+      "max_landmark_step": {
+        "value": 0.052972,
+        "frame_index": 59,
+        "landmark": "primary.wrist"
+      },
+      "max_phase_step": {
+        "value": 0.0,
+        "frame_index": null
+      },
+      "max_primary_elbow_angle_step": {
+        "value": 5.2916,
+        "frame_index": 324
+      }
+    },
+    "promotion_scope": "no guide-ready or validation-ready promotion"
+  }
 }

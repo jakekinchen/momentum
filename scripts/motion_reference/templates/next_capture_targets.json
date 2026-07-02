@@ -1,0 +1,24 @@
+{
+  "purpose": "First real factory pass after the initial four packaged review videos.",
+  "promotion_rule": "Do not promote until capture session, detector agreement, kinematic scorecard, visual review, engine replay, installed-app review, and durable artifact storage all pass.",
+  "targets": [
+    {
+      "exercise_id": "bodyweight_plank",
+      "required_view": "side",
+      "capture_priority": 1,
+      "reason": "Bodyweight hold movement; good first validation target for contact stability and loop-free posture."
+    },
+    {
+      "exercise_id": "machine_chest_supported_row",
+      "required_view": "front_oblique",
+      "capture_priority": 2,
+      "reason": "Equipment path and arm identity need explicit source evidence before guide-ready claims."
+    },
+    {
+      "exercise_id": "standing_miniband_hip_flexion",
+      "required_view": "side",
+      "capture_priority": 3,
+      "reason": "Single-leg/hip motion needs clean side-view capture and phase checks before app motion."
+    }
+  ]
+}

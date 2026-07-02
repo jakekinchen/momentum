@@ -117,6 +117,40 @@ verify_unbundled_resource() {
   fi
 }
 
+verify_review_only_motion_demo() {
+  local exercise_id="$1"
+  local app_resource_bundle="$2"
+  local trace_path="$app_resource_bundle/MotionDemos/$exercise_id.jsonl"
+  local manifest_path="$app_resource_bundle/MotionDemos/$exercise_id.manifest.json"
+
+  verify_packaged_resource "$trace_path"
+  verify_packaged_resource "$manifest_path"
+  python3 - "$exercise_id" "$manifest_path" <<'PY'
+import json
+import sys
+
+exercise_id = sys.argv[1]
+manifest_path = sys.argv[2]
+manifest = json.load(open(manifest_path, encoding="utf-8"))
+manifest_id = str(manifest.get("exercise_id") or "").strip()
+if manifest_id and manifest_id != exercise_id:
+    raise SystemExit(f"{manifest_path}: exercise_id {manifest_id!r} does not match {exercise_id!r}")
+
+acceptance = str(manifest.get("acceptance_status") or "").strip().lower()
+normalizer = str(manifest.get("normalizer_status") or "").strip().lower()
+scope = str(manifest.get("packaging_scope") or "").strip().lower()
+review_statuses = ("blocked", "pending", "rejected")
+if acceptance.startswith(("accepted", "protected_golden")):
+    raise SystemExit(f"{manifest_path}: review-only bundle unexpectedly has promotable acceptance_status={acceptance!r}")
+if not acceptance.startswith(review_statuses):
+    raise SystemExit(f"{manifest_path}: review-only bundle needs blocked/pending/rejected acceptance_status, got {acceptance!r}")
+if normalizer and normalizer.startswith(("accepted", "protected_golden")):
+    raise SystemExit(f"{manifest_path}: review-only bundle unexpectedly has promotable normalizer_status={normalizer!r}")
+if scope and scope != "motion_review_gallery_demo_only":
+    raise SystemExit(f"{manifest_path}: unexpected review-only packaging_scope={scope!r}")
+PY
+}
+
 verify_packaged_resources() {
   local bundle="${1:-$APP_BUNDLE}"
   local resources="$bundle/Contents/Resources"
@@ -169,31 +203,11 @@ verify_packaged_resources() {
   verify_unbundled_resource \
     "$app_resource_bundle/Presets/bodyweight_jumping_jack.json" \
     "bodyweight_jumping_jack has been user-rejected and must not ship as an app preset until a clean external reference is accepted"
-  verify_unbundled_resource \
-    "$app_resource_bundle/MotionDemos/bodyweight_jumping_jack.jsonl" \
-    "bodyweight_jumping_jack requires an accepted licensed reference capture before playable motion data can ship"
-  verify_unbundled_resource \
-    "$app_resource_bundle/MotionDemos/bodyweight_jumping_jack.manifest.json" \
-    "bodyweight_jumping_jack rejected trace metadata must stay in motion-reference docs, not the app bundle"
+  verify_review_only_motion_demo bodyweight_jumping_jack "$app_resource_bundle"
 
   for exercise_id in bodyweight_pike bodyweight_plank resistance_band_reverse_curl bench_lying_single_arm_dumbbell_tricep_extension single_arm_dumbbell_preacher_curl wide_grip_preacher_curl_with_ez_bar single_arm_chest_supported_incline_row machine_chest_supported_row suspension_tricep_press; do
     verify_packaged_resource "$app_resource_bundle/Presets/$exercise_id.json"
-    verify_packaged_resource "$app_resource_bundle/MotionDemos/$exercise_id.manifest.json"
-    local block_reason="$exercise_id requires an accepted licensed reference capture before playable motion data can ship"
-    if [[ "$exercise_id" == "bodyweight_pike" ]]; then
-      block_reason="bodyweight_pike requires a passing avatar visual-rig review before playable motion data can ship"
-    elif [[ "$exercise_id" == "bodyweight_plank" ]]; then
-      block_reason="bodyweight_plank failed installed-app avatar visual review and requires a corrected rig/source trace before playable motion data can ship"
-    elif [[ "$exercise_id" == "machine_chest_supported_row" ]]; then
-      block_reason="machine_chest_supported_row requires resolved external source license review before playable motion data can ship"
-    elif [[ "$exercise_id" == "single_arm_dumbbell_preacher_curl" ]]; then
-      block_reason="single_arm_dumbbell_preacher_curl failed installed-app avatar visual review and requires a corrected rig/source trace before playable motion data can ship"
-    elif [[ "$exercise_id" == "suspension_tricep_press" ]]; then
-      block_reason="suspension_tricep_press failed installed-app avatar visual review and requires a corrected rig/source trace before playable motion data can ship"
-    fi
-    verify_unbundled_resource \
-      "$app_resource_bundle/MotionDemos/$exercise_id.jsonl" \
-      "$block_reason"
+    verify_review_only_motion_demo "$exercise_id" "$app_resource_bundle"
   done
 }
 

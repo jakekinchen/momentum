@@ -141,6 +141,103 @@ while still being unreproducible from a clean CI/release checkout unless the
 artifacts are mirrored into a durable artifact store or otherwise restored
 before strict provenance gates run.
 
+Run the motion-data factory preflight with:
+
+```bash
+scripts/motion_reference/preflight_motion_data_factory.py
+```
+
+This writes:
+
+- `dist/motion-reference/motion-data-factory-preflight.json`
+- `dist/motion-reference/motion-data-factory-preflight.md`
+
+The preflight is the promotion-tier surface for the motion-data factory. It
+classifies every current exercise row into:
+
+- `recommendation-only`
+- `source-candidate`
+- `detector-reviewable`
+- `avatar-demo-candidate`
+- `guide-ready`
+- `validation-ready`
+
+It preserves the current app-gated guide-ready inventory while reporting
+machine-readable guide blockers and validation blockers. `validation-ready`
+requires explicit capture-session metadata, detector-agreement scorecard,
+kinematic scorecard, passed visual review, runtime validation clips, and
+non-local source-chain storage. Capture-required exercises stay below
+guide-ready even when they have candidate manifests or detector output.
+
+Schema contracts live under `scripts/motion_reference/schemas/`:
+
+- `capture_session.schema.json`
+- `detector_agreement_scorecard.schema.json`
+- `kinematic_scorecard.schema.json`
+- `visual_review.schema.json`
+- `motion_data_factory_preflight_report.schema.json`
+
+Template starting points live under `scripts/motion_reference/templates/`:
+
+- `capture_session.first_party_trainer.template.json`
+- `visual_review.template.json`
+- `next_capture_targets.json`
+
+Register real first-party capture files with:
+
+```bash
+scripts/motion_reference/register_motion_capture_session.py \
+  --exercise-id bodyweight_plank \
+  --session-id bodyweight_plank_YYYYMMDD \
+  --source side=/path/to/side.mp4 \
+  --source front=/path/to/front.mp4 \
+  --source-label "first-party bodyweight plank capture" \
+  --camera-view multi_view_side_front \
+  --fps 60 \
+  --resolution 1920x1080 \
+  --equipment "mat" \
+  --source-license "First-party CamiFit trainer capture" \
+  --reviewer-notes "2-3 clean holds, full body visible, clap sync"
+```
+
+This copies source files into ignored `dist/motion-reference/<exercise_id>/`,
+writes `capture_session.json`, writes a pending `visual_review.json`, and prints
+a manifest patch. It does not write app MotionDemos JSONL files and it does not
+promote the exercise.
+
+For licensed external clips, use `--source-kind licensed_external_clip` and
+`--manifest-source-kind licensed_external_reference_trace`, and include the
+source page, media URL, license, and attribution in the command.
+
+After extracting raw MediaPipe output and normalizing a candidate trace, write
+detector and kinematic scorecards with:
+
+```bash
+python3 scripts/motion_reference/score_motion_reference_trace.py \
+  --raw dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/raw_mediapipe.jsonl \
+  --normalized dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/bodyweight_plank.static_median.jsonl \
+  --output-dir dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6
+```
+
+The detector scorecard distinguishes single-detector quality evidence from
+true detector agreement. A MediaPipe-only pass can have complete coverage and
+good visibility while still failing `detector_agreement_scorecard` until a
+second detector or comparator exists.
+
+Package the currently bundled motion demos for the web review gallery with:
+
+```bash
+scripts/motion_reference/generate_motion_review_gallery_assets.py
+```
+
+This renders a compact skeleton-review MP4 for every packaged
+`Sources/CamiFitApp/Resources/MotionDemos/*.jsonl` trace, copies those videos
+to `website/public/motion-review-assets/<exercise_id>/`, and updates
+`website/src/data/motionReviewSnapshot.json` so the Vercel-hosted
+`/motion-review` route has portable review data. It does not promote pending
+or rejected exercises and it does not fabricate motion for exercises that lack
+a packaged JSONL trace.
+
 For development experiments without accepted reference clips yet, compile a
 deterministic archetype candidate:
 
