@@ -224,23 +224,38 @@ struct AvatarSceneNormalizationContext: Equatable {
         let points = visiblePoints.isEmpty ? fallbackPoints : visiblePoints
         let minY = points.map(\.y).min() ?? 0
         let maxY = points.map(\.y).max() ?? minY
+        let minX = points.map(\.x).min() ?? 0
+        let maxX = points.map(\.x).max() ?? 0
 
+        // Standing exercises anchor on the stance feet so the figure does not
+        // sway with the center of mass. Horizontal poses (plank, pushup,
+        // pike) put the feet at one END of the body: anchoring there shoves
+        // the head outside the camera frame, so fall back to the body
+        // bounding box whenever stance centering cannot fit the frame width.
         let stanceCenters = framePoints.compactMap { AvatarScenePointNormalizer.stanceCenterX(in: $0) }
-        let xCenter: CGFloat
+        let bboxCenter = (minX + maxX) / 2
+        var xCenter: CGFloat
         if stanceCenters.isEmpty {
-            let minX = points.map(\.x).min() ?? 0
-            let maxX = points.map(\.x).max() ?? 0
-            xCenter = (minX + maxX) / 2
+            xCenter = bboxCenter
         } else {
             xCenter = stanceCenters.reduce(CGFloat(0), +) / CGFloat(stanceCenters.count)
+            let halfWidth = max(maxX - xCenter, xCenter - minX)
+            if halfWidth > AvatarScenePointNormalizer.halfWidthLimit {
+                xCenter = bboxCenter
+            }
         }
 
         let yOffset = AvatarScenePointNormalizer.floorY - minY
         let maxYAfterOffset = maxY + yOffset
-        let scale = maxYAfterOffset > AvatarScenePointNormalizer.ceilingY
+        let heightScale = maxYAfterOffset > AvatarScenePointNormalizer.ceilingY
             ? (AvatarScenePointNormalizer.ceilingY - AvatarScenePointNormalizer.floorY)
                 / max(maxYAfterOffset - AvatarScenePointNormalizer.floorY, 0.000_001)
             : 1
+        let halfWidth = max(maxX - xCenter, xCenter - minX)
+        let widthScale = halfWidth > AvatarScenePointNormalizer.halfWidthLimit
+            ? AvatarScenePointNormalizer.halfWidthLimit / max(halfWidth, 0.000_001)
+            : 1
+        let scale = min(heightScale, widthScale)
 
         return AvatarSceneNormalizationContext(xCenter: xCenter, yOffset: yOffset, scale: scale)
     }
@@ -344,6 +359,9 @@ enum AvatarScenePointNormalizer {
 
     fileprivate static let floorY: CGFloat = -1.06
     fileprivate static let ceilingY: CGFloat = 1.18
+    // Conservative visible half-width for the portrait avatar stage
+    // (orthographic half-height 1.78 at a 9:16-ish aspect).
+    fileprivate static let halfWidthLimit: CGFloat = 0.98
 }
 
 enum AvatarHeadPlacement {
@@ -390,7 +408,7 @@ struct AvatarReferencePoseView: View {
     }
 }
 
-private final class NeutralMannequinRig {
+final class NeutralMannequinRig {
     let root: SCNNode
 
     private let head: SCNNode
@@ -620,7 +638,12 @@ private final class NeutralMannequinRig {
 
         updateOrientedBodyMass(chest, at: chestPoint, along: torsoAxis)
         updateOrientedBodyMass(pelvis, at: hipCenter, along: torsoAxis)
-        hide(torso, abdomen, shoulderBridge, hipBridge)
+        // Spine capsule keeps the ribcage and pelvis visually connected. It
+        // hides inside the body masses when upright and bridges the gap on
+        // horizontal poses (plank/pushup/pike), where chest and pelvis would
+        // otherwise read as two separate pieces.
+        updateCapsule(torso, from: shoulderCenter, to: hipCenter, radius: 0.085, material: torsoMaterial)
+        hide(abdomen, shoulderBridge, hipBridge)
 
         if let elbow = primary.elbow, let wrist = primary.wrist {
             updateCapsule(nearUpperArm, from: primary.shoulder, to: elbow, radius: 0.050, material: limbMaterial)
