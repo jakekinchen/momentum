@@ -1,14 +1,16 @@
 {
   "exercise_id": "standing_miniband_hip_flexion",
-  "source_kind": "canonical_archetype_trace",
-  "source_label": "standing_hip_flexion canonical motion profile",
+  "source_kind": "canonical_archetype_authored",
+  "source_label": "standing_hip_flexion first-party authored keyposes (zero-budget procedural lane; no external motion data)",
   "archetype": "standing_hip_flexion",
+  "acceptance_status": "accepted_authored_canonical_reference",
+  "playable_trace_packaged": true,
+  "normalizer_status": "implemented",
+  "source_license": "First-party authored keyposes; MIT-redistributable; no external motion data.",
+  "source_attribution": "CamiFit first-party authored keypose timeline, KEYPOSE_TIMELINES['standing_hip_flexion']",
   "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
-  "compiler": "scripts/motion_reference/compile_archetype_trace.py",
-  "output_trace": null,
-  "playable_trace_packaged": false,
-  "acceptance_status": "pending_reference_capture",
-  "normalizer_status": "pending_source_preserving_normalizer",
+  "normalizer": "scripts/motion_reference/compile_archetype_trace.py",
+  "output_trace": "Sources/CamiFitApp/Resources/MotionDemos/standing_miniband_hip_flexion.jsonl",
   "interval_ms": 100,
   "retarget": "side-view-standing-hip-flexion",
   "required_contacts": [
@@ -25,9 +27,91 @@
     "right.ankle"
   ],
   "summary": {
-    "frames": 17,
-    "min_left_hip_flexion_angle": 105.54,
-    "max_left_hip_flexion_angle": 180.0
+    "frames": 35,
+    "min_left_hip_flexion_angle": 109.76,
+    "max_left_hip_flexion_angle": 179.57
   },
-  "replacement_plan": "Locate an exact licensed external workout clip and source-preserving normalizer before packaging any playable guide trace."
+  "authoring": {
+    "mode": "keypose_timeline",
+    "rep_seconds": 3.4,
+    "anchors": [
+      {
+        "at": 0.0,
+        "pose": "stand"
+      },
+      {
+        "at": 0.06,
+        "pose": "stand"
+      },
+      {
+        "at": 0.28,
+        "pose": "drive_mid"
+      },
+      {
+        "at": 0.4,
+        "pose": "drive_high"
+      },
+      {
+        "at": 0.5,
+        "pose": "top"
+      },
+      {
+        "at": 0.64,
+        "pose": "top"
+      },
+      {
+        "at": 0.76,
+        "pose": "lower_high"
+      },
+      {
+        "at": 0.86,
+        "pose": "lower_mid"
+      },
+      {
+        "at": 0.96,
+        "pose": "stand"
+      },
+      {
+        "at": 1.0,
+        "pose": "stand"
+      }
+    ],
+    "license": "First-party authored keyposes; MIT-redistributable; no external motion data."
+  },
+  "golden_comparison": {
+    "status": "not_applicable",
+    "reason": "Authored canonical trace; no golden comparator applies to the authored keypose lane yet."
+  },
+  "visual_review": {
+    "status": "passed",
+    "evidence": "2026-07-01 gallery-style review: user approved the authored candidate after side-by-side review of delivered before/after skeleton media (35-frame authored trace vs legacy 17-frame lerp); frame inspection confirmed stance-foot pinning, vertical shin hang at the top pose, and loop closure."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_final_reps": 1
+  },
+  "live_app_review": {
+    "status": "passed",
+    "evidence": "2026-07-01 authored-lane promotion: direct-download release build installed to /Applications/Momentum.app and inventoried; the installed app contains exactly five playable JSONL traces including the authored standing_miniband_hip_flexion guide.",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 5,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension",
+      "standing_miniband_hip_flexion"
+    ]
+  },
+  "artifact_integrity": {
+    "normalizer": {
+      "bytes": 43571,
+      "sha256": "8686dedd8482fbd4b6f15a5a1a5151612749aa55ae490ea659c83a40d8fdd202"
+    },
+    "output_trace": {
+      "bytes": 83133,
+      "sha256": "5b5cb1958a5cdff13c3631e4ebe7e165c0efd1719869763c669b2cfeaf051fb0"
+    }
+  }
 }

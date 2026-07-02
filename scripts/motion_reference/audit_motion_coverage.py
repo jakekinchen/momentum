@@ -295,6 +295,7 @@ def has_accepted_reference_clip(profile: dict[str, Any]) -> bool:
     return capture_status(profile) in {
         "first_party_webcam_reference",
         "first_party_trainer_reference_video",
+        "first_party_authored_keyposes",
         "licensed_external_reference_clip",
         "licensed_external_workout_clip",
     }
@@ -815,6 +816,22 @@ def manifest_reference_acceptance_failures(
             failures,
             manifest,
             ["raw_trace", "source_video", "normalizer", "output_trace"],
+        )
+        return failures
+
+    if capture_status_value == "first_party_authored_keyposes":
+        if source_kind != "canonical_archetype_authored":
+            failures.append(f"unexpected_reference_source_kind:{source_kind}")
+        require_manifest_fields(
+            failures,
+            manifest,
+            capture,
+            ["source_label", "source_license", "source_attribution"],
+        )
+        require_manifest_paths(
+            failures,
+            manifest,
+            ["normalizer", "output_trace"],
         )
         return failures
 

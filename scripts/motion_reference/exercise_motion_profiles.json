@@ -386,12 +386,12 @@
     {
       "exercise_id": "standing_miniband_hip_flexion",
       "archetype": "standing_hip_flexion",
-      "viewer_status": "pending_reference_capture",
+      "viewer_status": "bundled_canonical_trace",
       "measurement_status": "preset_acceptance_tested",
       "capture": {
-        "status": "pending_licensed_reference_clip",
+        "status": "first_party_authored_keyposes",
         "required_view": "side",
-        "clip": "locate a licensed external workout clip: trainer performs a side-view standing miniband hip-flexion cycle, starting and ending with the working knee down and stance foot planted",
+        "clip": "first-party authored keypose timeline (zero-budget procedural lane): side-view standing miniband hip-flexion cycle authored as constant-bone-length keyposes in compile_archetype_trace.py, starting and ending standing tall with the stance foot planted",
         "contact_policy": "stance foot remains planted heel-to-toe; lifted foot intentionally moves through the cycle; miniband tension is not pose-visible",
         "primary_side": "left_working_leg",
         "rejected_candidates": [

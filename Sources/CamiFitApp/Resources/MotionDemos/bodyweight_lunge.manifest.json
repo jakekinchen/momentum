@@ -34,14 +34,15 @@
   },
   "live_app_review": {
     "status": "passed",
-    "evidence": "2026-06-09 visual regression follow-up kept this exercise guide-ready; the installed app inventory now contains exactly four playable JSONL traces after demoting visually failed plank, preacher curl, and suspension tricep press.",
+    "evidence": "2026-07-01 authored-lane promotion: direct-download release build installed to /Applications/Momentum.app and inventoried; the installed app contains exactly five playable JSONL traces including the authored standing_miniband_hip_flexion guide.",
     "app_bundle": "/Applications/Momentum.app",
-    "installed_playable_jsonls": 4,
+    "installed_playable_jsonls": 5,
     "installed_playable_trace_ids": [
       "bodyweight_lunge",
       "bodyweight_pushup",
       "bodyweight_squat",
-      "single_arm_cable_tricep_extension"
+      "single_arm_cable_tricep_extension",
+      "standing_miniband_hip_flexion"
     ]
   },
   "artifact_integrity": {

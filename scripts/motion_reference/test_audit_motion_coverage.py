@@ -106,6 +106,66 @@ class ReferenceAcceptanceManifestTests(unittest.TestCase):
 
         self.assertEqual(audit.manifest_reference_acceptance_failures(profile, manifest), [])
 
+    def test_authored_keypose_capture_status_is_accepted(self) -> None:
+        profile = {"capture": {"status": "first_party_authored_keyposes"}}
+        self.assertTrue(audit.has_accepted_reference_clip(profile))
+
+    def authored_profile(self) -> dict[str, object]:
+        return {
+            "exercise_id": "standing_miniband_hip_flexion",
+            "viewer_status": "bundled_canonical_trace",
+            "capture": {"status": "first_party_authored_keyposes"},
+            "qa_gates": ["viewer_reviewed", "engine_counts_one_rep"],
+        }
+
+    def authored_manifest(self) -> dict[str, object]:
+        normalizer = "scripts/motion_reference/compile_archetype_trace.py"
+        output_trace = "Sources/CamiFitApp/Resources/MotionDemos/standing_miniband_hip_flexion.jsonl"
+        return {
+            "exercise_id": "standing_miniband_hip_flexion",
+            "source_kind": "canonical_archetype_authored",
+            "source_label": "standing_hip_flexion first-party authored keyposes",
+            "acceptance_status": "accepted_authored_canonical_reference",
+            "playable_trace_packaged": True,
+            "source_license": "First-party authored keyposes; no external motion data.",
+            "source_attribution": "CamiFit motion team authored keypose timeline",
+            "normalizer": normalizer,
+            "output_trace": output_trace,
+            "golden_comparison": {
+                "status": "not_applicable",
+                "reason": "Authored canonical trace; no golden comparator applies.",
+            },
+            "visual_review": {"status": "passed", "evidence": "Unit-test visual review evidence."},
+            "engine_replay": {
+                "status": "passed",
+                "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+                "actual_final_reps": 1,
+            },
+            "live_app_review": live_app_review("standing_miniband_hip_flexion"),
+            "artifact_integrity": {
+                "normalizer": artifact_integrity(normalizer),
+                "output_trace": artifact_integrity(output_trace),
+            },
+        }
+
+    def test_authored_reference_accepts_complete_manifest(self) -> None:
+        failures = audit.manifest_reference_acceptance_failures(
+            self.authored_profile(), self.authored_manifest()
+        )
+        self.assertEqual(failures, [])
+
+    def test_authored_reference_rejects_unexpected_source_kind(self) -> None:
+        manifest = self.authored_manifest()
+        manifest["source_kind"] = "canonical_archetype_trace"
+        failures = audit.manifest_reference_acceptance_failures(self.authored_profile(), manifest)
+        self.assertIn("unexpected_reference_source_kind:canonical_archetype_trace", failures)
+
+    def test_authored_reference_requires_output_trace_path(self) -> None:
+        manifest = self.authored_manifest()
+        manifest.pop("output_trace")
+        failures = audit.manifest_reference_acceptance_failures(self.authored_profile(), manifest)
+        self.assertIn("missing_reference_path:output_trace", failures)
+
     def test_accepted_reference_requires_golden_comparison_decision(self) -> None:
         profile = {
             "capture": {"status": "licensed_external_reference_clip"},

@@ -87,6 +87,7 @@ public struct MotionDemoTimeline: Equatable {
 public enum MotionDemoSourceKind: String, Codable, Equatable {
     case trainerReferenceTrace = "trainer_reference_trace"
     case licensedExternalReferenceTrace = "licensed_external_reference_trace"
+    case canonicalArchetypeAuthored = "canonical_archetype_authored"
     case canonicalArchetypeTrace = "canonical_archetype_trace"
     case proceduralFallback = "procedural_fallback"
 }
@@ -120,6 +121,14 @@ public struct MotionDemoSource: Equatable {
         MotionDemoSource(
             current: .canonicalArchetypeTrace,
             canonical: .trainerReferenceTrace,
+            provenance: provenance
+        )
+    }
+
+    public static func canonicalArchetypeAuthored(provenance: String) -> MotionDemoSource {
+        MotionDemoSource(
+            current: .canonicalArchetypeAuthored,
+            canonical: .canonicalArchetypeAuthored,
             provenance: provenance
         )
     }

@@ -1504,10 +1504,8 @@ struct MotionDemoManifest: Decodable {
             return false
         }
         guard hasText(sourceLabel),
-              hasText(sourceVideo),
               hasText(sourceLicense),
               hasText(sourceAttribution),
-              hasText(rawTrace),
               hasText(normalizer),
               hasText(outputTrace),
               goldenComparison?.isPromotionDecisionRecorded == true,
@@ -1519,9 +1517,12 @@ struct MotionDemoManifest: Decodable {
 
         switch sourceKind {
         case .trainerReferenceTrace:
-            return true
+            return hasText(sourceVideo) && hasText(rawTrace)
         case .licensedExternalReferenceTrace:
-            return hasText(sourcePage) && hasText(sourceMediaURL) && hasRejectedSourceReview
+            return hasText(sourceVideo) && hasText(rawTrace)
+                && hasText(sourcePage) && hasText(sourceMediaURL) && hasRejectedSourceReview
+        case .canonicalArchetypeAuthored:
+            return true
         case .canonicalArchetypeTrace, .proceduralFallback, .none:
             return false
         }
@@ -1552,6 +1553,8 @@ struct MotionDemoManifest: Decodable {
         switch sourceKind {
         case .canonicalArchetypeTrace:
             return .canonicalArchetypeTrace(provenance: "Bundled canonical archetype trace: \(label)")
+        case .canonicalArchetypeAuthored:
+            return .canonicalArchetypeAuthored(provenance: "Bundled authored keypose trace: \(label)")
         case .trainerReferenceTrace, .licensedExternalReferenceTrace, .proceduralFallback, .none:
             return .trainerReferenceTrace(provenance: "Bundled reference trace: \(label)")
         }

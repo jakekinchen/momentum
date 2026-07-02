@@ -380,6 +380,97 @@ final class AvatarHumanoidGLBAssetTests: XCTestCase {
         XCTAssertFalse(acceptedWithRejectedSourceReview.isGuideEligible(for: " "))
     }
 
+    func testAuthoredCanonicalManifestGuideEligibility() throws {
+        func authoredManifest(liveAppReview: MotionDemoManifest.LiveAppReview?) -> MotionDemoManifest {
+            MotionDemoManifest(
+                exerciseID: "test",
+                sourceKind: .canonicalArchetypeAuthored,
+                sourceLabel: "authored keypose timeline",
+                acceptanceStatus: "accepted_authored_canonical_reference",
+                playableTracePackaged: true,
+                normalizerStatus: "implemented",
+                rejectionReason: nil,
+                sourceLicense: "First-party authored keyposes; no external motion data.",
+                sourceAttribution: "CamiFit authored keypose timeline",
+                normalizer: "scripts/motion_reference/compile_archetype_trace.py",
+                outputTrace: "Sources/CamiFitApp/Resources/MotionDemos/test.jsonl",
+                goldenComparison: MotionDemoManifest.GoldenComparison(
+                    status: "not_applicable",
+                    reason: "Authored canonical trace; no golden comparator applies.",
+                    goldenTrace: nil,
+                    candidateTrace: nil,
+                    comparisonReport: nil
+                ),
+                visualReview: MotionDemoManifest.VisualReview(
+                    status: "passed",
+                    evidence: "App avatar review passed."
+                ),
+                engineReplay: MotionDemoManifest.EngineReplay(
+                    status: "passed",
+                    test: "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+                    actualFinalReps: 1,
+                    actualHoldTargetReached: nil
+                ),
+                liveAppReview: liveAppReview
+            )
+        }
+
+        let withoutLiveAppReview = authoredManifest(liveAppReview: nil)
+        XCTAssertFalse(withoutLiveAppReview.isGuideEligible)
+
+        let authored = authoredManifest(liveAppReview: MotionDemoManifest.LiveAppReview(
+            status: "passed",
+            evidence: "Installed app review passed.",
+            appBundle: "/Applications/Momentum.app",
+            installedPlayableJSONLs: 1,
+            installedPlayableTraceIDs: ["test"]
+        ))
+        XCTAssertTrue(authored.isGuideEligible)
+        XCTAssertTrue(authored.isGuideEligible(for: "test"))
+        XCTAssertFalse(authored.isGuideEligible(for: "other_exercise"))
+
+        // Candidate (non-authored) canonical traces must stay fail-closed even
+        // with complete review evidence.
+        let candidate = MotionDemoManifest(
+            exerciseID: "test",
+            sourceKind: .canonicalArchetypeTrace,
+            sourceLabel: "authored keypose timeline",
+            acceptanceStatus: "accepted_authored_canonical_reference",
+            playableTracePackaged: true,
+            normalizerStatus: "implemented",
+            rejectionReason: nil,
+            sourceLicense: "First-party authored keyposes; no external motion data.",
+            sourceAttribution: "CamiFit authored keypose timeline",
+            normalizer: "scripts/motion_reference/compile_archetype_trace.py",
+            outputTrace: "Sources/CamiFitApp/Resources/MotionDemos/test.jsonl",
+            goldenComparison: MotionDemoManifest.GoldenComparison(
+                status: "not_applicable",
+                reason: "Authored canonical trace; no golden comparator applies.",
+                goldenTrace: nil,
+                candidateTrace: nil,
+                comparisonReport: nil
+            ),
+            visualReview: MotionDemoManifest.VisualReview(
+                status: "passed",
+                evidence: "App avatar review passed."
+            ),
+            engineReplay: MotionDemoManifest.EngineReplay(
+                status: "passed",
+                test: "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+                actualFinalReps: 1,
+                actualHoldTargetReached: nil
+            ),
+            liveAppReview: MotionDemoManifest.LiveAppReview(
+                status: "passed",
+                evidence: "Installed app review passed.",
+                appBundle: "/Applications/Momentum.app",
+                installedPlayableJSONLs: 1,
+                installedPlayableTraceIDs: ["test"]
+            )
+        )
+        XCTAssertFalse(candidate.isGuideEligible)
+    }
+
     func testUnlistedProgramDoesNotUseProceduralFallbackAsGuideTimeline() throws {
         let program = try Self.programWithID("future_unreviewed_squat")
         let procedural = MotionDemoCompiler.compile(program: program)
@@ -419,7 +510,6 @@ final class AvatarHumanoidGLBAssetTests: XCTestCase {
         "resistance_band_reverse_curl",
         "single_arm_chest_supported_incline_row",
         "single_arm_dumbbell_preacher_curl",
-        "standing_miniband_hip_flexion",
         "suspension_tricep_press",
         "wide_grip_preacher_curl_with_ez_bar"
     ]

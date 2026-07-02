@@ -265,6 +265,15 @@ final class MediaPipePoseProviderTests: XCTestCase {
                 requiredLandmarks: [
                     "left.shoulder", "left.elbow", "left.wrist", "left.hip"
                 ]
+            ),
+            Case(
+                exerciseID: "standing_miniband_hip_flexion",
+                mode: .rep,
+                contactLandmarks: ["right.heel", "right.foot.index"],
+                requiredLandmarks: [
+                    "left.shoulder", "left.hip", "left.knee", "left.ankle",
+                    "right.hip", "right.knee", "right.ankle"
+                ]
             )
         ]
 
