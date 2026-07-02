@@ -19,6 +19,10 @@ OWNER="${MOMENTUM_CODESIGN_OWNER:-${CAMIFIT_CODESIGN_OWNER:-Jake Kinchen}}"
 DMG_VOLUME_NAME="${MOMENTUM_DMG_VOLUME_NAME:-${CAMIFIT_DMG_VOLUME_NAME:-Momentum}}"
 APP_SHORT_VERSION="${MOMENTUM_RELEASE_SHORT_VERSION:-${CAMIFIT_RELEASE_SHORT_VERSION:-1.0}}"
 APP_BUNDLE_VERSION="${MOMENTUM_RELEASE_BUNDLE_VERSION:-${CAMIFIT_RELEASE_BUNDLE_VERSION:-${VERSION//-/.}}}"
+# Headless DMG layout: a .DS_Store template harvested from a shipped DMG.
+# When present, the Finder AppleScript layout pass is skipped entirely, which
+# keeps releases reproducible in contexts where Finder automation is blocked.
+DMG_LAYOUT_DS_STORE="${MOMENTUM_DMG_LAYOUT_DS_STORE:-${CAMIFIT_DMG_LAYOUT_DS_STORE:-$ROOT_DIR/scripts/release_assets/momentum_dmg_layout.DS_Store}}"
 
 mkdir -p "$RELEASE_DIR"
 
@@ -44,7 +48,7 @@ find_developer_id_identity() {
 
   security find-identity -v -p codesigning 2>/dev/null \
     | sed -nE 's/^[[:space:]]*[0-9]+\) [A-Fa-f0-9]+ "([^"]+)".*/\1/p' \
-    | awk -v owner="$OWNER" -v team="($TEAM_ID)" '$0 ~ "^Developer ID Application:" && index($0, owner) && index($0, team) { print; exit }'
+ 	    | awk -v owner="$OWNER" -v team="($TEAM_ID)" '$0 ~ "^Developer ID Application:" && index($0, owner) && index($0, team) { print; exit }'
 }
 
 escape_applescript_string() {
@@ -107,6 +111,31 @@ create_drag_install_dmg() {
   fi
   echo "Rendering DMG installer background"
   xcrun swift "$DMG_BACKGROUND_SCRIPT" "$app_icon" "$background_dir/installer-background.png" "$APP_DISPLAY_NAME"
+
+  if [[ -n "$DMG_LAYOUT_DS_STORE" && -f "$DMG_LAYOUT_DS_STORE" ]]; then
+    echo "Applying headless DMG Finder layout template: $DMG_LAYOUT_DS_STORE"
+    cp "$DMG_LAYOUT_DS_STORE" "$dmg_stage/.DS_Store"
+    echo "Creating drag-to-Applications DMG: $FINAL_DMG"
+    hdiutil create \
+      -volname "$DMG_VOLUME_NAME" \
+      -srcfolder "$dmg_stage" \
+      -format UDZO \
+      -imagekey zlib-level=9 \
+      -ov \
+      "$FINAL_DMG" >/dev/null
+    rm -rf "$layout_dir"
+    rm -rf "$dmg_stage"
+
+    identity="$(find_developer_id_identity)"
+    if [[ -z "$identity" ]]; then
+      echo "ERROR: direct DMG distribution requires a Developer ID Application certificate for $OWNER." >&2
+      exit 1
+    fi
+    echo "codesigning $FINAL_DMG with $identity"
+    codesign --force --sign "$identity" --timestamp "$FINAL_DMG"
+    codesign --verify --verbose=2 "$FINAL_DMG"
+    return 0
+  fi
 
   echo "Creating drag-to-Applications DMG: $FINAL_DMG"
   hdiutil create \
