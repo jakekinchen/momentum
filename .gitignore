@@ -35,3 +35,6 @@ build/pose-worker-pyinstaller-lite/
 
 # Generated Codex app-server protocol schema (regenerate: codex app-server generate-json-schema)
 docs/research/codex-app-server/
+
+# Preserved artifacts from unrelated Brev workspaces (asl-pilot/molgen cleanup)
+docs/session-logs/brev-preservation/
