@@ -268,6 +268,42 @@ above. Procedural authoring is promoted from "candidate-only" to a first-class
 source lane — the visual-review gallery gate, engine replay, and kinematic
 scorecards remain the unchanged promotion authority for every lane.
 
+## Addendum (2026-07-01): Zero-Budget Open-Source Research Variant
+
+Project context update: CamiFit/Momentum is an open-source research project
+with no asset budget. That inverts parts of the analysis above:
+
+- **Newly usable (research terms now apply):** Fit3D and FLAG3D free research
+  downloads (37/60 real gym exercises with SMPL ground truth), AMASS, and
+  research-licensed extractors (GVHMR, WHAM) — usable to *run and reference*.
+- **Dropped (cost):** marketplace packs, Rokoko clips, Cascadeur Pro,
+  commissions, paid stock subscriptions, paid SaaS, commercial dataset
+  licenses.
+- **Unchanged trap — redistribution:** research licenses still prohibit
+  re-publishing the data, and committing derived traces to a public repo is
+  re-publishing. Rule: anything committed must come from an owned or
+  free-for-all-uses chain; research-licensed data is reference/validation
+  only (HumanML3D pattern: commit regeneration scripts, never the data).
+
+Zero-budget lane ranking:
+
+1. **Procedural archetype compiler (primary, all 15 + KG tail):** $0, fully
+   owned/redistributable output, only lane covering the 9 equipment moves.
+   Upgrade from two-keypose lerp to multi-keypose splines with preset-driven
+   tempo; Blender replaces Cascadeur.
+2. **Free form references to author against:** Fit3D/FLAG3D research access
+   (apply now), Pexels clips, free-exercise-db (public domain). Authoring
+   keyposes against reference is not data redistribution.
+3. **CMU mocap retargets (committable):** "free for all uses"; covers jumping
+   jack, squat, lunge — the moves where mocap realism matters most.
+4. **Optional $0 extraction/validation:** Pexels clip → GVHMR/WHAM/GEM-X on a
+   free Colab T4; research-derived outputs stay regenerable, not committed.
+5. **Free drafts:** Mixamo (archive before it disappears), SayMotion free
+   tier (non-commercial terms now acceptable).
+
+Equipment props and the horizontal-pose rig fix remain on the critical path
+and cost only engineering time.
+
 ## Sources
 
 Lane research (2026-07-01, four parallel web sweeps; key primary links):
