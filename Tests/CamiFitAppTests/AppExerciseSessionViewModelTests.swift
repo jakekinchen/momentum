@@ -127,14 +127,30 @@ final class AppExerciseSessionViewModelTests: XCTestCase {
         }
 
         for presetID in pendingProfileIDs {
-            XCTAssertFalse(
-                FileManager.default.fileExists(
-                    atPath: Self.motionDemosDirectory
-                        .appendingPathComponent("\(presetID).jsonl")
-                        .path
-                ),
+            let traceURL = Self.motionDemosDirectory.appendingPathComponent("\(presetID).jsonl")
+            guard FileManager.default.fileExists(atPath: traceURL.path) else { continue }
+            // Pending-capture exercises may ship a trace only as a
+            // review-gallery demo: review-only scope, non-promotable
+            // acceptance, and never guide-eligible.
+            let manifestURL = Self.motionDemosDirectory
+                .appendingPathComponent("\(presetID).manifest.json")
+            let manifestData = try Data(contentsOf: manifestURL)
+            let manifestObject = try XCTUnwrap(
+                try JSONSerialization.jsonObject(with: manifestData) as? [String: Any],
                 presetID
             )
+            XCTAssertEqual(
+                manifestObject["packaging_scope"] as? String,
+                "motion_review_gallery_demo_only",
+                presetID
+            )
+            let acceptance = (manifestObject["acceptance_status"] as? String ?? "").lowercased()
+            XCTAssertTrue(
+                acceptance.hasPrefix("blocked") || acceptance.hasPrefix("pending") || acceptance.hasPrefix("rejected"),
+                "\(presetID) acceptance_status=\(acceptance)"
+            )
+            let manifest = try XCTUnwrap(MotionDemoManifest.load(nextTo: traceURL), presetID)
+            XCTAssertFalse(manifest.isGuideEligible, presetID)
         }
     }
 

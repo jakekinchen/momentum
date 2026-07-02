@@ -59,8 +59,8 @@
       "sha256": "b4238f98f0b61f39b1279edbf51c4ce471863a1c1d06c53f1a87e11a1ef6b9e7"
     },
     "output_trace": {
-      "bytes": 1789099,
-      "sha256": "e8dc3bdbdd04cc52c5c54189c4771c5925fff4d1c969503c2202d333bc383f15"
+      "bytes": 451164,
+      "sha256": "d8cb5c4eac7d50f0bd57832d784634635622f9d271daa0bf87c857119acb6acf"
     },
     "review_gallery_postprocess": {
       "bytes": 9930,

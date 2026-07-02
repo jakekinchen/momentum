@@ -40,8 +40,8 @@
       "sha256": "260984d96715444369629284345ac4cf78164ff34cb30042578d7944c7fb7c54"
     },
     "output_trace": {
-      "bytes": 421176,
-      "sha256": "2ab7f8912a2a748696ad2b6424872646a0ad09a60158ecc6b3b15a83e0e4757c"
+      "bytes": 83612,
+      "sha256": "ff23a465cec5d47a9a2c824e74d8da38d9b07910e9ed406486696bc515f2d630"
     },
     "review_gallery_postprocess": {
       "bytes": 9930,

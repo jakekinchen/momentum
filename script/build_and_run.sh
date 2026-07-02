@@ -146,8 +146,8 @@ if not acceptance.startswith(review_statuses):
     raise SystemExit(f"{manifest_path}: review-only bundle needs blocked/pending/rejected acceptance_status, got {acceptance!r}")
 if normalizer and normalizer.startswith(("accepted", "protected_golden")):
     raise SystemExit(f"{manifest_path}: review-only bundle unexpectedly has promotable normalizer_status={normalizer!r}")
-if scope and scope != "motion_review_gallery_demo_only":
-    raise SystemExit(f"{manifest_path}: unexpected review-only packaging_scope={scope!r}")
+if scope != "motion_review_gallery_demo_only":
+    raise SystemExit(f"{manifest_path}: review-only bundle needs packaging_scope=motion_review_gallery_demo_only, got {scope!r}")
 PY
 }
 

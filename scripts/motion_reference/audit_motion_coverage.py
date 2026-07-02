@@ -867,7 +867,22 @@ def manifest_reference_acceptance_failures(
     return failures
 
 
+REVIEW_ONLY_PACKAGING_SCOPE = "motion_review_gallery_demo_only"
+
+
+def is_review_only_manifest(manifest: dict[str, Any]) -> bool:
+    scope = str(manifest.get("packaging_scope") or "").strip().lower()
+    if scope != REVIEW_ONLY_PACKAGING_SCOPE:
+        return False
+    acceptance = str(manifest.get("acceptance_status") or "").strip().lower()
+    if acceptance.startswith(("accepted", "protected_golden")):
+        return False
+    return acceptance.startswith(("blocked", "pending", "rejected"))
+
+
 def promoted_manifest(manifest: dict[str, Any]) -> bool:
+    if is_review_only_manifest(manifest):
+        return False
     status = str(manifest.get("acceptance_status", "")).strip().lower()
     return (
         manifest.get("playable_trace_packaged") is True
@@ -884,7 +899,9 @@ def motion_demo_inventory_failures(
     failures: list[str] = []
     for demo_path in sorted(motion_demos.glob("*.jsonl")):
         exercise_id = demo_path.stem
-        if exercise_id not in presets:
+        manifest = load_manifest(demo_path)
+        review_only = manifest is not None and is_review_only_manifest(manifest)
+        if exercise_id not in presets and not review_only:
             failures.append(f"{exercise_id}: playable demo trace has no packaged preset")
         if exercise_id not in profiles:
             failures.append(f"{exercise_id}: playable demo trace has no motion profile")
@@ -894,6 +911,16 @@ def motion_demo_inventory_failures(
         manifest = load_json(manifest_path)
         if manifest.get("exercise_id") and manifest.get("exercise_id") != exercise_id:
             failures.append(f"{exercise_id}: manifest exercise_id mismatch {manifest.get('exercise_id')}")
+        if is_review_only_manifest(manifest):
+            # Review-only gallery demos ship real bytes, so their integrity
+            # records stay enforced even though they are not promotable.
+            if not (motion_demos / f"{exercise_id}.jsonl").exists():
+                failures.append(f"{exercise_id}: review-only manifest has no playable demo trace")
+            manifest_failures = []
+            require_declared_artifact_integrity(manifest_failures, manifest)
+            for failure in manifest_failures:
+                failures.append(f"{exercise_id}: {failure}")
+            continue
         if not promoted_manifest(manifest):
             continue
         if exercise_id not in presets:
@@ -902,7 +929,7 @@ def motion_demo_inventory_failures(
             failures.append(f"{exercise_id}: promoted manifest has no motion profile")
         if not (motion_demos / f"{exercise_id}.jsonl").exists():
             failures.append(f"{exercise_id}: promoted manifest has no playable demo trace")
-        manifest_failures: list[str] = []
+        manifest_failures = []
         require_declared_artifact_integrity(manifest_failures, manifest)
         for failure in manifest_failures:
             failures.append(f"{exercise_id}: {failure}")
@@ -929,6 +956,9 @@ def strict_fail_closed_inventory_failures(
             continue
         demo_path = motion_demos / f"{exercise_id}.jsonl"
         if demo_path.exists():
+            manifest = load_manifest(demo_path)
+            if manifest is not None and is_review_only_manifest(manifest):
+                continue
             failures.append(
                 f"{exercise_id}: pending reference capture must not ship playable demo trace at {demo_path}"
             )
@@ -944,14 +974,23 @@ def guide_ready_inventory_failures(
 ) -> list[str]:
     failures: list[str] = []
     playable_ids = {path.stem for path in motion_demos.glob("*.jsonl")}
+    review_only_ids = {
+        exercise_id
+        for exercise_id in playable_ids
+        if (manifest := load_manifest(motion_demos / f"{exercise_id}.jsonl")) is not None
+        and is_review_only_manifest(manifest)
+    }
+    guide_playable_ids = playable_ids - review_only_ids
 
-    for exercise_id in sorted(playable_ids - guide_ready_ids):
+    for exercise_id in sorted(guide_playable_ids - guide_ready_ids):
         failures.append(f"{exercise_id}: playable JSONL is not listed as guide-ready")
-    for exercise_id in sorted(guide_ready_ids - playable_ids):
+    for exercise_id in sorted(guide_ready_ids - guide_playable_ids):
         failures.append(f"{exercise_id}: guide-ready preset missing playable JSONL")
+    for exercise_id in sorted(guide_ready_ids & review_only_ids):
+        failures.append(f"{exercise_id}: guide-ready preset must not ship a review-only manifest")
     for exercise_id in sorted(guide_ready_ids & reference_capture_ids):
         failures.append(f"{exercise_id}: preset cannot be both guide-ready and reference-capture-required")
-    for exercise_id in sorted(reference_capture_ids & playable_ids):
+    for exercise_id in sorted((reference_capture_ids & playable_ids) - review_only_ids):
         failures.append(f"{exercise_id}: reference-capture preset must not ship playable JSONL")
 
     pending_profile_ids = {
@@ -989,11 +1028,13 @@ def guide_ready_inventory_failures(
             failures.append(f"{exercise_id}: guide-ready manifest playable_trace_packaged is not true")
         live_app_review = manifest.get("live_app_review")
         if isinstance(live_app_review, dict):
+            # Review-only gallery demos are excluded: live_app_review counts
+            # guide-playable traces, not review-scoped ones.
             installed_jsonls = live_app_review.get("installed_playable_jsonls")
-            if installed_jsonls != len(playable_ids):
+            if installed_jsonls != len(guide_playable_ids):
                 failures.append(
                     f"{exercise_id}: guide-ready live_app_review installed_playable_jsonls={installed_jsonls} "
-                    f"does not match packaged playable inventory {len(playable_ids)}"
+                    f"does not match packaged playable inventory {len(guide_playable_ids)}"
                 )
             installed_ids = live_app_review.get("installed_playable_trace_ids")
             if isinstance(installed_ids, list):
@@ -1002,7 +1043,7 @@ def guide_ready_inventory_failures(
                     for item in installed_ids
                     if isinstance(item, str) and str(item).strip()
                 }
-                if normalized_installed_ids != playable_ids:
+                if normalized_installed_ids != guide_playable_ids:
                     failures.append(
                         f"{exercise_id}: guide-ready live_app_review installed_playable_trace_ids "
                         "do not match packaged playable inventory"

@@ -81,5 +81,11 @@
     "asset_path": "website/public/motion-review-assets/single_arm_chest_supported_incline_row/mediapipe_skeleton_review.mp4",
     "promotion_scope": "review media only; not detector agreement or runtime validation"
   },
-  "updated_at": "2026-06-26T16:08:25.411688Z"
+  "updated_at": "2026-06-26T16:08:25.411688Z",
+  "artifact_integrity": {
+    "output_trace": {
+      "bytes": 162643,
+      "sha256": "b1fa3d6a7ca10cac7e0ceb19824af367743488bcf5a998d9108445236bcc0011"
+    }
+  }
 }

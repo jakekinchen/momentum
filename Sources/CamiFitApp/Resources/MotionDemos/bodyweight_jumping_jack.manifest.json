@@ -83,5 +83,23 @@
       }
     },
     "promotion_scope": "no guide-ready or validation-ready promotion"
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 1557986,
+      "sha256": "ca9bc42b7e6d181b1137298854e9d71f44af627f5bd08ee534221e6424982513"
+    },
+    "raw_trace": {
+      "bytes": 683017,
+      "sha256": "54ca82b0ca0732ba710553dc4a01785892c0f1c38236bc9937c89bf49a3ce34f"
+    },
+    "normalizer": {
+      "bytes": 48661,
+      "sha256": "a1be6095f01b0f2fa0f18024acfbad37aebc6a0ceb809345b636d859297d152d"
+    },
+    "output_trace": {
+      "bytes": 44764,
+      "sha256": "9b918ac3a47fb0ea4af0d80d62509b235bddf4808374b568654cfd859e07d3fd"
+    }
   }
 }

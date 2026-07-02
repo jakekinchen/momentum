@@ -81,5 +81,11 @@
     "asset_path": "website/public/motion-review-assets/bench_lying_single_arm_dumbbell_tricep_extension/mediapipe_skeleton_review.mp4",
     "promotion_scope": "review media only; not detector agreement or runtime validation"
   },
-  "updated_at": "2026-06-26T16:08:25.379831Z"
+  "updated_at": "2026-06-26T16:08:25.379831Z",
+  "artifact_integrity": {
+    "output_trace": {
+      "bytes": 165662,
+      "sha256": "813668c55c4092a344f4c55aad8de0f84968c42a8a99418a9068a2eef3ecd7ad"
+    }
+  }
 }

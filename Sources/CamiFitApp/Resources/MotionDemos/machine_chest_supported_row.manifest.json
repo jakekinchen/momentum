@@ -47,5 +47,23 @@
       "max_endpoint_delta_before": 0.0,
       "max_endpoint_delta_after": 0.0
     }
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 29762947,
+      "sha256": "3fba62e48da81f8ecbb881191756f7f12700980300bb1591e5f4b90fa468be4c"
+    },
+    "raw_trace": {
+      "bytes": 591906,
+      "sha256": "0ddbe02a4ae71d410c0eb261343f33edf80d894c1505571435e64b84b6826987"
+    },
+    "normalizer": {
+      "bytes": 11142,
+      "sha256": "669e72a0f161d718375f3a0a550d8a0c8b1275dc3aad48406ffbd6662a9e9ea2"
+    },
+    "output_trace": {
+      "bytes": 168689,
+      "sha256": "b757fd0f15928269ecaab2a6f3c7c4927189d0e79d7f457d0c0d2ac359d2a3aa"
+    }
   }
 }

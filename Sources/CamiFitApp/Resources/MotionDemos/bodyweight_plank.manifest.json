@@ -3,7 +3,7 @@
   "source_kind": "licensed_external_reference_trace",
   "source_label": "Pexels woman doing plank exercise on a yoga mat",
   "acceptance_status": "blocked_visual_rig_review_failed",
-  "playable_trace_packaged": false,
+  "playable_trace_packaged": true,
   "source_page": "https://www.pexels.com/video/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720/",
   "source_media_url": "https://videos.pexels.com/video-files/7801720/7801720-uhd_2732_1154_25fps.mp4",
   "source_video": "dist/motion-reference/bodyweight_plank/source/a-woman-doing-plank-exercise-on-a-yoga-mat-7801720.mp4",
@@ -145,7 +145,7 @@
     },
     "raw_trace": {
       "bytes": 424077,
-      "sha256": "33d9a0aa8b74d8c9448303df7cad52a9649fef75347f1d062bf733373fab8238"
+      "sha256": "5968224c232521a6b60c651f898e3aab9c011ac00e1dc434d7a2726578d1efcf"
     },
     "normalizer": {
       "bytes": 11481,
@@ -182,5 +182,6 @@
     "viewer_reviewed"
   ],
   "viewer_command": "cp dist/motion-reference/bodyweight_plank/pexels_plank_7801720_0_6/bodyweight_plank.static_median.jsonl Sources/CamiFitApp/Resources/MotionDemos/bodyweight_plank.jsonl && CAMIFIT_GUIDE_EXERCISE=bodyweight_plank ./script/build_and_run.sh --verify # DEMOTED 2026-06-09: review-only until fixed-frame installed-app avatar visual review passes.",
-  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass."
+  "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/bodyweight_plank_1200.png shows detached head/neck and broken forearm/torso attachment; demoted until a corrected source-preserving trace and avatar rig review pass.",
+  "packaging_scope": "motion_review_gallery_demo_only"
 }

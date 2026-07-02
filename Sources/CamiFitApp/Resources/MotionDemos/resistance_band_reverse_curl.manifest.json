@@ -81,5 +81,11 @@
     "asset_path": "website/public/motion-review-assets/resistance_band_reverse_curl/mediapipe_skeleton_review.mp4",
     "promotion_scope": "review media only; not detector agreement or runtime validation"
   },
-  "updated_at": "2026-06-26T16:08:25.396250Z"
+  "updated_at": "2026-06-26T16:08:25.396250Z",
+  "artifact_integrity": {
+    "output_trace": {
+      "bytes": 162665,
+      "sha256": "ce7c425f1550ec4ccde8386ccc9800dcbaf60b8431f1286f92e8ce0926b8861e"
+    }
+  }
 }

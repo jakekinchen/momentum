@@ -105,5 +105,23 @@
       }
     },
     "promotion_scope": "no guide-ready or validation-ready promotion"
+  },
+  "artifact_integrity": {
+    "source_video": {
+      "bytes": 12412789,
+      "sha256": "3da0a766f8e125c7932a6cc4575a1861884b98f9c31291cea9e323eb6b78baf2"
+    },
+    "raw_trace": {
+      "bytes": 204082,
+      "sha256": "6a470a7e0cfc0cea7323cba6f4789e8c5683eed68788192ad78b90d9d1b6802a"
+    },
+    "normalizer": {
+      "bytes": 18305,
+      "sha256": "d348495fd6b4b20be43135b623bc0be66b06f196b32e3c7a0d8ef66a92d01bfa"
+    },
+    "output_trace": {
+      "bytes": 459403,
+      "sha256": "a8fc080e41ce047dff7f15ca5313edfc05055d3b5a1c55ac91537105cc098ced"
+    }
   }
 }

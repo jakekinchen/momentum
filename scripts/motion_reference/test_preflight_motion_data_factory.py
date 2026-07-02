@@ -250,6 +250,7 @@ class MotionDataFactoryPreflightTests(unittest.TestCase):
                 "bodyweight_pushup",
                 "bodyweight_squat",
                 "single_arm_cable_tricep_extension",
+                "standing_miniband_hip_flexion",
             },
         )
         for row in report["exercises"]:

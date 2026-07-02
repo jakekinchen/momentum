@@ -113,8 +113,10 @@ final class MotionGuideAccuracyTests: XCTestCase {
     private static func scoreShippedGuide(_ name: String) throws -> MotionGuideAccuracyReport {
         let program = try ProgramLoader.load(from: presetURL(name))
         let recordedURL = motionDemoURL(name)
+        let manifestInfo = bundledManifestInfo(nextTo: recordedURL)
+        let reviewOnly = manifestInfo?.packagingScope == "motion_review_gallery_demo_only"
 
-        if FileManager.default.fileExists(atPath: recordedURL.path) {
+        if FileManager.default.fileExists(atPath: recordedURL.path), !reviewOnly {
             // Recorded traces are keyframe-smoothed at timeline construction
             // (MotionDemoBundleStore); score the frames the app actually plays.
             let frames = MotionDemoKeyframeSmoother.smooth(
@@ -123,10 +125,12 @@ final class MotionGuideAccuracyTests: XCTestCase {
             return try MotionGuideAccuracyScorer.score(
                 program: program,
                 frames: frames,
-                sourceKind: bundledSourceKind(nextTo: recordedURL) ?? .trainerReferenceTrace
+                sourceKind: manifestInfo?.sourceKind ?? .trainerReferenceTrace
             )
         }
 
+        // Review-only gallery demos are not what the app plays as a guide;
+        // the guide surface falls back to the procedural compiler.
         let timeline = MotionDemoCompiler.compile(program: program)
         return try MotionGuideAccuracyScorer.score(
             program: program,
@@ -137,13 +141,15 @@ final class MotionGuideAccuracyTests: XCTestCase {
 
     private struct BundledManifestSourceKind: Decodable {
         let sourceKind: MotionDemoSourceKind?
+        let packagingScope: String?
 
         private enum CodingKeys: String, CodingKey {
             case sourceKind = "source_kind"
+            case packagingScope = "packaging_scope"
         }
     }
 
-    private static func bundledSourceKind(nextTo traceURL: URL) -> MotionDemoSourceKind? {
+    private static func bundledManifestInfo(nextTo traceURL: URL) -> BundledManifestSourceKind? {
         let manifestURL = traceURL
             .deletingPathExtension()
             .appendingPathExtension("manifest.json")
@@ -151,7 +157,7 @@ final class MotionGuideAccuracyTests: XCTestCase {
               let manifest = try? JSONDecoder().decode(BundledManifestSourceKind.self, from: data) else {
             return nil
         }
-        return manifest.sourceKind
+        return manifest
     }
 
     // MARK: - Baseline and scorecard

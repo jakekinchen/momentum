@@ -106,6 +106,55 @@ class ReferenceAcceptanceManifestTests(unittest.TestCase):
 
         self.assertEqual(audit.manifest_reference_acceptance_failures(profile, manifest), [])
 
+    def test_review_only_manifest_is_not_promoted(self) -> None:
+        manifest = {
+            "exercise_id": "bodyweight_pike",
+            "playable_trace_packaged": True,
+            "acceptance_status": "blocked_visual_rig_review_failed",
+            "packaging_scope": "motion_review_gallery_demo_only",
+        }
+        self.assertTrue(audit.is_review_only_manifest(manifest))
+        self.assertFalse(audit.promoted_manifest(manifest))
+
+    def test_review_only_scope_cannot_carry_accepted_status(self) -> None:
+        manifest = {
+            "exercise_id": "bodyweight_pike",
+            "playable_trace_packaged": True,
+            "acceptance_status": "accepted_source_preserving_reference",
+            "packaging_scope": "motion_review_gallery_demo_only",
+        }
+        self.assertFalse(audit.is_review_only_manifest(manifest))
+        self.assertTrue(audit.promoted_manifest(manifest))
+
+    def test_review_only_playable_allowed_without_preset_but_needs_integrity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            motion_demos = Path(directory)
+            trace = motion_demos / "bodyweight_jumping_jack.jsonl"
+            trace.write_text("{}\n", encoding="utf-8")
+            manifest = {
+                "exercise_id": "bodyweight_jumping_jack",
+                "playable_trace_packaged": True,
+                "acceptance_status": "pending_reference_capture",
+                "packaging_scope": "motion_review_gallery_demo_only",
+                "output_trace": str(trace),
+            }
+            (motion_demos / "bodyweight_jumping_jack.manifest.json").write_text(
+                json.dumps(manifest), encoding="utf-8"
+            )
+
+            failures = audit.motion_demo_inventory_failures(
+                motion_demos,
+                presets={},
+                profiles={"bodyweight_jumping_jack": {}},
+            )
+
+        self.assertNotIn(
+            "bodyweight_jumping_jack: playable demo trace has no packaged preset", failures
+        )
+        self.assertIn(
+            "bodyweight_jumping_jack: missing_reference_metadata:artifact_integrity", failures
+        )
+
     def test_authored_keypose_capture_status_is_accepted(self) -> None:
         profile = {"capture": {"status": "first_party_authored_keyposes"}}
         self.assertTrue(audit.has_accepted_reference_clip(profile))

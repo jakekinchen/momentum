@@ -108,7 +108,9 @@ final class CodexAppServerClientTests: XCTestCase {
             }
             return Self.threadStartCount(in: transcript) >= 2
         })
-        XCTAssertEqual(client.state, .ready)
+        // The transcript records the restarted thread before the client state
+        // flips back; wait for the settled state instead of sampling the gap.
+        XCTAssertTrue(waitUntil(timeout: 3) { client.state == .ready })
 
         let transcript = try String(contentsOf: transcriptURL, encoding: .utf8)
         XCTAssertEqual(Self.threadStartCount(in: transcript), 2)
