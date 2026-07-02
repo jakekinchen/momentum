@@ -109,8 +109,8 @@
   },
   "artifact_integrity": {
     "normalizer": {
-      "bytes": 43571,
-      "sha256": "8686dedd8482fbd4b6f15a5a1a5151612749aa55ae490ea659c83a40d8fdd202"
+      "bytes": 48334,
+      "sha256": "108552503d137a8c04dec187fbf894bb808e5c0fa946571f2803eaba2b1964f7"
     },
     "output_trace": {
       "bytes": 83133,
