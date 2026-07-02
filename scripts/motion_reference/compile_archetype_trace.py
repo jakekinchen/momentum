@@ -411,15 +411,13 @@ def standing_hip_flexion_landmarks(factor: float) -> dict[str, dict[str, float]]
         "knee": point_lerp((0.520, 0.690, 0.02), (0.700, 0.540, 0.02), factor),
         "ankle": point_lerp((0.520, 0.860, 0.05), (0.730, 0.650, 0.05), factor),
     }
-    stance = {
-        "shoulder": landmark(0.460, 0.300, -0.16),
-        "elbow": landmark(0.430, 0.440, -0.16),
-        "wrist": landmark(0.410, 0.560, -0.16),
-        "hip": landmark(0.460, 0.500, -0.16),
-        "knee": landmark(0.460, 0.680, -0.16),
-        "ankle": landmark(0.460, 0.860, -0.16),
-    }
+    return assemble_standing_hip_flexion(working, STANDING_HIP_FLEXION_STANCE)
 
+
+def assemble_standing_hip_flexion(
+    working: dict[str, dict[str, float]],
+    stance: dict[str, dict[str, float]],
+) -> dict[str, dict[str, float]]:
     landmarks = {"nose": dict(working["nose"])}
     for joint, point in working.items():
         landmarks[f"primary.{joint}"] = dict(point)
@@ -429,6 +427,148 @@ def standing_hip_flexion_landmarks(factor: float) -> dict[str, dict[str, float]]
     add_side(landmarks, "right", stance)
     add_foot(landmarks, "right", (0.415, 0.872, -0.16), (0.565, 0.878, -0.15), (0.460, 0.860, -0.16))
     return landmarks
+
+
+# Authored keyposes for the zero-budget procedural lane. Geometry contract:
+# hip fixed at (0.520, 0.500); thigh length 0.190 (knee = hip + 0.190*(sin th, cos th));
+# shank length 0.170; torso x-drift <= 0.006 so torso_tilt stays far below the
+# preset's 12 degree rule. Pass-through poses keep per-segment thigh sweep
+# small enough that Catmull-Rom chord shrinkage stays under the bone-length gate.
+STANDING_HIP_FLEXION_POSES: dict[str, dict[str, tuple[float, float, float]]] = {
+    "stand": {
+        "nose": (0.520, 0.170, -0.03),
+        "shoulder": (0.520, 0.290, 0.0),
+        "elbow": (0.490, 0.430, 0.03),
+        "wrist": (0.470, 0.550, 0.08),
+        "hip": (0.520, 0.500, 0.0),
+        "knee": (0.522, 0.690, 0.02),
+        "ankle": (0.520, 0.860, 0.05),
+    },
+    "drive_mid": {
+        "nose": (0.517, 0.175, -0.03),
+        "shoulder": (0.518, 0.293, 0.0),
+        "elbow": (0.485, 0.432, 0.03),
+        "wrist": (0.463, 0.550, 0.08),
+        "hip": (0.520, 0.500, 0.0),
+        "knee": (0.615, 0.664, 0.02),
+        "ankle": (0.591, 0.833, 0.05),
+    },
+    "drive_high": {
+        "nose": (0.514, 0.179, -0.03),
+        "shoulder": (0.516, 0.296, 0.0),
+        "elbow": (0.481, 0.433, 0.03),
+        "wrist": (0.458, 0.550, 0.08),
+        "hip": (0.520, 0.500, 0.0),
+        "knee": (0.666, 0.622, 0.02),
+        "ankle": (0.630, 0.788, 0.05),
+    },
+    "top": {
+        "nose": (0.512, 0.182, -0.03),
+        "shoulder": (0.514, 0.298, 0.0),
+        "elbow": (0.478, 0.434, 0.03),
+        "wrist": (0.455, 0.550, 0.08),
+        "hip": (0.520, 0.500, 0.0),
+        "knee": (0.701, 0.559, 0.02),
+        "ankle": (0.692, 0.729, 0.05),
+    },
+    "lower_high": {
+        "nose": (0.515, 0.178, -0.03),
+        "shoulder": (0.516, 0.295, 0.0),
+        "elbow": (0.482, 0.432, 0.03),
+        "wrist": (0.460, 0.550, 0.08),
+        "hip": (0.520, 0.500, 0.0),
+        "knee": (0.661, 0.627, 0.02),
+        "ankle": (0.632, 0.794, 0.05),
+    },
+    "lower_mid": {
+        "nose": (0.518, 0.174, -0.03),
+        "shoulder": (0.518, 0.292, 0.0),
+        "elbow": (0.487, 0.431, 0.03),
+        "wrist": (0.465, 0.550, 0.08),
+        "hip": (0.520, 0.500, 0.0),
+        "knee": (0.603, 0.671, 0.02),
+        "ankle": (0.588, 0.840, 0.05),
+    },
+}
+
+STANDING_HIP_FLEXION_STANCE: dict[str, dict[str, float]] = {
+    "shoulder": landmark(0.460, 0.300, -0.16),
+    "elbow": landmark(0.430, 0.440, -0.16),
+    "wrist": landmark(0.410, 0.560, -0.16),
+    "hip": landmark(0.460, 0.500, -0.16),
+    "knee": landmark(0.462, 0.680, -0.16),
+    "ankle": landmark(0.460, 0.860, -0.16),
+}
+
+KEYPOSE_TIMELINES: dict[str, dict[str, Any]] = {
+    "standing_hip_flexion": {
+        "poses": STANDING_HIP_FLEXION_POSES,
+        "anchors": [
+            {"at": 0.00, "pose": "stand"},
+            {"at": 0.06, "pose": "stand"},
+            {"at": 0.28, "pose": "drive_mid"},
+            {"at": 0.40, "pose": "drive_high"},
+            {"at": 0.50, "pose": "top"},
+            {"at": 0.64, "pose": "top"},
+            {"at": 0.76, "pose": "lower_high"},
+            {"at": 0.86, "pose": "lower_mid"},
+            {"at": 0.96, "pose": "stand"},
+            {"at": 1.00, "pose": "stand"},
+        ],
+        "rep_seconds": 3.4,
+        "assemble": "standing_hip_flexion",
+        "sway": {"joints": ("nose", "shoulder", "elbow", "wrist"), "x_amp": 0.0035, "y_amp": 0.0015},
+    },
+}
+
+
+def apply_micro_sway(
+    pose_frames: list[dict[str, dict[str, float]]],
+    sway: dict[str, Any],
+) -> list[dict[str, dict[str, float]]]:
+    joints = sway["joints"]
+    x_amp = float(sway["x_amp"])
+    y_amp = float(sway["y_amp"])
+    count = max(len(pose_frames) - 1, 1)  # frame 0 and the final frame share phase 0
+    for index, frame in enumerate(pose_frames):
+        phase_angle = (index % count) / count * 2.0 * math.pi
+        dx = x_amp * math.sin(phase_angle)
+        dy = y_amp * math.sin(2.0 * phase_angle)
+        for joint in joints:
+            if joint in frame:
+                frame[joint] = landmark(frame[joint]["x"] + dx, frame[joint]["y"] + dy, frame[joint]["z"])
+    return pose_frames
+
+
+def build_timeline_frames(profile: dict[str, Any], interval_ms: int) -> list[dict[str, Any]]:
+    archetype = profile["archetype"]
+    spec = KEYPOSE_TIMELINES[archetype]
+    raw = sample_keypose_timeline(
+        anchors=spec["anchors"],
+        poses=spec["poses"],
+        rep_seconds=float(spec["rep_seconds"]),
+        interval_ms=interval_ms,
+        pinned={},
+    )
+    working_frames = [
+        {name: dict(point) for name, point in frame.items()} for frame in raw
+    ]
+    working_frames = apply_micro_sway(working_frames, spec["sway"])
+    frames: list[dict[str, Any]] = []
+    for index, working in enumerate(working_frames):
+        assembled = assemble_standing_hip_flexion(working, STANDING_HIP_FLEXION_STANCE)
+        frames.append(
+            {
+                "type": "motion_demo_pose",
+                "exercise_id": profile["exercise_id"],
+                "timestamp_ms": index * interval_ms,
+                "image_size": IMAGE_SIZE,
+                "phase": f"canonical_{archetype}",
+                "source_kind": "canonical_archetype_authored",
+                "landmarks": assembled,
+            }
+        )
+    return frames
 
 
 def standing_reverse_curl_landmarks(factor: float) -> dict[str, dict[str, float]]:
@@ -637,6 +777,8 @@ def factors_for_archetype(archetype: str) -> list[float]:
 
 
 def build_frames(profile: dict[str, Any], interval_ms: int) -> list[dict[str, Any]]:
+    if profile["archetype"] in KEYPOSE_TIMELINES:
+        return build_timeline_frames(profile, interval_ms)
     exercise_id = profile["exercise_id"]
     archetype = profile["archetype"]
     landmarks_for_factor = archetype_function(archetype)
