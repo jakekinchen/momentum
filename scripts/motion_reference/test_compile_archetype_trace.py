@@ -172,5 +172,27 @@ class LegacyArchetypeRegressionTests(unittest.TestCase):
         self.assertEqual(first, expected)
 
 
+class AuthoredManifestTests(unittest.TestCase):
+    def test_manifest_records_authored_provenance(self) -> None:
+        import json
+        import tempfile
+
+        profiles = compiler.load_profiles(SCRIPT_DIR / "exercise_motion_profiles.json")
+        profile = profiles["standing_miniband_hip_flexion"]
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "standing_miniband_hip_flexion.jsonl"
+            compiler.write_trace(profile, output, interval_ms=100)
+            manifest = json.loads(output.with_suffix(".manifest.json").read_text())
+        self.assertEqual(manifest["source_kind"], "canonical_archetype_authored")
+        self.assertEqual(manifest["authoring"]["mode"], "keypose_timeline")
+        self.assertEqual(manifest["authoring"]["rep_seconds"], 3.4)
+        self.assertIn("first-party authored keyposes", manifest["source_label"])
+        self.assertIn("visual review", manifest["replacement_plan"])
+        self.assertNotIn(
+            "Replace with accepted first-party or licensed workout reference footage",
+            manifest["replacement_plan"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

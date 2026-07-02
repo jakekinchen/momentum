@@ -860,10 +860,30 @@ def write_trace(profile: dict[str, Any], output: Path, interval_ms: int) -> None
             handle.write(json.dumps(frame, separators=(",", ":")) + "\n")
 
     normalizer = profile.get("normalizer", {})
+    authored = profile.get("archetype") in KEYPOSE_TIMELINES
+    if authored:
+        spec = KEYPOSE_TIMELINES[profile["archetype"]]
+        source_kind = "canonical_archetype_authored"
+        source_label = (
+            f"{profile['archetype']} first-party authored keyposes "
+            "(zero-budget procedural lane; no external motion data)"
+        )
+        replacement_plan = (
+            "Authored canonical candidate; promote only after gallery visual review "
+            "passes and the profile exits fail-closed status."
+        )
+    else:
+        spec = None
+        source_kind = "canonical_archetype_trace"
+        source_label = f"{profile['archetype']} canonical motion profile"
+        replacement_plan = (
+            "Candidate artifact only; do not bundle as guide motion. Replace with "
+            "accepted first-party or licensed workout reference footage before promotion."
+        )
     manifest = {
         "exercise_id": profile["exercise_id"],
-        "source_kind": "canonical_archetype_trace",
-        "source_label": f"{profile['archetype']} canonical motion profile",
+        "source_kind": source_kind,
+        "source_label": source_label,
         "archetype": profile["archetype"],
         "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
         "compiler": "scripts/motion_reference/compile_archetype_trace.py",
@@ -874,8 +894,15 @@ def write_trace(profile: dict[str, Any], output: Path, interval_ms: int) -> None
         "required_output_landmarks": profile.get("required_output_landmarks", []),
         "summary": summarize(frames, profile["archetype"]),
         "candidate_status": "canonical_archetype_candidate",
-        "replacement_plan": "Candidate artifact only; do not bundle as guide motion. Replace with accepted first-party or licensed workout reference footage before promotion.",
+        "replacement_plan": replacement_plan,
     }
+    if authored:
+        manifest["authoring"] = {
+            "mode": "keypose_timeline",
+            "rep_seconds": spec["rep_seconds"],
+            "anchors": spec["anchors"],
+            "license": "First-party authored keyposes; MIT-redistributable; no external motion data.",
+        }
     output.with_suffix(".manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"motion-reference compiled={output} exercise_id={profile['exercise_id']} frames={len(frames)}")
 

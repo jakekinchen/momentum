@@ -6,7 +6,7 @@
     "compiler_owner": "FitGraph/CamiFit motion reference tools",
     "runtime_output": "PoseFrame JSONL under Sources/CamiFitApp/Resources/MotionDemos",
     "measurement_boundary": "exercise preset signals and form rules stay canonical; viewer traces must replay through the same engine contract",
-    "reference_policy": "Guide traces may use first-party captures or licensed external workout clips when source URL, license, attribution, source video, raw MediaPipe trace, normalizer, output trace, and review artifacts are preserved."
+    "reference_policy": "Guide traces may use first-party captures, licensed external workout clips, or first-party authored canonical keypose timelines (zero-budget procedural lane). Every source kind must preserve its full provenance chain (capture/license evidence for footage; keypose/tempo authoring metadata for authored traces) and must pass gallery visual review, engine replay, and installed-app review before promotion."
   },
   "profiles": [
     {
@@ -447,10 +447,16 @@
         "bottom": "knee driven forward and up without torso lean"
       },
       "normalizer": {
-        "status": "pending_source_preserving_normalizer",
+        "status": "implemented",
         "script": "scripts/motion_reference/compile_archetype_trace.py",
         "retarget": "side-view-standing-hip-flexion",
-        "cycle_mode": "down-up-down"
+        "cycle_mode": "down-up-down",
+        "authoring": {
+          "mode": "keypose_timeline",
+          "rep_seconds": 3.4,
+          "keyposes": ["stand", "drive_mid", "drive_high", "top", "lower_high", "lower_mid"],
+          "source": "compile_archetype_trace.py KEYPOSE_TIMELINES['standing_hip_flexion']"
+        }
       },
       "required_contacts": [
         "right.heel",
