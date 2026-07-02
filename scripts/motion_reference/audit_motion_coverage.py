@@ -146,6 +146,44 @@ def load_swift_string_set(path: Path, set_name: str) -> set[str]:
     return parse_swift_string_set(path.read_text(encoding="utf-8"), set_name)
 
 
+def packaging_gate_consistency_failures(build_script: Path, app_gate: Path) -> list[str]:
+    """Assert the build script's packaging loops mirror the Swift tracking gate.
+
+    Guide-ready promotion touches multiple enforcement layers; this check keeps
+    `script/build_and_run.sh` from silently drifting away from
+    `AppExerciseTrackingGate` (the layer drift that once blocked a release
+    build at notarization time).
+    """
+    guide_ready = load_swift_string_set(app_gate, "guideReadyPresetIDs")
+    capture_required = load_swift_string_set(app_gate, "referenceCaptureRequiredPresetIDs")
+    text = build_script.read_text(encoding="utf-8")
+
+    packaged: set[str] = set()
+    review_only: set[str] = set()
+    for match in re.finditer(r"for exercise_id in ([^;\n]+); do(.*?)\bdone\b", text, re.DOTALL):
+        ids = set(match.group(1).split())
+        body = match.group(2)
+        if "verify_review_only_motion_demo" in body:
+            review_only |= ids
+        elif "MotionDemos/$exercise_id.jsonl" in body:
+            packaged |= ids
+    for match in re.finditer(r"verify_review_only_motion_demo\s+([a-z0-9_]+)\b", text):
+        review_only.add(match.group(1))
+
+    failures: list[str] = []
+    if packaged != guide_ready:
+        failures.append(
+            "build-script packaged guide ids "
+            f"{sorted(packaged)} do not match Swift guideReadyPresetIDs {sorted(guide_ready)}"
+        )
+    if review_only != capture_required:
+        failures.append(
+            "build-script review-only ids "
+            f"{sorted(review_only)} do not match Swift referenceCaptureRequiredPresetIDs {sorted(capture_required)}"
+        )
+    return failures
+
+
 def point_delta(a: dict[str, Any], b: dict[str, Any]) -> float:
     dx = float(a.get("x", 0)) - float(b.get("x", 0))
     dy = float(a.get("y", 0)) - float(b.get("y", 0))
@@ -1411,6 +1449,12 @@ def parse_args() -> argparse.Namespace:
         help="Swift tracking gate that declares guideReadyPresetIDs and referenceCaptureRequiredPresetIDs",
     )
     parser.add_argument(
+        "--build-script",
+        type=Path,
+        default=repo_root / "script/build_and_run.sh",
+        help="packaging script whose guide/review-only loops must mirror the tracking gate",
+    )
+    parser.add_argument(
         "--strict",
         action="store_true",
         help="fail when shipped/bundled profile demos are missing or invalid",
@@ -1568,6 +1612,9 @@ def main() -> int:
     extra_profiles = sorted(set(profiles) - set(presets))
     for exercise_id in extra_profiles:
         print(f"motion-coverage exercise_id={exercise_id} preset=missing profile=extra")
+
+    if args.build_script.exists() and args.tracking_gate.exists():
+        failures.extend(packaging_gate_consistency_failures(args.build_script, args.tracking_gate))
 
     if args.strict:
         failures.extend(strict_fail_closed_inventory_failures(args.motion_demos, presets, profiles))

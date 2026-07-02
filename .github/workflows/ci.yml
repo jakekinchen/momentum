@@ -12,7 +12,7 @@ concurrency:
 jobs:
   test:
     runs-on: macos-26
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -25,31 +25,18 @@ jobs:
           key: swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
           restore-keys: swiftpm-${{ runner.os }}-
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Swift version
         run: swift --version
 
-      - name: Run tests
-        run: swift test
-
-      - name: Motion reference tooling tests
-        run: |
-          python3 -m py_compile \
-            scripts/motion_reference/audit_motion_coverage.py \
-            scripts/motion_reference/audit_kg_motion_readiness.py \
-            scripts/motion_reference/report_motion_pipeline_gaps.py \
-            scripts/motion_reference/test_audit_motion_coverage.py \
-            scripts/motion_reference/test_report_motion_pipeline_gaps.py
-          python3 scripts/motion_reference/test_report_motion_pipeline_gaps.py
-
-      - name: Motion coverage inventory
-        run: python3 scripts/motion_reference/audit_motion_coverage.py
-
-      - name: KG motion readiness audit
-        run: python3 scripts/motion_reference/audit_kg_motion_readiness.py --summary-only
-
-      - name: Motion reference gap report
-        if: always()
-        run: python3 scripts/motion_reference/report_motion_pipeline_gaps.py
+      # Single source of truth: CI runs the same gate script used locally and
+      # by the release preflight. The motion audit auto-detects that dist/
+      # source-chain artifacts are absent on a fresh clone and runs its
+      # non-strict tier; the strict provenance tier runs on release machines.
+      - name: Run monorepo gates
+        run: scripts/run_monorepo_gates.sh
 
       - name: Upload motion reference gap report
         if: always()

@@ -65,19 +65,30 @@ echo "== swift-test =="
 echo "== motion-reference-coverage =="
 (
   cd "$ROOT"
-  python3 -m py_compile \
-    scripts/motion_reference/audit_motion_coverage.py \
-    scripts/motion_reference/audit_kg_motion_readiness.py \
-    scripts/motion_reference/report_motion_pipeline_gaps.py \
-    scripts/motion_reference/compile_archetype_trace.py \
-    scripts/motion_reference/test_audit_motion_coverage.py \
-    scripts/motion_reference/test_report_motion_pipeline_gaps.py \
-    scripts/motion_reference/test_compile_archetype_trace.py
+  # Decide the audit tier before anything below creates dist/ output dirs:
+  # source-chain capture folders only exist on local/release machines.
+  strict_motion_audit=0
+  if [[ -d "$ROOT/dist/motion-reference/bodyweight_pushup" ]]; then
+    strict_motion_audit=1
+  fi
+  # Compile-check and run every motion-reference module and test suite so new
+  # tooling cannot be silently skipped by a stale hardcoded list.
+  python3 -m py_compile scripts/motion_reference/*.py
   scripts/motion_reference/report_motion_pipeline_gaps.py
-  python3 scripts/motion_reference/test_audit_motion_coverage.py
-  python3 scripts/motion_reference/test_report_motion_pipeline_gaps.py
-  python3 scripts/motion_reference/test_compile_archetype_trace.py
-  scripts/motion_reference/audit_motion_coverage.py --strict --require-trackable-reference-clips --require-guide-ready-inventory
+  for test_suite in scripts/motion_reference/test_*.py; do
+    echo "-- $test_suite"
+    python3 "$test_suite"
+  done
+  if [[ "$strict_motion_audit" == "1" ]]; then
+    # Local/release machines hold the dist/ source-chain artifacts; run the
+    # full strict provenance tier.
+    scripts/motion_reference/audit_motion_coverage.py --strict --require-trackable-reference-clips --require-guide-ready-inventory
+  else
+    # Fresh clones (CI) cannot verify local-only dist/ artifacts; run the
+    # non-strict tier (still includes packaging-gate consistency).
+    echo "dist/ source-chain artifacts absent; running non-strict motion audit"
+    scripts/motion_reference/audit_motion_coverage.py
+  fi
 )
 
 echo "== kg-motion-readiness =="

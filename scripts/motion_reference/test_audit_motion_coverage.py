@@ -106,6 +106,48 @@ class ReferenceAcceptanceManifestTests(unittest.TestCase):
 
         self.assertEqual(audit.manifest_reference_acceptance_failures(profile, manifest), [])
 
+    def test_gate_consistency_detects_build_script_drift(self) -> None:
+        swift_gate = """
+        enum AppExerciseTrackingGate {
+            static let guideReadyPresetIDs: Set<String> = [
+                "bodyweight_squat",
+                "standing_miniband_hip_flexion"
+            ]
+            static let referenceCaptureRequiredPresetIDs: Set<String> = [
+                "bodyweight_jumping_jack",
+                "bodyweight_pike"
+            ]
+        }
+        """
+        build_script_in_sync = """
+          for exercise_id in bodyweight_squat standing_miniband_hip_flexion; do
+            verify_packaged_resource "$app_resource_bundle/MotionDemos/$exercise_id.jsonl"
+          done
+          verify_review_only_motion_demo bodyweight_jumping_jack "$app_resource_bundle"
+          for exercise_id in bodyweight_pike; do
+            verify_review_only_motion_demo "$exercise_id" "$app_resource_bundle"
+          done
+        """
+        build_script_drifted = build_script_in_sync.replace(
+            "bodyweight_squat standing_miniband_hip_flexion", "bodyweight_squat"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            gate_path = Path(directory) / "AppExerciseTrackingGate.swift"
+            gate_path.write_text(swift_gate, encoding="utf-8")
+            script_path = Path(directory) / "build_and_run.sh"
+
+            script_path.write_text(build_script_in_sync, encoding="utf-8")
+            self.assertEqual(
+                audit.packaging_gate_consistency_failures(script_path, gate_path), []
+            )
+
+            script_path.write_text(build_script_drifted, encoding="utf-8")
+            failures = audit.packaging_gate_consistency_failures(script_path, gate_path)
+            self.assertTrue(
+                any("standing_miniband_hip_flexion" in failure for failure in failures),
+                failures,
+            )
+
     def test_review_only_manifest_is_not_promoted(self) -> None:
         manifest = {
             "exercise_id": "bodyweight_pike",

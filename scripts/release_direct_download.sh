@@ -188,6 +188,11 @@ create_drag_install_dmg() {
   codesign --verify --verbose=2 "$FINAL_DMG"
 }
 
+if [[ "${MOMENTUM_SKIP_PREFLIGHT_GATES:-${CAMIFIT_SKIP_PREFLIGHT_GATES:-0}}" != "1" ]]; then
+  echo "Running monorepo gates preflight (set MOMENTUM_SKIP_PREFLIGHT_GATES=1 to skip)"
+  "$ROOT_DIR/scripts/run_monorepo_gates.sh"
+fi
+
 echo "Building direct-download app bundle for $OWNER"
 CAMIFIT_DISTRIBUTION_CHANNEL=direct \
 CAMIFIT_CODESIGN_OWNER="$OWNER" \
