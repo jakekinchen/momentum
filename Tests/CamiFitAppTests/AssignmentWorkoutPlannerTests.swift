@@ -151,7 +151,10 @@ final class AssignmentWorkoutPlannerTests: XCTestCase {
         XCTAssertFalse(Self.presetIDs(artifact.routine.blocks).contains("bodyweight_jumping_jack"))
     }
 
-    func testVisualReviewDemotedPreacherCurlStaysRecommendationOnly() throws {
+    func testAuthoredPreacherCurlPlansAsGuidedBlock() throws {
+        // The June extraction was demoted after visual rig review; the
+        // authored keypose trace supersedes it, so the planner now maps the
+        // preacher curl to its guide-ready preset.
         let planner = AssignmentWorkoutPlanner(applicationSupportDirectory: temporaryDirectory())
         let artifact = try planner.makeArtifact(
             prompt: "Build an arms preacher curl routine. only dumbbell and preacher curl bench."
@@ -162,18 +165,14 @@ final class AssignmentWorkoutPlannerTests: XCTestCase {
         XCTAssertTrue(artifact.plan.selectedExercises.contains {
             $0.exerciseID == "Exercise:single_arm_dumbbell_preacher_curl"
         })
-        XCTAssertTrue(artifact.recommendOnlySelected.contains {
+        XCTAssertFalse(artifact.recommendOnlySelected.contains {
             $0.exerciseID == "Exercise:single_arm_dumbbell_preacher_curl"
         })
-        XCTAssertFalse(artifact.presetMappings.contains {
+        XCTAssertTrue(artifact.presetMappings.contains {
             $0.kgExerciseID == "Exercise:single_arm_dumbbell_preacher_curl"
                 && $0.presetID == "single_arm_dumbbell_preacher_curl"
         })
-        XCTAssertFalse(Self.presetIDs(artifact.routine.blocks).contains("single_arm_dumbbell_preacher_curl"))
-        XCTAssertTrue(Self.catalogExerciseIDs(artifact.routine.blocks).contains(
-            "Exercise:single_arm_dumbbell_preacher_curl"
-        ))
-        XCTAssertTrue(artifact.routine.hasUnguidedBlocks)
+        XCTAssertTrue(Self.presetIDs(artifact.routine.blocks).contains("single_arm_dumbbell_preacher_curl"))
     }
 
     func testPlannerIncludesLocalOverlayConstraints() throws {

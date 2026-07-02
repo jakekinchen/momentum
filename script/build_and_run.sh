@@ -194,7 +194,7 @@ verify_packaged_resources() {
   fi
 
   local exercise_id
-  for exercise_id in bodyweight_squat bodyweight_lunge bodyweight_pushup single_arm_cable_tricep_extension standing_miniband_hip_flexion; do
+  for exercise_id in bodyweight_squat bodyweight_lunge bodyweight_pushup single_arm_cable_tricep_extension standing_miniband_hip_flexion resistance_band_reverse_curl single_arm_dumbbell_preacher_curl wide_grip_preacher_curl_with_ez_bar; do
     verify_packaged_resource "$app_resource_bundle/Presets/$exercise_id.json"
     verify_packaged_resource "$app_resource_bundle/MotionDemos/$exercise_id.jsonl"
     verify_packaged_resource "$app_resource_bundle/MotionDemos/$exercise_id.manifest.json"
@@ -205,7 +205,7 @@ verify_packaged_resources() {
     "bodyweight_jumping_jack has been user-rejected and must not ship as an app preset until a clean external reference is accepted"
   verify_review_only_motion_demo bodyweight_jumping_jack "$app_resource_bundle"
 
-  for exercise_id in bodyweight_pike bodyweight_plank resistance_band_reverse_curl bench_lying_single_arm_dumbbell_tricep_extension single_arm_dumbbell_preacher_curl wide_grip_preacher_curl_with_ez_bar single_arm_chest_supported_incline_row machine_chest_supported_row suspension_tricep_press; do
+  for exercise_id in bodyweight_pike bodyweight_plank bench_lying_single_arm_dumbbell_tricep_extension single_arm_chest_supported_incline_row machine_chest_supported_row suspension_tricep_press; do
     verify_packaged_resource "$app_resource_bundle/Presets/$exercise_id.json"
     verify_review_only_motion_demo "$exercise_id" "$app_resource_bundle"
   done

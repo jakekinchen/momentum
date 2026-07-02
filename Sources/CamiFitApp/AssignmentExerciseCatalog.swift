@@ -197,20 +197,14 @@ enum AssignmentExerciseTrackingCoverage {
         switch exerciseID {
         case "Exercise:jumping_jack":
             return syntheticReferenceCaptureRequired("bodyweight_jumping_jack")
-        case "Exercise:resistance_band_reverse_curl":
-            return syntheticReferenceCaptureRequired("resistance_band_reverse_curl")
         case "Exercise:bodyweight_pike":
             return visualRigReviewRequired("bodyweight_pike")
         case "Exercise:bodyweight_plank":
             return visualRigReviewRequired("bodyweight_plank")
         case "Exercise:bench_lying_single_arm_dumbbell_tricep_extension":
             return syntheticReferenceCaptureRequired("bench_lying_single_arm_dumbbell_tricep_extension")
-        case "Exercise:single_arm_dumbbell_preacher_curl":
-            return visualRigReviewRequired("single_arm_dumbbell_preacher_curl")
         case "Exercise:suspension_tricep_press":
             return visualRigReviewRequired("suspension_tricep_press")
-        case "Exercise:wide_grip_preacher_curl_with_ez_bar":
-            return syntheticReferenceCaptureRequired("wide_grip_preacher_curl_with_ez_bar")
         case "Exercise:single_arm_chest_supported_incline_row":
             return syntheticReferenceCaptureRequired("single_arm_chest_supported_incline_row")
         case "Exercise:machine_chest_supported_row":

@@ -31,11 +31,8 @@ final class AppExerciseSessionViewModelTests: XCTestCase {
             "bodyweight_pike",
             "bodyweight_plank",
             "machine_chest_supported_row",
-            "resistance_band_reverse_curl",
             "single_arm_chest_supported_incline_row",
-            "single_arm_dumbbell_preacher_curl",
-            "suspension_tricep_press",
-            "wide_grip_preacher_curl_with_ez_bar"
+            "suspension_tricep_press"
         ] {
             XCTAssertFalse(availablePresetIDs.contains(presetID), presetID)
             XCTAssertEqual(viewModel.trackingReadiness(forPresetID: presetID), .referenceCaptureRequired)
@@ -103,11 +100,8 @@ final class AppExerciseSessionViewModelTests: XCTestCase {
             "bodyweight_pike",
             "bodyweight_plank",
             "machine_chest_supported_row",
-            "resistance_band_reverse_curl",
             "single_arm_chest_supported_incline_row",
-            "single_arm_dumbbell_preacher_curl",
-            "suspension_tricep_press",
-            "wide_grip_preacher_curl_with_ez_bar"
+            "suspension_tricep_press"
         ] {
             XCTAssertFalse(viewModel.availablePresets.contains { $0.id == presetID }, presetID)
             XCTAssertThrowsError(try viewModel.selectPreset(id: presetID), presetID) { error in

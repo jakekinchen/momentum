@@ -172,6 +172,60 @@ class LegacyArchetypeRegressionTests(unittest.TestCase):
         self.assertEqual(first, expected)
 
 
+class AuthoredCurlFormTests(unittest.TestCase):
+    CASES = [
+        # exercise_id, bottom_max (curl rule), upper_arm_tilt_max, torso_tilt_max
+        ("resistance_band_reverse_curl", 80.0, 25.0, 15.0),
+        ("single_arm_dumbbell_preacher_curl", 70.0, 35.0, 20.0),
+        ("wide_grip_preacher_curl_with_ez_bar", 70.0, 35.0, 20.0),
+    ]
+
+    def frames_for(self, exercise_id: str):
+        profiles = compiler.load_profiles(SCRIPT_DIR / "exercise_motion_profiles.json")
+        return compiler.build_frames(profiles[exercise_id], interval_ms=100)
+
+    def test_curl_traces_satisfy_their_presets_by_construction(self) -> None:
+        import math
+
+        for exercise_id, bottom_max, arm_tilt_max, torso_tilt_max in self.CASES:
+            with self.subTest(exercise_id=exercise_id):
+                frames = self.frames_for(exercise_id)
+                marks = [frame["landmarks"] for frame in frames]
+                self.assertEqual(frames[0]["source_kind"], "canonical_archetype_authored")
+                self.assertGreaterEqual(len(frames), 30)
+                self.assertEqual(marks[0], marks[-1])
+
+                elbow = [
+                    compiler.angle_degrees(m["primary.shoulder"], m["primary.elbow"], m["primary.wrist"])
+                    for m in marks
+                ]
+                # rep contract: up_when > 150, down_when < 85, min_rom 60
+                self.assertGreaterEqual(max(elbow), 160.0)
+                self.assertLessEqual(min(elbow), bottom_max - 1.0)
+                self.assertGreaterEqual(max(elbow) - min(elbow), 70.0)
+                dwell_ms = sum(100 for value in elbow if value < 85.0)
+                self.assertGreaterEqual(dwell_ms, 180)
+
+                for m in marks:
+                    arm_tilt = math.degrees(math.atan2(
+                        abs(m["primary.elbow"]["x"] - m["primary.shoulder"]["x"]),
+                        abs(m["primary.elbow"]["y"] - m["primary.shoulder"]["y"]),
+                    ))
+                    torso_tilt = math.degrees(math.atan2(
+                        abs(m["primary.shoulder"]["x"] - m["primary.hip"]["x"]),
+                        abs(m["primary.shoulder"]["y"] - m["primary.hip"]["y"]),
+                    ))
+                    self.assertLessEqual(arm_tilt, arm_tilt_max, exercise_id)
+                    self.assertLessEqual(torso_tilt, torso_tilt_max, exercise_id)
+
+                def dist(a, b) -> float:
+                    return ((a["x"] - b["x"]) ** 2 + (a["y"] - b["y"]) ** 2) ** 0.5
+
+                forearms = [dist(m["primary.elbow"], m["primary.wrist"]) for m in marks]
+                spread = (max(forearms) - min(forearms)) / max(sum(forearms) / len(forearms), 1e-9)
+                self.assertLess(spread, 0.06, exercise_id)
+
+
 class AuthoredManifestTests(unittest.TestCase):
     def test_manifest_records_authored_provenance(self) -> None:
         import json

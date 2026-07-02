@@ -500,6 +500,108 @@ STANDING_HIP_FLEXION_STANCE: dict[str, dict[str, float]] = {
     "ankle": landmark(0.460, 0.860, -0.16),
 }
 
+# Authored curl keyposes. Shared geometry contract: constant bone lengths,
+# torso and upper arm pinned inside their preset tilt rules, elbow angle
+# sweeping extended (>150 deg) -> curled (<=70/80 deg) -> extended. Wrist
+# keyposes are generated from exact elbow-angle rotations about the pinned
+# elbow so the elbow angle is correct by construction, and the angle ladder
+# keeps per-segment sweep small enough that Catmull-Rom chord shrinkage stays
+# inside the bone-length gate.
+def _curl_wrist(
+    shoulder: tuple[float, float],
+    elbow: tuple[float, float],
+    elbow_angle_deg: float,
+    forearm_len: float,
+) -> tuple[float, float, float]:
+    ux = shoulder[0] - elbow[0]
+    uy = shoulder[1] - elbow[1]
+    length = math.hypot(ux, uy)
+    ux /= length
+    uy /= length
+    theta = math.radians(elbow_angle_deg)
+    vx = (ux * math.cos(theta)) - (uy * math.sin(theta))
+    vy = (ux * math.sin(theta)) + (uy * math.cos(theta))
+    return (
+        round(elbow[0] + (forearm_len * vx), 6),
+        round(elbow[1] + (forearm_len * vy), 6),
+        0.08,
+    )
+
+
+def _curl_poses(
+    statics: dict[str, tuple[float, float, float]],
+    forearm_len: float,
+    elbow_angles: dict[str, float],
+) -> dict[str, dict[str, tuple[float, float, float]]]:
+    shoulder = (statics["shoulder"][0], statics["shoulder"][1])
+    elbow = (statics["elbow"][0], statics["elbow"][1])
+    poses: dict[str, dict[str, tuple[float, float, float]]] = {}
+    for name, angle in elbow_angles.items():
+        pose = dict(statics)
+        pose["wrist"] = _curl_wrist(shoulder, elbow, angle, forearm_len)
+        poses[name] = pose
+    return poses
+
+
+# upper arm tilt ~10 deg forward (rule <=25)
+STANDING_REVERSE_CURL_POSES = _curl_poses(
+    statics={
+        "nose": (0.525, 0.190, -0.03),
+        "shoulder": (0.520, 0.320, 0.0),
+        "elbow": (0.540, 0.431, 0.03),
+        "hip": (0.520, 0.545, 0.0),
+        "knee": (0.520, 0.710, 0.02),
+        "ankle": (0.520, 0.865, 0.05),
+    },
+    forearm_len=0.135,
+    elbow_angles={"c175": 175, "c140": 140, "c105": 105, "c68": 68, "c100": 100, "c135": 135},
+)
+
+# upper arm rests on the pad at ~23 deg forward (rule <=35); torso ~6 deg
+PREACHER_CURL_POSES = _curl_poses(
+    statics={
+        "nose": (0.495, 0.180, -0.03),
+        "shoulder": (0.500, 0.300, 0.0),
+        "elbow": (0.600, 0.540, 0.03),
+        "hip": (0.470, 0.590, 0.0),
+        "knee": (0.580, 0.720, 0.02),
+        "ankle": (0.630, 0.860, 0.05),
+    },
+    forearm_len=0.234,
+    elbow_angles={"c175": 175, "c140": 140, "c105": 105, "c68": 66, "c100": 100, "c135": 135},
+)
+
+CURL_ANCHORS: list[dict[str, Any]] = [
+    {"at": 0.00, "pose": "c175"},
+    {"at": 0.06, "pose": "c175"},
+    {"at": 0.20, "pose": "c140"},
+    {"at": 0.32, "pose": "c105"},
+    {"at": 0.44, "pose": "c68"},
+    {"at": 0.58, "pose": "c68"},
+    {"at": 0.70, "pose": "c100"},
+    {"at": 0.82, "pose": "c135"},
+    {"at": 0.94, "pose": "c175"},
+    {"at": 1.00, "pose": "c175"},
+]
+
+
+def assemble_curl(working: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
+    primary = dict(working)
+    landmarks = {"nose": dict(primary["nose"])}
+    add_side(landmarks, "primary", primary)
+    duplicate_primary_to_side(landmarks, "right", primary, x_offset=0.0, z_offset=0.10)
+    duplicate_primary_to_side(landmarks, "left", primary, x_offset=-0.090, z_offset=-0.12)
+    ankle = primary["ankle"]
+    add_foot(landmarks, "primary", (ankle["x"] - 0.045, ankle["y"] + 0.012, 0.05), (ankle["x"] + 0.105, ankle["y"] + 0.018, 0.06), (ankle["x"], ankle["y"], 0.05))
+    add_foot(landmarks, "right", (ankle["x"] - 0.045, ankle["y"] + 0.012, 0.15), (ankle["x"] + 0.105, ankle["y"] + 0.018, 0.16), (ankle["x"], ankle["y"], 0.15))
+    add_foot(landmarks, "left", (ankle["x"] - 0.135, ankle["y"] + 0.012, -0.07), (ankle["x"] + 0.015, ankle["y"] + 0.018, -0.06), (ankle["x"] - 0.090, ankle["y"], -0.07))
+    return landmarks
+
+
+def assemble_standing_hip_flexion_working(working: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
+    return assemble_standing_hip_flexion(working, STANDING_HIP_FLEXION_STANCE)
+
+
 KEYPOSE_TIMELINES: dict[str, dict[str, Any]] = {
     "standing_hip_flexion": {
         "poses": STANDING_HIP_FLEXION_POSES,
@@ -519,6 +621,25 @@ KEYPOSE_TIMELINES: dict[str, dict[str, Any]] = {
         "assemble": "standing_hip_flexion",
         "sway": {"joints": ("nose", "shoulder", "elbow", "wrist"), "x_amp": 0.0035, "y_amp": 0.0015},
     },
+    "standing_reverse_curl": {
+        "poses": STANDING_REVERSE_CURL_POSES,
+        "anchors": CURL_ANCHORS,
+        "rep_seconds": 3.2,
+        "assemble": "curl",
+        "sway": {"joints": ("nose",), "x_amp": 0.0025, "y_amp": 0.0012},
+    },
+    "preacher_curl": {
+        "poses": PREACHER_CURL_POSES,
+        "anchors": CURL_ANCHORS,
+        "rep_seconds": 3.2,
+        "assemble": "curl",
+        "sway": {"joints": ("nose",), "x_amp": 0.0025, "y_amp": 0.0012},
+    },
+}
+
+ASSEMBLE_FUNCTIONS: dict[str, Callable[[dict[str, dict[str, float]]], dict[str, dict[str, float]]]] = {
+    "standing_hip_flexion": assemble_standing_hip_flexion_working,
+    "curl": assemble_curl,
 }
 
 
@@ -554,9 +675,10 @@ def build_timeline_frames(profile: dict[str, Any], interval_ms: int) -> list[dic
         {name: dict(point) for name, point in frame.items()} for frame in raw
     ]
     working_frames = apply_micro_sway(working_frames, spec["sway"])
+    assemble = ASSEMBLE_FUNCTIONS[spec["assemble"]]
     frames: list[dict[str, Any]] = []
     for index, working in enumerate(working_frames):
-        assembled = assemble_standing_hip_flexion(working, STANDING_HIP_FLEXION_STANCE)
+        assembled = assemble(working)
         frames.append(
             {
                 "type": "motion_demo_pose",

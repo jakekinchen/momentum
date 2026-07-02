@@ -102,9 +102,9 @@ final class CoachExerciseActionTests: XCTestCase {
         let harness = try CoachActionHarness()
         try harness.viewModel.selectPreset(id: "bodyweight_squat")
         let action = CoachExerciseAction(
-            exerciseID: "resistance_band_reverse_curl",
+            exerciseID: "single_arm_chest_supported_incline_row",
             mode: .guide,
-            reason: "Show me a reverse curl"
+            reason: "Show me an incline row"
         )
 
         let result = harness.dispatcher.apply(action)

@@ -21,31 +21,26 @@ final class SingleArmDumbbellPreacherCurlAcceptanceTests: XCTestCase {
         )
     }
 
-    func testVisuallyRejectedPreacherCurlTraceIsReviewOnlyAndNotGuidePromoted() throws {
+    func testAuthoredPreacherCurlTraceIsGuideAcceptedAndReplaysOneRep() throws {
+        // The visually rejected Pixabay extraction was superseded by the
+        // authored keypose trace (zero-budget procedural lane).
         let manifest = try Self.motionDemoManifest()
-        let qaGates = try XCTUnwrap(manifest["qa_gates"] as? [String])
-        let cleanup = try XCTUnwrap(manifest["review_gallery_motion_cleanup"] as? [String: Any])
         let frames = try MediaPipePoseJSONLDecoder.decode(contentsOf: Self.motionDemoURL)
 
-        XCTAssertEqual(manifest["acceptance_status"] as? String, "blocked_visual_rig_review_failed")
+        XCTAssertEqual(manifest["acceptance_status"] as? String, "accepted_authored_canonical_reference")
         XCTAssertEqual(manifest["playable_trace_packaged"] as? Bool, true)
-        XCTAssertEqual(manifest["packaging_scope"] as? String, "motion_review_gallery_demo_only")
-        XCTAssertEqual(manifest["source_kind"] as? String, "licensed_external_reference_trace")
-        XCTAssertEqual(manifest["source_license"] as? String, "Pixabay Content License")
-        XCTAssertEqual(manifest["source_attribution"] as? String, "tixonov_valentin / Pixabay")
-        XCTAssertEqual(
-            manifest["source_page"] as? String,
-            "https://pixabay.com/videos/crossfit-gym-workout-training-66991/"
-        )
-        XCTAssertTrue(qaGates.contains("source_timed_anatomical_retarget"))
-        XCTAssertTrue(qaGates.contains("constant_forearm_length"))
-        XCTAssertTrue(qaGates.contains("review_gallery_motion_smoothed"))
-        XCTAssertTrue(qaGates.contains("review_gallery_only"))
-        XCTAssertEqual(cleanup["status"] as? String, "review_only_smoothed")
-        XCTAssertEqual(cleanup["promotion_scope"] as? String, "no guide-ready or validation-ready promotion")
-        XCTAssertEqual(frames.count, 131)
+        XCTAssertNil(manifest["packaging_scope"])
+        XCTAssertEqual(manifest["source_kind"] as? String, "canonical_archetype_authored")
+        XCTAssertEqual(frames.count, 33)
         XCTAssertTrue(zip(frames, frames.dropFirst()).allSatisfy { $1.timestampMS > $0.timestampMS })
-        XCTAssertTrue((manifest["visual_review_failure"] as? String)?.contains("demoted") == true)
+
+        let program = try ProgramLoader.load(from: Self.presetURL)
+        try Self.assertAcceptance(
+            name: "authored_bundled",
+            program: program,
+            frames: frames,
+            expectedRepCount: 1
+        )
     }
 
     private static func assertAcceptance(

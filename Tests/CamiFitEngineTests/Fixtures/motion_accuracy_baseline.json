@@ -44,12 +44,12 @@
       "max_noise_to_signal_median": 0.35
     },
     "resistance_band_reverse_curl": {
-      "source_kind": "procedural_fallback",
-      "max_bone_length_cv": 0.28,
-      "max_peak_landmark_speed_body_per_second": 3.4,
+      "source_kind": "canonical_archetype_authored",
+      "max_bone_length_cv": 0.05,
+      "max_peak_landmark_speed_body_per_second": 1.1,
       "max_loop_closure_gap_body_scaled": 0.01,
       "max_form_violation_frames": 0,
-      "max_noise_to_signal_median": 1.3
+      "max_noise_to_signal_median": 0.4
     },
     "bodyweight_pike": {
       "source_kind": "procedural_fallback",
@@ -60,12 +60,12 @@
       "max_noise_to_signal_median": 1.3
     },
     "single_arm_dumbbell_preacher_curl": {
-      "source_kind": "procedural_fallback",
-      "max_bone_length_cv": 0.32,
-      "max_peak_landmark_speed_body_per_second": 4.0,
+      "source_kind": "canonical_archetype_authored",
+      "max_bone_length_cv": 0.05,
+      "max_peak_landmark_speed_body_per_second": 1.8,
       "max_loop_closure_gap_body_scaled": 0.01,
       "max_form_violation_frames": 0,
-      "max_noise_to_signal_median": 1.3
+      "max_noise_to_signal_median": 0.4
     },
     "bench_lying_single_arm_dumbbell_tricep_extension": {
       "source_kind": "procedural_fallback",
@@ -92,12 +92,12 @@
       "max_noise_to_signal_median": 1.3
     },
     "wide_grip_preacher_curl_with_ez_bar": {
-      "source_kind": "procedural_fallback",
-      "max_bone_length_cv": 0.32,
-      "max_peak_landmark_speed_body_per_second": 4.0,
+      "source_kind": "canonical_archetype_authored",
+      "max_bone_length_cv": 0.05,
+      "max_peak_landmark_speed_body_per_second": 1.8,
       "max_loop_closure_gap_body_scaled": 0.01,
       "max_form_violation_frames": 0,
-      "max_noise_to_signal_median": 1.3
+      "max_noise_to_signal_median": 0.4
     },
     "single_arm_chest_supported_incline_row": {
       "source_kind": "procedural_fallback",

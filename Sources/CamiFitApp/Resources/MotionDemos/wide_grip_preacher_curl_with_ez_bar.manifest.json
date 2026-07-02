@@ -1,14 +1,16 @@
 {
   "exercise_id": "wide_grip_preacher_curl_with_ez_bar",
-  "source_kind": "canonical_archetype_trace",
-  "source_label": "preacher_curl canonical motion profile",
+  "source_kind": "canonical_archetype_authored",
+  "source_label": "preacher_curl first-party authored keyposes (zero-budget procedural lane; no external motion data)",
   "archetype": "preacher_curl",
-  "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
-  "compiler": "scripts/motion_reference/package_review_gallery_archetype_traces.py",
-  "output_trace": "Sources/CamiFitApp/Resources/MotionDemos/wide_grip_preacher_curl_with_ez_bar.jsonl",
+  "acceptance_status": "accepted_authored_canonical_reference",
   "playable_trace_packaged": true,
-  "acceptance_status": "pending_reference_capture",
-  "normalizer_status": "pending_source_preserving_normalizer",
+  "normalizer_status": "implemented",
+  "source_license": "First-party authored keyposes; MIT-redistributable; no external motion data.",
+  "source_attribution": "CamiFit first-party authored keypose timeline, KEYPOSE_TIMELINES['preacher_curl']",
+  "profile_registry": "scripts/motion_reference/exercise_motion_profiles.json",
+  "normalizer": "scripts/motion_reference/compile_archetype_trace.py",
+  "output_trace": "Sources/CamiFitApp/Resources/MotionDemos/wide_grip_preacher_curl_with_ez_bar.jsonl",
   "interval_ms": 100,
   "retarget": "side-view-preacher-curl",
   "required_contacts": [],
@@ -19,73 +21,101 @@
     "primary.hip"
   ],
   "summary": {
-    "frames": 65,
-    "min_primary_elbow_angle": 51.43,
-    "max_primary_elbow_angle": 177.36
+    "frames": 33,
+    "min_primary_elbow_angle": 66.0,
+    "max_primary_elbow_angle": 175.0
   },
-  "replacement_plan": "Locate an exact licensed external workout clip and source-preserving normalizer before packaging any playable guide trace.",
-  "packaging_scope": "motion_review_gallery_demo_only",
-  "review_gallery_packaged_at": "2026-06-26",
-  "review_gallery_cleanup_at": "2026-06-26",
-  "review_gallery_note": "Canonical archetype demo packaged only so the web Motion Review mannequin and review video can be judged; this remains blocked from guide-ready and validation-ready promotion.",
   "qa_gates": [
-    "canonical_archetype_review_demo",
-    "review_gallery_motion_smoothed",
-    "review_gallery_only",
-    "engine_replay_candidate_only"
+    "loop_boundary_stable",
+    "elbow_extension_flexion_extension",
+    "upper_arm_stable",
+    "engine_counts_one_rep",
+    "viewer_reviewed"
   ],
-  "candidate_status": "canonical_archetype_review_gallery_only",
-  "review_gallery_motion_cleanup": {
-    "status": "review_only_smoothed",
-    "script": "scripts/motion_reference/package_review_gallery_archetype_traces.py",
-    "upsample_factor": 4,
-    "smooth_window": 3,
-    "excluded_landmarks": [],
-    "before": {
-      "frames": 17,
-      "max_landmark_step": {
-        "value": 0.122186,
-        "frame_index": 4,
-        "landmark": "right.wrist"
+  "authoring": {
+    "mode": "keypose_timeline",
+    "rep_seconds": 3.2,
+    "anchors": [
+      {
+        "at": 0.0,
+        "pose": "c175"
       },
-      "max_phase_step": {
-        "value": 0.0,
-        "frame_index": null
+      {
+        "at": 0.06,
+        "pose": "c175"
       },
-      "max_primary_elbow_angle_step": {
-        "value": 73.0273,
-        "frame_index": 4
+      {
+        "at": 0.2,
+        "pose": "c140"
+      },
+      {
+        "at": 0.32,
+        "pose": "c105"
+      },
+      {
+        "at": 0.44,
+        "pose": "c68"
+      },
+      {
+        "at": 0.58,
+        "pose": "c68"
+      },
+      {
+        "at": 0.7,
+        "pose": "c100"
+      },
+      {
+        "at": 0.82,
+        "pose": "c135"
+      },
+      {
+        "at": 0.94,
+        "pose": "c175"
+      },
+      {
+        "at": 1.0,
+        "pose": "c175"
       }
-    },
-    "after": {
-      "frames": 65,
-      "max_landmark_step": {
-        "value": 0.030546,
-        "frame_index": 46,
-        "landmark": "left.wrist"
-      },
-      "max_phase_step": {
-        "value": 0.0,
-        "frame_index": null
-      },
-      "max_primary_elbow_angle_step": {
-        "value": 21.3394,
-        "frame_index": 18
-      }
-    },
-    "promotion_scope": "no guide-ready or validation-ready promotion"
+    ],
+    "license": "First-party authored keyposes; MIT-redistributable; no external motion data."
   },
-  "review_gallery_detection_data": {
-    "status": "generated_from_packaged_review_trace",
-    "asset_script": "scripts/motion_reference/generate_motion_review_gallery_assets.py",
-    "asset_path": "website/public/motion-review-assets/wide_grip_preacher_curl_with_ez_bar/mediapipe_skeleton_review.mp4",
-    "promotion_scope": "review media only; not detector agreement or runtime validation"
+  "golden_comparison": {
+    "status": "not_applicable",
+    "reason": "Authored canonical trace; no golden comparator applies to the authored keypose lane yet."
   },
-  "updated_at": "2026-06-26T16:08:25.441722Z",
+  "visual_review": {
+    "status": "passed",
+    "evidence": "2026-07-01 authored-batch review: rig snapshot renders reviewed for framing, torso continuity, and pinned upper arm; form-by-construction unit tests mirror the preset rep and form rules (see AuthoredCurlFormTests)."
+  },
+  "engine_replay": {
+    "status": "passed",
+    "test": "MediaPipePoseProviderTests/testGuideReadyMotionDemoTracesDecodeAndReplayThroughEngine",
+    "actual_final_reps": 1
+  },
+  "live_app_review": {
+    "status": "passed",
+    "evidence": "2026-07-01 authored-batch promotion: direct-download release build installed to /Applications/Momentum.app and inventoried; the installed app contains exactly eight playable guide JSONL traces (review-only gallery demos excluded from this count).",
+    "app_bundle": "/Applications/Momentum.app",
+    "installed_playable_jsonls": 8,
+    "installed_playable_trace_ids": [
+      "bodyweight_lunge",
+      "bodyweight_pushup",
+      "bodyweight_squat",
+      "single_arm_cable_tricep_extension",
+      "standing_miniband_hip_flexion",
+      "resistance_band_reverse_curl",
+      "single_arm_dumbbell_preacher_curl",
+      "wide_grip_preacher_curl_with_ez_bar"
+    ]
+  },
   "artifact_integrity": {
+    "normalizer": {
+      "bytes": 48334,
+      "sha256": "108552503d137a8c04dec187fbf894bb808e5c0fa946571f2803eaba2b1964f7"
+    },
     "output_trace": {
-      "bytes": 160674,
-      "sha256": "63fd405b2ae16d30dc3e88577daa75b5c224b1f7d48996d320b0a33b83a06df5"
+      "bytes": 73506,
+      "sha256": "3d22ca5c3b5e105b4c08337a18265c0f12328d41aa8ee5d9b6174f9f1507eaec"
     }
   }
 }

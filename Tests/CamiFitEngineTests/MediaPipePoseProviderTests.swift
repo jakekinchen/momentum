@@ -274,6 +274,24 @@ final class MediaPipePoseProviderTests: XCTestCase {
                     "left.shoulder", "left.hip", "left.knee", "left.ankle",
                     "right.hip", "right.knee", "right.ankle"
                 ]
+            ),
+            Case(
+                exerciseID: "resistance_band_reverse_curl",
+                mode: .rep,
+                contactLandmarks: [],
+                requiredLandmarks: ["primary.shoulder", "primary.elbow", "primary.wrist", "primary.hip"]
+            ),
+            Case(
+                exerciseID: "single_arm_dumbbell_preacher_curl",
+                mode: .rep,
+                contactLandmarks: [],
+                requiredLandmarks: ["primary.shoulder", "primary.elbow", "primary.wrist", "primary.hip"]
+            ),
+            Case(
+                exerciseID: "wide_grip_preacher_curl_with_ez_bar",
+                mode: .rep,
+                contactLandmarks: [],
+                requiredLandmarks: ["primary.shoulder", "primary.elbow", "primary.wrist", "primary.hip"]
             )
         ]
 

@@ -10,9 +10,9 @@ final class AssignmentExerciseCatalogTests: XCTestCase {
 
         XCTAssertEqual(exercises.count, 50)
         XCTAssertEqual(exercises.first?.name, "Alternating Dumbbell Decline Bench Press")
-        XCTAssertEqual(statusCounts[.guideReady], 2)
+        XCTAssertEqual(statusCounts[.guideReady], 5)
         XCTAssertEqual(statusCounts[.archetypeDemoOnly], 14)
-        XCTAssertEqual(statusCounts[.recommendOnly], 34)
+        XCTAssertEqual(statusCounts[.recommendOnly], 31)
     }
 
     func testAssessmentExerciseIncludesGraphMetadata() throws {
@@ -69,15 +69,16 @@ final class AssignmentExerciseCatalogTests: XCTestCase {
         XCTAssertTrue(press.trackingCoverage.reasons.contains("avatar_head_neck_attachment_failed"))
     }
 
-    func testSingleArmDumbbellPreacherCurlTraceRequiresVisualRigReviewBeforeGuideReady() throws {
+    func testSingleArmDumbbellPreacherCurlIsGuideReadyViaAuthoredKeyposeLane() throws {
+        // The June extraction was demoted after visual rig review; the
+        // authored keypose trace supersedes it and promotes the exercise.
         let exercises = try AssignmentExerciseCatalog.loadAssessmentExercises()
         let curl = try XCTUnwrap(exercises.first { $0.id == "Exercise:single_arm_dumbbell_preacher_curl" })
 
-        XCTAssertEqual(curl.statusText, "Recommend only")
+        XCTAssertEqual(curl.statusText, "Guide ready")
         XCTAssertEqual(curl.trackingCoverage.mappedPresetID, "single_arm_dumbbell_preacher_curl")
         XCTAssertEqual(curl.trackingCoverage.mappingKind, "exact_id")
-        XCTAssertTrue(curl.trackingCoverage.reasons.contains("visual_rig_review_failed"))
-        XCTAssertTrue(curl.trackingCoverage.reasons.contains("avatar_head_neck_attachment_failed"))
+        XCTAssertTrue(curl.trackingCoverage.reasons.isEmpty)
     }
 
     func testMachineChestSupportedRowRequiresResolvedLicenseReviewBeforeGuideReady() throws {
@@ -113,13 +114,10 @@ final class AssignmentExerciseCatalogTests: XCTestCase {
         let blockedMappings = [
             "Exercise:jumping_jack": "bodyweight_jumping_jack",
             "Exercise:bodyweight_plank": "bodyweight_plank",
-            "Exercise:resistance_band_reverse_curl": "resistance_band_reverse_curl",
             "Exercise:bodyweight_pike": "bodyweight_pike",
-            "Exercise:single_arm_dumbbell_preacher_curl": "single_arm_dumbbell_preacher_curl",
             "Exercise:bench_lying_single_arm_dumbbell_tricep_extension": "bench_lying_single_arm_dumbbell_tricep_extension",
             "Exercise:suspension_tricep_press": "suspension_tricep_press",
             "Exercise:machine_chest_supported_row": "machine_chest_supported_row",
-            "Exercise:wide_grip_preacher_curl_with_ez_bar": "wide_grip_preacher_curl_with_ez_bar",
             "Exercise:single_arm_chest_supported_incline_row": "single_arm_chest_supported_incline_row"
         ]
 
@@ -145,7 +143,10 @@ final class AssignmentExerciseCatalogTests: XCTestCase {
             "Exercise:bodyweight_lunge": "bodyweight_lunge",
             "Exercise:bodyweight_pushup": "bodyweight_pushup",
             "Exercise:single_arm_cable_tricep_extension": "single_arm_cable_tricep_extension",
-            "Exercise:standing_miniband_hip_flexion": "standing_miniband_hip_flexion"
+            "Exercise:standing_miniband_hip_flexion": "standing_miniband_hip_flexion",
+            "Exercise:resistance_band_reverse_curl": "resistance_band_reverse_curl",
+            "Exercise:single_arm_dumbbell_preacher_curl": "single_arm_dumbbell_preacher_curl",
+            "Exercise:wide_grip_preacher_curl_with_ez_bar": "wide_grip_preacher_curl_with_ez_bar"
         ]
 
         XCTAssertEqual(Set(guideReadyMappings.values), AppExerciseTrackingGate.guideReadyPresetIDs)

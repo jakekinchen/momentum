@@ -249,8 +249,11 @@ class MotionDataFactoryPreflightTests(unittest.TestCase):
                 "bodyweight_lunge",
                 "bodyweight_pushup",
                 "bodyweight_squat",
+                "resistance_band_reverse_curl",
                 "single_arm_cable_tricep_extension",
+                "single_arm_dumbbell_preacher_curl",
                 "standing_miniband_hip_flexion",
+                "wide_grip_preacher_curl_with_ez_bar",
             },
         )
         for row in report["exercises"]:

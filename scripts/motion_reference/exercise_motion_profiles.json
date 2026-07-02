@@ -454,7 +454,14 @@
         "authoring": {
           "mode": "keypose_timeline",
           "rep_seconds": 3.4,
-          "keyposes": ["stand", "drive_mid", "drive_high", "top", "lower_high", "lower_mid"],
+          "keyposes": [
+            "stand",
+            "drive_mid",
+            "drive_high",
+            "top",
+            "lower_high",
+            "lower_mid"
+          ],
           "source": "compile_archetype_trace.py KEYPOSE_TIMELINES['standing_hip_flexion']"
         }
       },
@@ -482,12 +489,12 @@
     {
       "exercise_id": "resistance_band_reverse_curl",
       "archetype": "standing_reverse_curl",
-      "viewer_status": "pending_reference_capture",
+      "viewer_status": "bundled_canonical_trace",
       "measurement_status": "preset_acceptance_tested",
       "capture": {
-        "status": "pending_licensed_reference_clip",
+        "status": "first_party_authored_keyposes",
         "required_view": "side",
-        "clip": "locate a licensed external workout clip: trainer performs a side-view resistance-band reverse-curl cycle, starting and ending with the arm extended",
+        "clip": "first-party authored keypose timeline (zero-budget procedural lane): side-view resistance band reverse curl cycle authored as constant-bone-length elbow-angle keyposes in compile_archetype_trace.py",
         "contact_policy": "feet and band anchor remain out of measurement scope; the elbow-flexion cycle is pose-visible while band tension and pronated grip are not",
         "primary_side": "camera_side_arm",
         "rejected_candidates": [
@@ -524,10 +531,23 @@
         "bottom": "forearm curled up while the upper arm stays mostly still"
       },
       "normalizer": {
-        "status": "pending_source_preserving_normalizer",
+        "status": "implemented",
         "script": "scripts/motion_reference/compile_archetype_trace.py",
         "retarget": "side-view-standing-reverse-curl",
-        "cycle_mode": "extended-flexed-extended"
+        "cycle_mode": "extended-flexed-extended",
+        "authoring": {
+          "mode": "keypose_timeline",
+          "rep_seconds": 3.2,
+          "keyposes": [
+            "c175",
+            "c140",
+            "c105",
+            "c68",
+            "c100",
+            "c135"
+          ],
+          "source": "compile_archetype_trace.py KEYPOSE_TIMELINES"
+        }
       },
       "required_contacts": [],
       "required_output_landmarks": [
@@ -608,12 +628,12 @@
     {
       "exercise_id": "single_arm_dumbbell_preacher_curl",
       "archetype": "preacher_curl",
-      "viewer_status": "pending_reference_capture",
+      "viewer_status": "bundled_canonical_trace",
       "measurement_status": "reference_capture_required",
       "capture": {
-        "status": "pending_visual_rig_review",
+        "status": "first_party_authored_keyposes",
         "required_view": "side",
-        "clip": "Pixabay 66991 Crossfit Gym Workout Training, source frames 41..56..64 plus a short extended settle",
+        "clip": "first-party authored keypose timeline (zero-budget procedural lane): side-view single arm dumbbell preacher curl cycle authored as constant-bone-length elbow-angle keyposes in compile_archetype_trace.py",
         "source_page": "https://pixabay.com/videos/crossfit-gym-workout-training-66991/",
         "source_license": "Pixabay Content License",
         "source_attribution": "tixonov_valentin / Pixabay",
@@ -624,8 +644,8 @@
           "review_scope": "Promotion review retained the Pixabay 66991 source and no alternate rejected source-candidate records were preserved in this slice.",
           "reason": "The accepted source is pinned by source page, license, attribution, raw trace, normalizer, visual review, engine replay, and artifact integrity. Future source changes must add rejected_candidates before promotion."
         },
-        "visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review.",
-        "rejection_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review."
+        "prior_rejection_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review.",
+        "prior_visual_review_failure": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review."
       },
       "phase": {
         "driver": "primary elbow flexion angle",
@@ -633,11 +653,23 @@
         "bottom": "dumbbell curled up while the upper arm stays supported"
       },
       "normalizer": {
-        "status": "blocked_visual_rig_review_failed",
+        "status": "implemented",
         "script": "scripts/motion_reference/normalize_single_arm_dumbbell_preacher_curl_trace.py",
         "retarget": "source_timed_anatomical_side_view_avatar_rig",
         "cycle_mode": "source_extended-flexed-extended_with_extended_settle",
-        "blocked_reason": "Fixed-frame installed app review /tmp/camifit_visual_audit_20260609_1245/single_arm_dumbbell_preacher_curl_1200.png matches user-reported bad preacher-curl silhouette with the working arm crossing through the lower body; demoted until a supported-preacher rig/source trace passes visual review."
+        "authoring": {
+          "mode": "keypose_timeline",
+          "rep_seconds": 3.2,
+          "keyposes": [
+            "c175",
+            "c140",
+            "c105",
+            "c68",
+            "c100",
+            "c135"
+          ],
+          "source": "compile_archetype_trace.py KEYPOSE_TIMELINES"
+        }
       },
       "required_contacts": [],
       "required_output_landmarks": [
@@ -657,18 +689,19 @@
         "upper_arm_stable",
         "constant_forearm_length",
         "engine_counts_one_rep",
-        "visual_rig_review_failed"
+        "visual_rig_review_failed",
+        "viewer_reviewed"
       ]
     },
     {
       "exercise_id": "wide_grip_preacher_curl_with_ez_bar",
       "archetype": "preacher_curl",
-      "viewer_status": "pending_reference_capture",
+      "viewer_status": "bundled_canonical_trace",
       "measurement_status": "preset_acceptance_tested",
       "capture": {
-        "status": "pending_licensed_reference_clip",
+        "status": "first_party_authored_keyposes",
         "required_view": "side",
-        "clip": "locate a licensed external workout clip: trainer performs a side-view wide-grip EZ-bar preacher-curl cycle, starting and ending with the camera-side elbow extended",
+        "clip": "first-party authored keypose timeline (zero-budget procedural lane): side-view wide grip preacher curl with ez bar cycle authored as constant-bone-length elbow-angle keyposes in compile_archetype_trace.py",
         "contact_policy": "EZ-bar presence, load, grip width, both-arm symmetry, and preacher-bench contact are setup/equipment requirements; the camera-side elbow-flexion cycle is pose-visible",
         "primary_side": "camera_side_arm",
         "rejected_candidates": [
@@ -711,10 +744,23 @@
         "bottom": "EZ bar curled up while the camera-side upper arm stays supported"
       },
       "normalizer": {
-        "status": "pending_source_preserving_normalizer",
+        "status": "implemented",
         "script": "scripts/motion_reference/compile_archetype_trace.py",
         "retarget": "side-view-preacher-curl",
-        "cycle_mode": "extended-flexed-extended"
+        "cycle_mode": "extended-flexed-extended",
+        "authoring": {
+          "mode": "keypose_timeline",
+          "rep_seconds": 3.2,
+          "keyposes": [
+            "c175",
+            "c140",
+            "c105",
+            "c68",
+            "c100",
+            "c135"
+          ],
+          "source": "compile_archetype_trace.py KEYPOSE_TIMELINES"
+        }
       },
       "required_contacts": [],
       "required_output_landmarks": [
