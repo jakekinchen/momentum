@@ -69,6 +69,88 @@ def smoothstep(factor: float) -> float:
     return factor * factor * (3 - (2 * factor))
 
 
+def catmull_rom_point(p0: float, p1: float, p2: float, p3: float, t: float) -> float:
+    t2 = t * t
+    t3 = t2 * t
+    return 0.5 * (
+        (2.0 * p1)
+        + (-p0 + p2) * t
+        + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
+        + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3
+    )
+
+
+def _anchor_pose_values(
+    anchors: list[dict[str, Any]],
+    poses: dict[str, dict[str, tuple[float, float, float]]],
+) -> tuple[list[float], dict[str, list[tuple[float, float, float]]]]:
+    if anchors[0]["pose"] != anchors[-1]["pose"]:
+        raise SystemExit("keypose timeline must start and end on the same pose to loop")
+    times = [float(anchor["at"]) for anchor in anchors]
+    if times != sorted(times) or times[0] != 0.0 or times[-1] != 1.0:
+        raise SystemExit("keypose anchors must be sorted with at=0.0 first and at=1.0 last")
+    joint_names = sorted(poses[anchors[0]["pose"]].keys())
+    tracks: dict[str, list[tuple[float, float, float]]] = {name: [] for name in joint_names}
+    for anchor in anchors:
+        pose = poses[anchor["pose"]]
+        for name in joint_names:
+            tracks[name].append(tuple(float(value) for value in pose[name]))
+    return times, tracks
+
+
+def _sample_track(
+    times: list[float],
+    points: list[tuple[float, float, float]],
+    t: float,
+) -> tuple[float, float, float]:
+    # Circular Catmull-Rom over anchor points; anchors 0 and -1 hold the same
+    # pose, so neighbour tangents wrap (skipping the duplicated endpoint).
+    segment = len(times) - 2
+    for index in range(len(times) - 1):
+        if t <= times[index + 1]:
+            segment = index
+            break
+    t0, t1 = times[segment], times[segment + 1]
+    span = max(t1 - t0, 1e-9)
+    local = min(max((t - t0) / span, 0.0), 1.0)
+    p1 = points[segment]
+    p2 = points[segment + 1]
+    p0 = points[segment - 1] if segment > 0 else points[-2]
+    p3 = points[segment + 2] if segment + 2 < len(points) else points[1]
+    if p1 == p2:  # explicit hold: stay exactly still
+        return p1
+    return tuple(
+        catmull_rom_point(p0[axis], p1[axis], p2[axis], p3[axis], local)
+        for axis in range(3)
+    )
+
+
+def sample_keypose_timeline(
+    anchors: list[dict[str, Any]],
+    poses: dict[str, dict[str, tuple[float, float, float]]],
+    rep_seconds: float,
+    interval_ms: int,
+    pinned: dict[str, tuple[float, float, float]],
+) -> list[dict[str, dict[str, float]]]:
+    times, tracks = _anchor_pose_values(anchors, poses)
+    interval_s = interval_ms / 1000.0
+    frame_count = int(round(rep_seconds / interval_s)) + 1
+    frames: list[dict[str, dict[str, float]]] = []
+    for index in range(frame_count):
+        t = min(index * interval_s / rep_seconds, 1.0)
+        frame: dict[str, dict[str, float]] = {}
+        for name, points in tracks.items():
+            if index == frame_count - 1:
+                x, y, z = points[0]  # exact loop closure
+            else:
+                x, y, z = _sample_track(times, points, t)
+            frame[name] = landmark(x, y, z)
+        for name, point in pinned.items():
+            frame[name] = landmark(*point)
+        frames.append(frame)
+    return frames
+
+
 def mirrored_factors(samples_per_half: int, hold_bottom: int = 2, hold_top: int = 2) -> list[float]:
     descent = [smoothstep(index / samples_per_half) for index in range(samples_per_half + 1)]
     ascent = list(reversed(descent[:-1]))
