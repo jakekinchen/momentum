@@ -1,8 +1,8 @@
 # June 8 Direct Download DMG
 
-**Release:** `macos-20260608-4`
-**App bundle:** `dist/Momentum.app`
-**Final DMG:** `dist/releases/Momentum-macOS-20260608-4.dmg`
+**Release:** `macos-20260608-4`  
+**App bundle:** `dist/Momentum.app`  
+**Final DMG:** `dist/releases/Momentum-macOS-20260608-4.dmg`  
 **Stable GitHub asset:** `Momentum-macOS.dmg`
 
 ## Summary

@@ -1,9 +1,9 @@
 # 2026-06-07 Direct Download Notarization
 
-**Status:** notarized, stapled, uploaded, and live-site verified
-**Current canonical website:** `https://momentum-future.vercel.app`
-**App bundle:** `dist/CamiFitApp.app`
-**Final zip:** `dist/releases/Momentum-macOS-20260607-4.zip`
+**Status:** notarized, stapled, uploaded, and live-site verified  
+**Current canonical website:** `https://momentum-future.vercel.app`  
+**App bundle:** `dist/CamiFitApp.app`  
+**Final zip:** `dist/releases/Momentum-macOS-20260607-4.zip`  
 **Notary zip:** `dist/releases/notary-Momentum-macOS-20260607-4.zip`
 
 ## Signing Identity

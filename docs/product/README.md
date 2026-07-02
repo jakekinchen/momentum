@@ -1,6 +1,6 @@
 # Momentum - Your Future Coach Product Overview
 
-**Status:** Current product framing
+**Status:** Current product framing  
 **Last updated:** 2026-06-06
 
 Momentum - Your Future Coach is a local-first macOS fitness coach built from a

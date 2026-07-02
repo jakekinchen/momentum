@@ -1,8 +1,8 @@
 # 2026-06-06 Conformance Release Closeout
 
-**Status:** validated local release candidate
-**Branch:** `feat/monorepo-synthesis`
-**App bundle:** `dist/CamiFitApp.app`
+**Status:** validated local release candidate  
+**Branch:** `feat/monorepo-synthesis`  
+**App bundle:** `dist/CamiFitApp.app`  
 **Zip artifact:** `dist/CamiFitApp-release-20260606.zip`
 
 ## Current Artifact
